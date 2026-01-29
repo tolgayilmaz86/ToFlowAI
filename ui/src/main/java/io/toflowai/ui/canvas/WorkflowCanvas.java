@@ -476,6 +476,52 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         connectionLayer.setTranslateY(translateY);
     }
 
+    /**
+     * Update the canvas pane size to fit all content.
+     * This ensures the ScrollPane knows the proper content bounds.
+     */
+    private void updateCanvasBounds() {
+        double minX = Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE;
+        double maxX = Double.MIN_VALUE;
+        double maxY = Double.MIN_VALUE;
+
+        // Include all node positions
+        for (NodeView nodeView : nodeViews.values()) {
+            double x = nodeView.getLayoutX();
+            double y = nodeView.getLayoutY();
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + 200); // Node width + margin
+            maxY = Math.max(maxY, y + 120); // Node height + margin
+        }
+
+        // If no nodes, use default bounds
+        if (minX == Double.MAX_VALUE) {
+            minX = 0;
+            minY = 0;
+            maxX = 2000;
+            maxY = 1500;
+        }
+
+        // Add padding
+        minX -= 200;
+        minY -= 200;
+        maxX += 200;
+        maxY += 200;
+
+        // Ensure minimum size
+        double width = Math.max(2000, maxX - minX);
+        double height = Math.max(1500, maxY - minY);
+
+        // Set canvas pane size
+        canvasPane.setPrefSize(width, height);
+        canvasPane.setMinSize(width, height);
+
+        // Update minimap
+        minimap.update();
+    }
+
     private void setupKeyboardShortcuts() {
         setOnKeyPressed(e -> {
             if (e.isControlDown()) {
@@ -559,6 +605,9 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
             createConnectionLine(connection);
         }
 
+        // Update canvas bounds and minimap
+        updateCanvasBounds();
+
         showStatus("Loaded: " + workflow.name());
     }
 
@@ -606,15 +655,27 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
 
     public void runWorkflow() {
         if (workflow.id() == null) {
-            // Must save first
-            Alert alert = new Alert(Alert.AlertType.WARNING);
+            // Auto-save unsaved workflow before running
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Save Required");
             alert.setHeaderText("Workflow must be saved before running");
-            alert.setContentText("Please save the workflow first.");
-            alert.showAndWait();
+            alert.setContentText("The workflow will be saved automatically. Continue?");
+            alert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    saveWorkflow();
+                    // After saving, check if it was successful and has an ID now
+                    if (workflow.id() != null) {
+                        runWorkflowAfterSave();
+                    }
+                }
+            });
             return;
         }
 
+        runWorkflowAfterSave();
+    }
+
+    private void runWorkflowAfterSave() {
         try {
             showStatus("Running: " + workflow.name() + "...");
 
@@ -785,6 +846,9 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         NodeView nodeView = new NodeView(node, this);
         nodeViews.put(id, nodeView);
         nodeLayer.getChildren().add(nodeView);
+
+        // Update canvas bounds and minimap
+        updateCanvasBounds();
     }
 
     private void addNodeAtCenter(String type, String name) {
@@ -884,6 +948,9 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
 
         // Update connection lines
         updateConnectionsForNode(nodeId);
+
+        // Update minimap to reflect new positions
+        updateMinimap();
     }
 
     private void createConnectionLine(Connection connection) {
@@ -1328,17 +1395,26 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         System.out.println("Executing node: " + node.name());
 
         // Create temporary workflow with single node for execution
-        WorkflowDTO tempWorkflow = WorkflowDTO.create("Single Node Test")
+        WorkflowDTO tempWorkflow = WorkflowDTO.create("Single Node Test - " + node.name())
                 .withAddedNode(node);
 
         try {
+            // Save the temporary workflow first
+            WorkflowDTO savedTempWorkflow = workflowService.create(tempWorkflow);
+
             // Execute asynchronously
-            executionService.executeAsync(tempWorkflow.id(), Map.of())
+            executionService.executeAsync(savedTempWorkflow.id(), Map.of())
                     .thenAccept(result -> Platform.runLater(() -> {
                         if (result.status() == ExecutionStatus.SUCCESS) {
                             showExecutionResult(result);
                         } else {
                             showExecutionError(result);
+                        }
+                        // Clean up: delete the temporary workflow
+                        try {
+                            workflowService.delete(savedTempWorkflow.id());
+                        } catch (Exception e) {
+                            // Ignore cleanup errors
                         }
                     }))
                     .exceptionally(ex -> {
@@ -1349,6 +1425,12 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                             alert.setContentText(ex.getMessage());
                             alert.showAndWait();
                         });
+                        // Clean up: delete the temporary workflow
+                        try {
+                            workflowService.delete(savedTempWorkflow.id());
+                        } catch (Exception e) {
+                            // Ignore cleanup errors
+                        }
                         return null;
                     });
         } catch (Exception e) {
@@ -1646,6 +1728,9 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                 }
             }
         }
+
+        // Update canvas bounds and minimap after layout
+        updateCanvasBounds();
     }
 
     /**
@@ -1796,18 +1881,18 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
      * Get current scroll X position.
      */
     public double getScrollX() {
-        double hvalue = canvasScrollPane.getHvalue();
-        double contentWidth = canvasPane.getWidth() - canvasScrollPane.getViewportBounds().getWidth();
-        return hvalue * contentWidth;
+        // Return the actual translated position instead of ScrollPane values
+        // since we use transform-based panning
+        return -translateX / scale;
     }
 
     /**
      * Get current scroll Y position.
      */
     public double getScrollY() {
-        double vvalue = canvasScrollPane.getVvalue();
-        double contentHeight = canvasPane.getHeight() - canvasScrollPane.getViewportBounds().getHeight();
-        return vvalue * contentHeight;
+        // Return the actual translated position instead of ScrollPane values
+        // since we use transform-based panning
+        return -translateY / scale;
     }
 
     /**
@@ -1816,19 +1901,13 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     public void centerOn(double x, double y) {
         double viewportWidth = canvasScrollPane.getViewportBounds().getWidth();
         double viewportHeight = canvasScrollPane.getViewportBounds().getHeight();
-        double contentWidth = canvasPane.getWidth();
-        double contentHeight = canvasPane.getHeight();
 
-        // Calculate scroll values to center on (x, y)
-        double hvalue = (x - viewportWidth / 2) / (contentWidth - viewportWidth);
-        double vvalue = (y - viewportHeight / 2) / (contentHeight - viewportHeight);
+        // Calculate the translation needed to center on (x, y)
+        // We want the point (x, y) to be at the center of the viewport
+        translateX = -(x * scale - viewportWidth / 2);
+        translateY = -(y * scale - viewportHeight / 2);
 
-        // Clamp values
-        hvalue = Math.max(0, Math.min(1, hvalue));
-        vvalue = Math.max(0, Math.min(1, vvalue));
-
-        canvasScrollPane.setHvalue(hvalue);
-        canvasScrollPane.setVvalue(vvalue);
+        updateCanvasTransform();
     }
 
     /**
@@ -1912,7 +1991,7 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                 .forEach(this::deleteConnectionInternal);
 
         workflow = workflow.withRemovedNode(nodeId);
-        updateMinimap();
+        updateCanvasBounds();
     }
 
     /**
