@@ -22,7 +22,6 @@ import io.toflowai.common.domain.Node;
 public class LoopExecutor implements NodeExecutor {
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> execute(Node node, Map<String, Object> input,
             ExecutionService.ExecutionContext context) {
         Map<String, Object> params = node.parameters();

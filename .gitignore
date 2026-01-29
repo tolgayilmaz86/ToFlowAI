@@ -13,7 +13,6 @@ out/
 .project
 .classpath
 .settings/
-.vscode/
 
 # Data files
 data/

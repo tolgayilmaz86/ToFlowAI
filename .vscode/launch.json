@@ -1,0 +1,70 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "▶️ Run ToFlowAI",
+            "request": "launch",
+            "mainClass": "io.toflowai.app.ToFlowAIApplication",
+            "vmArgs": [
+                "--enable-preview",
+                "--enable-native-access=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "-Dspring.profiles.active=dev",
+                "-Djava.net.preferIPv4Stack=true",
+                "-Dfile.encoding=UTF-8"
+            ],
+            "console": "integratedTerminal",
+            "shortenCommandLine": "argfile",
+            "preLaunchTask": "Build All"
+        },
+        {
+            "type": "java",
+            "name": "🐛 Debug ToFlowAI",
+            "request": "launch",
+            "mainClass": "io.toflowai.app.ToFlowAIApplication",
+            "vmArgs": [
+                "--enable-preview",
+                "--enable-native-access=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "-Dspring.profiles.active=dev",
+                "-Djava.net.preferIPv4Stack=true",
+                "-Dfile.encoding=UTF-8"
+            ],
+            "console": "integratedTerminal",
+            "shortenCommandLine": "argfile",
+            "preLaunchTask": "Build All"
+        },
+        {
+            "type": "java",
+            "name": "🔌 Attach to Remote Debug (port 5005)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005,
+            "preLaunchTask": "Debug Application (bootRun)"
+        },
+        {
+            "type": "java",
+            "name": "🚀 Run (No Build)",
+            "request": "launch",
+            "mainClass": "io.toflowai.app.ToFlowAIApplication",
+            "vmArgs": [
+                "--enable-preview",
+                "--enable-native-access=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "-Dspring.profiles.active=dev",
+                "-Djava.net.preferIPv4Stack=true",
+                "-Dfile.encoding=UTF-8"
+            ],
+            "console": "integratedTerminal",
+            "shortenCommandLine": "argfile"
+        },
+        {
+            "type": "java",
+            "name": "📄 Current File",
+            "request": "launch",
+            "mainClass": "${file}",
+            "vmArgs": "--enable-preview"
+        }
+    ]
+}

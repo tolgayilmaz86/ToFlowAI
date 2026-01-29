@@ -1,0 +1,62 @@
+{
+    // Java Settings
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.project.sourcePaths": [],
+    "java.project.outputPath": "",
+    "java.project.referencedLibraries": [],
+    // Java 25 Configuration
+    "java.jdt.ls.java.home": "C:\\Program Files\\Microsoft\\jdk-25.0.0.36-hotspot",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-25",
+            "path": "C:\\Program Files\\Microsoft\\jdk-25.0.0.36-hotspot",
+            "default": true
+        }
+    ],
+    // Gradle Integration
+    "java.import.gradle.enabled": true,
+    "java.import.gradle.wrapper.enabled": true,
+    "java.import.gradle.offline.enabled": false,
+    "java.import.gradle.arguments": "--enable-preview",
+    "java.import.gradle.jvmArguments": "--enable-preview",
+    "java.import.gradle.java.home": "C:\\Program Files\\Microsoft\\jdk-25.0.0.36-hotspot",
+    // Compiler settings for Java 25 preview features
+    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m --enable-preview",
+    // Editor Settings
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    // File Associations
+    "files.associations": {
+        "*.fxml": "xml"
+    },
+    // Exclude build folders from search
+    "files.exclude": {
+        "**/.gradle": true,
+        "**/build": true,
+        "**/.idea": true,
+        "**/data": true
+    },
+    "search.exclude": {
+        "**/.gradle": true,
+        "**/build": true,
+        "**/node_modules": true
+    },
+    // Terminal Settings
+    "terminal.integrated.env.windows": {
+        "JAVA_HOME": "C:\\Program Files\\Microsoft\\jdk-25.0.0.36-hotspot"
+    },
+    // Spring Boot
+    "spring-boot.ls.java.vmargs": [
+        "--enable-preview"
+    ],
+    // Test Runner
+    "java.test.config": {
+        "vmArgs": [
+            "--enable-preview",
+            "-Djava.net.preferIPv4Stack=true"
+        ]
+    }
+}
