@@ -1,28 +1,31 @@
 package io.toflowai.app.service;
 
-import io.toflowai.app.database.model.CredentialEntity;
-import io.toflowai.app.database.repository.CredentialRepository;
-import io.toflowai.common.dto.CredentialDTO;
-import io.toflowai.common.enums.CredentialType;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import io.toflowai.app.database.model.CredentialEntity;
+import io.toflowai.app.database.repository.CredentialRepository;
+import io.toflowai.common.dto.CredentialDTO;
+import io.toflowai.common.enums.CredentialType;
+import io.toflowai.common.service.CredentialServiceInterface;
+
 /**
  * Service for managing credentials with encryption.
  */
 @Service
 @Transactional
-public class CredentialService {
+public class CredentialService implements CredentialServiceInterface {
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
@@ -37,28 +40,33 @@ public class CredentialService {
         this.encryptionKey = generateKey();
     }
 
+    @Override
     public List<CredentialDTO> findAll() {
         return credentialRepository.findAll().stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    @Override
     public Optional<CredentialDTO> findById(Long id) {
         return credentialRepository.findById(id)
                 .map(this::toDTO);
     }
 
+    @Override
     public Optional<CredentialDTO> findByName(String name) {
         return credentialRepository.findByName(name)
                 .map(this::toDTO);
     }
 
+    @Override
     public List<CredentialDTO> findByType(CredentialType type) {
         return credentialRepository.findByType(type).stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    @Override
     public CredentialDTO create(CredentialDTO dto, String data) {
         if (credentialRepository.findByName(dto.name()).isPresent()) {
             throw new IllegalArgumentException("Credential with name already exists: " + dto.name());
@@ -69,6 +77,7 @@ public class CredentialService {
         return toDTO(saved);
     }
 
+    @Override
     public CredentialDTO update(Long id, CredentialDTO dto, String data) {
         CredentialEntity entity = credentialRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Credential not found: " + id));
@@ -83,6 +92,7 @@ public class CredentialService {
         return toDTO(saved);
     }
 
+    @Override
     public void delete(Long id) {
         credentialRepository.deleteById(id);
     }
@@ -91,10 +101,25 @@ public class CredentialService {
      * Decrypt and retrieve the credential data.
      * Use with caution - only for actual workflow execution.
      */
+    @Override
     public String getDecryptedData(Long id) {
         CredentialEntity entity = credentialRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Credential not found: " + id));
         return decrypt(entity.getDataEncrypted());
+    }
+
+    /**
+     * Test if a credential is valid.
+     * Currently just checks if it can be decrypted.
+     */
+    @Override
+    public boolean testCredential(Long id) {
+        try {
+            String data = getDecryptedData(id);
+            return data != null && !data.isBlank();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private CredentialDTO toDTO(CredentialEntity entity) {
@@ -103,8 +128,7 @@ public class CredentialService {
                 entity.getName(),
                 entity.getType(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+                entity.getUpdatedAt());
     }
 
     private String encrypt(String plaintext) {

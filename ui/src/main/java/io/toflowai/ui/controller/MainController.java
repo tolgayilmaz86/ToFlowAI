@@ -12,9 +12,11 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.springframework.stereotype.Component;
 
 import io.toflowai.common.dto.WorkflowDTO;
+import io.toflowai.common.service.CredentialServiceInterface;
 import io.toflowai.common.service.ExecutionServiceInterface;
 import io.toflowai.common.service.WorkflowServiceInterface;
 import io.toflowai.ui.canvas.WorkflowCanvas;
+import io.toflowai.ui.dialog.CredentialManagerDialog;
 import io.toflowai.ui.dialog.WorkflowListDialog;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -35,6 +37,7 @@ public class MainController implements Initializable {
 
     private final WorkflowServiceInterface workflowService;
     private final ExecutionServiceInterface executionService;
+    private final CredentialServiceInterface credentialService;
 
     @FXML
     private BorderPane rootPane;
@@ -62,9 +65,12 @@ public class MainController implements Initializable {
 
     private WorkflowCanvas workflowCanvas;
 
-    public MainController(WorkflowServiceInterface workflowService, ExecutionServiceInterface executionService) {
+    public MainController(WorkflowServiceInterface workflowService,
+            ExecutionServiceInterface executionService,
+            CredentialServiceInterface credentialService) {
         this.workflowService = workflowService;
         this.executionService = executionService;
+        this.credentialService = credentialService;
     }
 
     @Override
@@ -119,12 +125,12 @@ public class MainController implements Initializable {
         clearActiveButton();
         btnCredentials.getStyleClass().add("active");
 
-        // Placeholder for credentials view
-        Label placeholder = new Label("Credentials View");
-        placeholder.setStyle("-fx-font-size: 24px;");
-        contentArea.getChildren().setAll(placeholder);
+        // Show credential manager dialog
+        CredentialManagerDialog dialog = new CredentialManagerDialog(credentialService);
+        dialog.showAndWait();
 
-        updateStatus("Credentials");
+        // Return to workflows view after closing dialog
+        showWorkflowsView();
     }
 
     @FXML

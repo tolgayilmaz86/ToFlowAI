@@ -508,14 +508,14 @@
 
 /* ===== Node Properties Panel ===== */
 .properties-panel {
-    -fx-background-color: -fx-bg-darker;
-    -fx-border-color: -fx-bg-card;
+    -fx-background-color: #2a2a2a;
+    -fx-border-color: #4a4a4a;
     -fx-border-width: 0 0 0 1;
 }
 
 .properties-header {
-    -fx-background-color: -fx-bg-card;
-    -fx-border-color: #404040;
+    -fx-background-color: #333333;
+    -fx-border-color: #4a4a4a;
     -fx-border-width: 0 0 1 0;
 }
 

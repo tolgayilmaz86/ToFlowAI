@@ -5,6 +5,24 @@ build/
 out/
 .gradle/
 
+#Java compiled files
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.obj
+*.pyc
+
+
 # IDE
 .idea/
 *.iml

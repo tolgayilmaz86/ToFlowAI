@@ -99,18 +99,18 @@ ToFlowAI is a workflow automation application built with:
 - [x] **RAG Node** - Retrieval-augmented generation
 
 ### Phase 4: Enhanced UI
-- [ ] **Node Properties Panel** - Edit node parameters
-- [ ] **Execution Visualization** - Show running nodes
-- [ ] **Execution History** - View past runs
-- [ ] **Error Display** - Show execution errors on nodes
-- [ ] **Mini-map** - Canvas overview navigation
-- [ ] **Undo/Redo** - Command pattern implementation
+- [x] **Node Properties Panel** - Edit node parameters
+- [x] **Execution Visualization** - Show running nodes
+- [x] **Execution History** - View past runs
+- [x] **Error Display** - Show execution errors on nodes
+- [x] **Mini-map** - Canvas overview navigation
+- [x] **Undo/Redo** - Command pattern implementation
 
 ### Phase 5: Data & Credentials
-- [ ] **Credential Manager** - Secure credential storage
-- [ ] **Data Preview** - Show data flowing between nodes
-- [ ] **Variable System** - Global/workflow variables
-- [ ] **Expression Editor** - Dynamic value expressions
+- [x] **Credential Manager** - Secure credential storage
+- [x] **Data Preview** - Show data flowing between nodes
+- [x] **Variable System** - Global/workflow variables
+- [x] **Expression Editor** - Dynamic value expressions
 
 ### Phase 6: Advanced Features
 - [ ] **Subworkflows** - Nested workflow execution

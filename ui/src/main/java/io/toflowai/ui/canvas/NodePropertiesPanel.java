@@ -65,6 +65,7 @@ public class NodePropertiesPanel extends VBox {
         this.canvas = canvas;
 
         getStyleClass().add("properties-panel");
+        setStyle("-fx-background-color: #2a2a2a; -fx-border-color: #4a4a4a; -fx-border-width: 0 0 0 1;");
         setPrefWidth(300);
         setMinWidth(280);
         setMaxWidth(350);
