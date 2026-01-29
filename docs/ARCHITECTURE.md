@@ -33,7 +33,9 @@
 
 ### Welcome, Developer! 👋
 
-ToFlowAI is a **visual workflow automation application** similar to n8n, Zapier, or Make.com. It allows users to create automated workflows by connecting "nodes" (building blocks) together visually.
+ToFlowAI is a **visual workflow automation application** similar to n8n, Zapier, or Make.com. It's also inspired by [Sim.ai](https://sim.ai) but designed as a **simpler, local-first alternative** that runs entirely on your machine—no cloud deployment, no infrastructure hassles. Just **install and use**.
+
+Create automated workflows by connecting "nodes" (building blocks) together visually, with your data staying completely local.
 
 **This guide will help you:**
 - Understand how workflow automation works
