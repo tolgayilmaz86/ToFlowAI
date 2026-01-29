@@ -93,7 +93,7 @@ jobs:
             --no-daemon
 
   build-installer:
-    name: Build Installer
+    name: Build Windows Installer
     runs-on: windows-latest
     needs: build
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
@@ -109,12 +109,31 @@ jobs:
           distribution: 'graalvm'
           cache: 'gradle'
       
+      - name: Install WiX Toolset
+        run: |
+          # WiX Toolset is required for MSI creation
+          # GitHub Actions Windows runners have WiX pre-installed, but we ensure it's available
+          $wixPath = "${env:WIX}bin"
+          if (-not (Test-Path "$wixPath\candle.exe")) {
+            Write-Host "Installing WiX Toolset..."
+            choco install wixtoolset -y --no-progress
+            # Refresh environment
+            $env:WIX = "C:\Program Files (x86)\WiX Toolset v3.11\"
+            $env:PATH = "$env:WIX\bin;$env:PATH"
+          } else {
+            Write-Host "WiX Toolset already installed at: $wixPath"
+          }
+          # Verify installation
+          & candle -? | Select-Object -First 1
+        shell: pwsh
+      
       - name: Build application
         run: .\gradlew.bat bootJar -x test --no-daemon
       
-      - name: Create custom runtime
+      - name: Create custom runtime with jlink
         run: |
           $RuntimeDir = "build\runtime\toflowai-runtime"
+          Write-Host "Creating custom runtime image..."
           jlink `
             --module-path "$env:JAVA_HOME\jmods" `
             --add-modules java.base,java.desktop,java.logging,java.management,java.naming,java.net.http,java.prefs,java.scripting,java.security.jgss,java.sql,java.xml,jdk.crypto.ec,jdk.unsupported,jdk.zipfs `
@@ -123,10 +142,16 @@ jobs:
             --no-man-pages `
             --no-header-files `
             --compress=zip-6
+          
+          # Report runtime size
+          $size = (Get-ChildItem -Path $RuntimeDir -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+          Write-Host "Custom runtime size: $([math]::Round($size, 1)) MB"
+        shell: pwsh
       
-      - name: Build installer with jpackage
+      - name: Build MSI installer with jpackage + WiX
         run: |
           .\gradlew.bat :app:jpackage "-Pjpackage.runtime=build\runtime\toflowai-runtime" --no-daemon
+        shell: pwsh
       
       - name: Upload installer
         uses: actions/upload-artifact@v4

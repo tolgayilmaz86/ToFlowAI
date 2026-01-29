@@ -126,18 +126,103 @@ jpackage {
     ]
     
     windows {
-        type = ImageType.MSI
+        // Use APP_IMAGE for portable builds, MSI for installer
+        type = findProperty('jpackage.portable') == 'true' ? ImageType.APP_IMAGE : ImageType.MSI
         winMenu = true
         winPerUserInstall = true
         winDirChooser = true
         winMenuGroup = rootProject.name
+        winShortcut = true
+        winShortcutPrompt = true
+        // Unique UUID for Windows installer upgrades (generated once, never change)
         winUpgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        // Icon for the application (optional - place in app/src/main/resources)
+        // icon = "${projectDir}/src/main/resources/icons/toflowai.ico"
     }
     
     linux {
         linuxShortcut = true
+        linuxMenuGroup = "Development"
+        linuxAppCategory = "Development"
+    }
+    
+    mac {
+        macPackageIdentifier = "io.toflowai.app"
+        macPackageName = rootProject.name
     }
 }
+
+// =============================================================================
+// WiX Toolset Configuration (for advanced MSI customization)
+// =============================================================================
+// WiX Toolset is automatically used by jpackage on Windows for MSI creation.
+// For advanced customization, you can provide custom WiX source files.
+//
+// Prerequisites:
+//   1. Install WiX Toolset v3.11+ from https://wixtoolset.org/
+//   2. Add WiX bin directory to PATH (e.g., C:\Program Files (x86)\WiX Toolset v3.11\bin)
+//   3. Or set WIX environment variable pointing to WiX installation
+//
+// To verify WiX installation:
+//   > candle -? (should show WiX Candle compiler help)
+//   > light -?  (should show WiX Light linker help)
+//
+// Custom WiX templates can be placed in: tools/wix/
+// =============================================================================
+
+// Task to verify WiX installation before building installer
+tasks.register('verifyWix') {
+    group = 'installer'
+    description = 'Verify WiX Toolset installation'
+    
+    doLast {
+        def wixPath = System.getenv('WIX')
+        def pathDirs = System.getenv('PATH')?.split(File.pathSeparator) ?: []
+        
+        def candleFound = false
+        
+        // Check WIX environment variable
+        if (wixPath) {
+            def candleExe = new File(wixPath, 'bin/candle.exe')
+            if (candleExe.exists()) {
+                candleFound = true
+                println "✓ WiX Toolset found at: ${wixPath}"
+            }
+        }
+        
+        // Check PATH
+        if (!candleFound) {
+            for (dir in pathDirs) {
+                def candleExe = new File(dir, 'candle.exe')
+                if (candleExe.exists()) {
+                    candleFound = true
+                    println "✓ WiX Toolset found in PATH: ${dir}"
+                    break
+                }
+            }
+        }
+        
+        if (!candleFound) {
+            println """
+            ⚠ WiX Toolset not found!
+            
+            To install WiX Toolset:
+            1. Download from: https://wixtoolset.org/releases/
+            2. Install WiX Toolset v3.11 or later
+            3. Add to PATH or set WIX environment variable
+            
+            Alternatively, use winget:
+               winget install WixToolset.WixToolset
+            
+            Or use Chocolatey:
+               choco install wixtoolset
+            """
+        }
+    }
+}
+
+// Make jpackage depend on WiX verification (optional, uncomment to enforce)
+// tasks.named('jpackage').configure { dependsOn 'verifyWix' }
 
 dependencies {
     // Spring Boot BOM

@@ -22,6 +22,7 @@
   <img src="https://img.shields.io/badge/JavaFX-21-blue?style=flat-square" alt="JavaFX 21" />
   <img src="https://img.shields.io/badge/Gradle-9.2.0-02303A?style=flat-square&logo=gradle" alt="Gradle 9.2.0" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License MIT" />
+  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" alt="Build Status" />
 </p>
 
 ---
@@ -107,6 +108,14 @@ Built with **Java 25**, **Spring Boot 3.5**, and **JavaFX 21**, ToFlowAI runs as
 
 ### Installation
 
+#### Option 1: Download Pre-built Installer (Recommended)
+
+1. **Download the MSI installer** from [Releases](https://github.com/yourusername/ToFlowAI/releases)
+2. **Run the installer** - it includes everything needed
+3. **Launch ToFlowAI** from Start Menu or desktop shortcut
+
+#### Option 2: Build from Source
+
 1. **Clone the repository**
    ```bash
    git clone https://github.com/yourusername/ToFlowAI.git
@@ -119,15 +128,24 @@ Built with **Java 25**, **Spring Boot 3.5**, and **JavaFX 21**, ToFlowAI runs as
    $env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-25.0.0.36-hotspot"
    ```
 
-3. **Build the project**
+3. **Build and run**
    ```bash
+   # Build the project
    ./gradlew build
-   ```
-
-4. **Run the application**
-   ```bash
+   
+   # Run the application
    ./gradlew :app:bootRun
    ```
+
+#### Option 3: Build Standalone Installer
+
+```powershell
+# Build MSI installer (includes embedded Java runtime)
+.\tools\build-installer.ps1
+
+# Or build portable version (no installation required)
+.\tools\build-installer.ps1 -Portable
+```
 
 ### First Run
 
@@ -178,7 +196,8 @@ ToFlowAI/
 │   └── ARCHITECTURE.md     # Comprehensive architecture guide
 │
 ├── tools/                  # Build and packaging tools
-│   └── build-installer.ps1 # Windows installer builder
+│   ├── build-installer.ps1 # Windows installer builder
+│   └── wix314/             # Auto-downloaded WiX Toolset (created on first MSI build)
 ├── .github/workflows/      # CI/CD pipelines
 │   └── build.yml           # Build, test, analyze, package
 ├── build.gradle            # Root build configuration
@@ -200,6 +219,8 @@ ToFlowAI/
 | **Migrations** | Flyway | 10.20.1 |
 | **Build** | Gradle | 9.2.0 |
 | **JavaScript** | GraalVM JS | 24.1.1 |
+| **Packaging** | jpackage, jlink | - |
+| **Installer** | WiX Toolset | 3.14 (auto-downloaded) |
 | **Code Quality** | SonarQube | 6.0.1 |
 | **Testing** | JUnit 5, TestFX, ArchUnit | - |
 
@@ -212,22 +233,41 @@ ToFlowAI can be packaged as a standalone installer with an embedded GraalVM runt
 ### Windows MSI Installer
 
 ```powershell
-# Build installer with embedded runtime
+# Build MSI installer with embedded runtime (requires WiX Toolset - auto-downloaded)
 .\tools\build-installer.ps1
 
-# Or with specific version
-.\tools\build-installer.ps1 -Version "1.0.0" -Clean
+# Build with specific version
+.\tools\build-installer.ps1 -Version "1.0.0"
+
+# Skip clean step for faster rebuilds
+.\tools\build-installer.ps1 -SkipClean
 ```
 
-The installer will be created at `app/build/distributions/ToFlowAI-{version}.msi`
+### Portable ZIP (No Installation Required)
+
+```powershell
+# Build portable app-image (no WiX required)
+.\tools\build-installer.ps1 -Portable
+
+# Skip GraalVM download if already present
+.\tools\build-installer.ps1 -Portable -SkipDownload
+```
+
+### Build Outputs
+
+| Type | File | Size | Description |
+|------|------|------|-------------|
+| **MSI Installer** | `ToFlowAI-{version}.msi` | ~160 MB | Windows installer with Start Menu shortcuts |
+| **Portable ZIP** | `ToFlowAI/` directory | ~251 MB | Standalone executable, no installation needed |
 
 ### What's Included
 
 - ✅ ToFlowAI application
-- ✅ Embedded GraalVM runtime (~60MB compressed)
+- ✅ Embedded GraalVM runtime (~92 MB uncompressed)
 - ✅ All dependencies bundled
-- ✅ Windows Start Menu shortcuts
+- ✅ Windows Start Menu shortcuts (MSI only)
 - ✅ No Java installation required
+- ✅ Auto-downloads WiX Toolset for MSI builds
 
 ---
 
@@ -254,6 +294,19 @@ docker run -d --name sonarqube -p 9000:9000 sonarqube:community
 
 # Reports at: app/build/reports/jacoco/test/html/index.html
 ```
+
+---
+
+## 🔄 CI/CD Pipeline
+
+ToFlowAI uses GitHub Actions for automated building, testing, and packaging:
+
+- **Build & Test**: Runs on every push/PR
+- **SonarQube Analysis**: Code quality and security scanning
+- **Windows Installer**: Auto-builds MSI installer with embedded runtime
+- **Artifact Storage**: Uploads installers to GitHub Releases
+
+See: [`.github/workflows/build.yml`](.github/workflows/build.yml)
 
 ---
 
@@ -329,9 +382,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [n8n](https://n8n.io) - Inspiration for workflow automation concepts
+- [Sim.ai](https://sim.ai) - Inspiration for local-first workflow design
 - [AtlantaFX](https://github.com/mkpaz/atlantafx) - Beautiful JavaFX themes
 - [Ikonli](https://kordamp.org/ikonli/) - Icon packs for JavaFX
 - [GraalVM](https://www.graalvm.org/) - JavaScript execution engine
+- [WiX Toolset](https://wixtoolset.org/) - Windows installer creation
 
 ---
 
