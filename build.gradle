@@ -126,5 +126,8 @@ sonar {
 
 // Ensure test and coverage reports are generated before sonar analysis
 tasks.named('sonar').configure {
-    dependsOn tasks.named('check')
+    // Only depend on check if it exists (for subprojects that have it)
+    if (tasks.findByName('check') != null) {
+        dependsOn tasks.named('check')
+    }
 }

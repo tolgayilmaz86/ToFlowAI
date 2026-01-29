@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude generated sources -->
+    <Match>
+        <Source name="~.*generated.*"/>
+    </Match>
+
+    <!-- Exclude test sources -->
+    <Match>
+        <Source name="~.*Test.*"/>
+    </Match>
+
+    <!-- Exclude main method warnings for Spring Boot applications -->
+    <Match>
+        <Class name="~.*Application"/>
+        <Method name="main"/>
+        <Bug pattern="DM_EXIT"/>
+    </Match>
+
+    <!-- Exclude Spring Boot generated code -->
+    <Match>
+        <Class name="~.*\$\$SpringCGLIB\$\$.*"/>
+    </Match>
+
+    <!-- Exclude JavaFX related warnings -->
+    <Match>
+        <Class name="~.*Controller.*"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+
+    <!-- Exclude Lombok generated code -->
+    <Match>
+        <Class name="~.*"/>
+        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC"/>
+    </Match>
+
+    <!-- Exclude record-related warnings -->
+    <Match>
+        <Class name="~.*Record.*"/>
+        <Bug pattern="RI_REDUNDANT_INTERFACES"/>
+    </Match>
+
+    <!-- Exclude warnings for DTOs and entities -->
+    <Match>
+        <Class name="~.*DTO.*"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+
+    <Match>
+        <Class name="~.*Entity.*"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+
+    <!-- Exclude warnings for utility classes -->
+    <Match>
+        <Class name="~.*Util.*"/>
+        <Bug pattern="DM_NUMBER_CTOR"/>
+    </Match>
+
+    <!-- Exclude warnings for configuration classes -->
+    <Match>
+        <Class name="~.*Config.*"/>
+        <Bug pattern="DM_EXIT"/>
+    </Match>
+
+</FindBugsFilter>

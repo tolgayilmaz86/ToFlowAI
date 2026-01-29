@@ -5,6 +5,9 @@ plugins {
     id 'org.flywaydb.flyway'
     id 'org.panteleyev.jpackageplugin'
     id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'checkstyle'
+    id 'pmd'
+    // id 'com.github.spotbugs' version '6.0.4'
 }
 
 java {
@@ -223,6 +226,28 @@ tasks.register('verifyWix') {
 
 // Make jpackage depend on WiX verification (optional, uncomment to enforce)
 // tasks.named('jpackage').configure { dependsOn 'verifyWix' }
+
+// =============================================================================
+// Static Analysis Configuration
+// =============================================================================
+
+// Checkstyle configuration
+checkstyle {
+    toolVersion = '10.12.4'
+    configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+}
+
+// PMD configuration
+pmd {
+    toolVersion = '7.0.0'
+    ruleSets = [rootProject.file('config/pmd/pmd.xml').toString()]
+}
+
+// SpotBugs configuration
+// spotbugs {
+//     toolVersion = '4.8.3'
+//     excludeFilter = rootProject.file('config/spotbugs/exclude.xml')
+// }
 
 dependencies {
     // Spring Boot BOM

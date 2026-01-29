@@ -3,6 +3,7 @@
 # Build outputs
 build/
 out/
+bin/
 .gradle/
 
 #Java compiled files

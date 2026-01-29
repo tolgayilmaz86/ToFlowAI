@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
@@ -74,7 +75,7 @@ public class SchedulerService {
             CronExpression cron = CronExpression.parse(workflow.cronExpression());
 
             // Schedule recurring execution using AtomicReference for self-referencing task
-            final java.util.concurrent.atomic.AtomicReference<Runnable> taskRef = new java.util.concurrent.atomic.AtomicReference<>();
+            final AtomicReference<Runnable> taskRef = new AtomicReference<>();
 
             Runnable task = () -> {
                 try {

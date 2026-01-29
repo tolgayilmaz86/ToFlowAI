@@ -1,14 +1,15 @@
 package io.toflowai.app.executor;
 
-import io.toflowai.app.service.ExecutionService;
-import io.toflowai.app.service.NodeExecutor;
-import io.toflowai.common.domain.Node;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.toflowai.app.service.ExecutionService;
+import io.toflowai.app.service.NodeExecutor;
+import io.toflowai.common.domain.Node;
 
 /**
  * Code node executor - executes JavaScript or Python code.
@@ -18,7 +19,8 @@ import java.util.Map;
 public class CodeExecutor implements NodeExecutor {
 
     @Override
-    public Map<String, Object> execute(Node node, Map<String, Object> input, ExecutionService.ExecutionContext context) {
+    public Map<String, Object> execute(Node node, Map<String, Object> input,
+            ExecutionService.ExecutionContext context) {
         String code = (String) node.parameters().getOrDefault("code", "");
         String language = (String) node.parameters().getOrDefault("language", "js");
 
@@ -74,13 +76,17 @@ public class CodeExecutor implements NodeExecutor {
     }
 
     private Object convertValue(Value value) {
-        if (value.isNull()) return null;
-        if (value.isBoolean()) return value.asBoolean();
+        if (value.isNull())
+            return null;
+        if (value.isBoolean())
+            return value.asBoolean();
         if (value.isNumber()) {
-            if (value.fitsInLong()) return value.asLong();
+            if (value.fitsInLong())
+                return value.asLong();
             return value.asDouble();
         }
-        if (value.isString()) return value.asString();
+        if (value.isString())
+            return value.asString();
         if (value.hasArrayElements()) {
             int size = (int) value.getArraySize();
             Object[] array = new Object[size];

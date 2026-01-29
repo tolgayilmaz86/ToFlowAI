@@ -157,8 +157,8 @@ public class TextClassifierExecutor implements NodeExecutor {
             }
         } else {
             if (includeConfidence) {
-                sb.append(
-                        "{\"category\": \"category_name\", \"confidence\": 0.95, \"allScores\": {\"cat1\": 0.95, \"cat2\": 0.05}}");
+                sb.append("{\"category\": \"category_name\", \"confidence\": 0.95, " +
+                        "\"allScores\": {\"cat1\": 0.95, \"cat2\": 0.05}}");
             } else {
                 sb.append("{\"category\": \"category_name\"}");
             }
