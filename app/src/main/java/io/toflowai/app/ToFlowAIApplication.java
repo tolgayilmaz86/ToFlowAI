@@ -1,5 +1,7 @@
 package io.toflowai.app;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -18,13 +20,21 @@ import javafx.application.Application;
 @EnableJpaRepositories(basePackages = "io.toflowai.app.database.repository")
 public class ToFlowAIApplication {
 
+    private static final Logger log = LoggerFactory.getLogger(ToFlowAIApplication.class);
+
     public static void main(String[] args) {
+        log.info("🚀 ToFlowAI Application Starting...");
+
         // First bootstrap Spring Boot
         ConfigurableApplicationContext context = SpringApplication.run(ToFlowAIApplication.class, args);
+
+        log.info("✅ Spring Boot initialized successfully");
 
         // Set the context on the UI module
         ToFlowAIUI.setSpringContext(context);
         ToFlowAIUI.setApplicationClass(ToFlowAIApplication.class);
+
+        log.info("🎨 Launching JavaFX UI...");
 
         // Launch JavaFX application
         Application.launch(ToFlowAIUI.class, args);

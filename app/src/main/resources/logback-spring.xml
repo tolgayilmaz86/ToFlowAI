@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Include Spring Boot's default configuration -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Console appender (default) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Execution Console Appender -->
+    <appender name="EXECUTION_CONSOLE" class="io.toflowai.ui.console.ExecutionConsoleAppender">
+        <!-- Only forward INFO and above to avoid spam -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="EXECUTION_CONSOLE"/>
+    </root>
+
+    <!-- ToFlowAI specific loggers -->
+    <logger name="io.toflowai" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="EXECUTION_CONSOLE"/>
+    </logger>
+
+    <!-- Spring framework logs -->
+    <logger name="org.springframework" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <!-- Don't send Spring logs to UI console to avoid spam -->
+    </logger>
+
+    <!-- Hibernate SQL logs -->
+    <logger name="org.hibernate.SQL" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+</configuration>

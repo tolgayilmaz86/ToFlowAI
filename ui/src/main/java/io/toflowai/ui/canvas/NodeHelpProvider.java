@@ -149,7 +149,8 @@ public final class NodeHelpProvider {
                             • Implement custom business logic
 
                             Available variables:
-                            • $input: Data from the previous node
+                            • input / $input: Data from the previous node
+                            • node / $node: Current node parameters
                             • $env: Environment variables
                             • $workflow: Workflow metadata
 
@@ -157,7 +158,7 @@ public final class NodeHelpProvider {
                             """,
                     """
                             // Example: Transform user data
-                            const users = $input.data;
+                            const users = input.data || $input.data;
 
                             const transformed = users.map(user => ({
                               fullName: `${user.firstName} ${user.lastName}`,
@@ -168,7 +169,7 @@ public final class NodeHelpProvider {
                             return { users: transformed };
 
                             // Example: Filter and aggregate
-                            const orders = $input.orders;
+                            const orders = input.orders || $input.orders;
                             const total = orders
                               .filter(o => o.status === 'completed')
                               .reduce((sum, o) => sum + o.amount, 0);

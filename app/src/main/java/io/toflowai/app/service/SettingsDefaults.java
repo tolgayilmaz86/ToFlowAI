@@ -185,7 +185,7 @@ public final class SettingsDefaults {
                 "Retry attempts", "Default retry count for failed nodes", order++, false, "{\"min\":0,\"max\":10}"));
         DEFAULTS.add(setting(EXECUTION_RETRY_DELAY, "1000", SettingCategory.EXECUTION, SettingType.LONG,
                 "Retry delay", "Default delay between retries (ms)", order++, false, "{\"min\":100,\"max\":60000}"));
-        DEFAULTS.add(setting(EXECUTION_LOG_LEVEL, "INFO", SettingCategory.EXECUTION, SettingType.ENUM,
+        DEFAULTS.add(setting(EXECUTION_LOG_LEVEL, "DEBUG", SettingCategory.EXECUTION, SettingType.ENUM,
                 "Log level", "Minimum execution log level", order++, false,
                 "{\"options\":[\"TRACE\",\"DEBUG\",\"INFO\",\"WARN\",\"ERROR\"]}"));
         DEFAULTS.add(setting(EXECUTION_HISTORY_LIMIT, "100", SettingCategory.EXECUTION, SettingType.INTEGER,

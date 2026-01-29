@@ -41,7 +41,9 @@ public class CodeExecutor implements NodeExecutor {
             // Bind input data
             Value bindings = polyglotContext.getBindings(graalLanguage);
             bindings.putMember("$input", input);
+            bindings.putMember("input", input); // Also bind as 'input' for backward compatibility
             bindings.putMember("$node", node.parameters());
+            bindings.putMember("node", node.parameters()); // Also bind as 'node' for backward compatibility
 
             // Execute code
             Value result = polyglotContext.eval(graalLanguage, wrapCode(code, graalLanguage));

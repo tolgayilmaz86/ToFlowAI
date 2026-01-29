@@ -78,6 +78,31 @@ public class ExecutionService implements ExecutionServiceInterface {
         for (ExecutionLogHandler handler : logHandlers) {
             this.executionLogger.addHandler(handler);
         }
+
+        // Configure log handlers based on settings
+        configureLogHandlers(logHandlers);
+    }
+
+    /**
+     * Configure log handlers based on application settings.
+     */
+    private void configureLogHandlers(java.util.List<ExecutionLogHandler> logHandlers) {
+        // Configure console logging level
+        String logLevelStr = settingsService.getValue(SettingsDefaults.EXECUTION_LOG_LEVEL, "INFO");
+        ExecutionLogHandler.LogLevel logLevel;
+        try {
+            logLevel = ExecutionLogHandler.LogLevel.valueOf(logLevelStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logLevel = ExecutionLogHandler.LogLevel.INFO; // Default fallback
+        }
+
+        // Apply configuration to ConsoleLogHandler instances
+        for (ExecutionLogHandler handler : logHandlers) {
+            if (handler instanceof ConsoleLogHandler consoleHandler) {
+                consoleHandler.setMinLevel(logLevel);
+                consoleHandler.setEnabled(true); // Always enable console logging
+            }
+        }
     }
 
     /**

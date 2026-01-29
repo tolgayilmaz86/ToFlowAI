@@ -1,7 +1,7 @@
 # ToFlowAI Architecture Guide
 
 > **A Comprehensive Guide for Junior Developers**  
-> **Version:** 1.3  
+> **Version:** 1.4  
 > **Last Updated:** January 29, 2026
 
 ---
@@ -1206,6 +1206,184 @@ CREATE TABLE variables (
     scope VARCHAR(50)
 );
 ```
+
+### 9.4 Logging Architecture
+
+ToFlowAI features a sophisticated structured logging system that provides real-time execution monitoring both in console output and the UI console. The logging system is designed to work independently - console logs appear even when the UI console window is closed.
+
+#### Core Components
+
+The logging system consists of five main components:
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **ExecutionLogHandler** | `common/service/` | Interface defining log handler contract |
+| **ExecutionLogger** | `app/service/` | Central logging service that creates log entries |
+| **ConsoleLogHandler** | `app/service/` | Outputs structured logs to SLF4J/console |
+| **UILogHandler** | `ui/console/` | Forwards logs to the UI ExecutionConsole |
+| **ExecutionConsole** | `ui/console/` | JavaFX UI component displaying logs |
+
+#### Class Diagram - Logging System
+
+```mermaid
+classDiagram
+    class ExecutionLogHandler {
+        <<interface>>
+        +LogLevel TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+        +LogCategory EXECUTION_START, NODE_START, ERROR, etc.
+        +LogEntry record(id, executionId, timestamp, level, category, message, context)
+        +handle(LogEntry) void
+    }
+    
+    class ExecutionLogger {
+        -ObjectMapper objectMapper
+        -ConcurrentHashMap~String,ExecutionLog~ executionLogs
+        -CopyOnWriteArrayList~ExecutionLogHandler~ logHandlers
+        +startExecution(executionId, workflowId, workflowName) void
+        +nodeStart(executionId, nodeId, nodeType, nodeName) void
+        +nodeEnd(executionId, nodeId, nodeType, durationMs, success) void
+        +error(executionId, nodeId, Exception) void
+        +addHandler(ExecutionLogHandler) void
+        +removeHandler(ExecutionLogHandler) void
+    }
+    
+    class ConsoleLogHandler {
+        -Logger log
+        -ObjectMapper objectMapper
+        -boolean enabled
+        -LogLevel minLevel
+        -boolean includeContext
+        +setEnabled(boolean) void
+        +setMinLevel(LogLevel) void
+        +handle(LogEntry) void
+    }
+    
+    class UILogHandler {
+        +handle(LogEntry) void
+    }
+    
+    class ExecutionConsole {
+        +executionStart(executionId, workflowId, workflowName) void
+        +nodeStart(executionId, nodeId, nodeName, nodeType) void
+        +nodeEnd(executionId, nodeId, nodeName, success, durationMs) void
+        +error(executionId, source, message, stackTrace) void
+        +info(executionId, message, details) void
+        +debug(executionId, message, details) void
+    }
+    
+    ExecutionLogHandler <|.. ConsoleLogHandler
+    ExecutionLogHandler <|.. UILogHandler
+    ExecutionLogger --> ExecutionLogHandler : notifies
+    UILogHandler --> ExecutionConsole : updates
+    ExecutionConsole --> UILogHandler : receives events
+```
+
+#### Sequence Diagram - Log Entry Creation
+
+```mermaid
+sequenceDiagram
+    participant EL as ExecutionLogger
+    participant CH as ConsoleLogHandler
+    participant UH as UILogHandler
+    participant EC as ExecutionConsole
+    participant SLF4J as SLF4J Logger
+    
+    EL->>EL: Create LogEntry (node start, error, etc.)
+    EL->>CH: handle(LogEntry)
+    EL->>UH: handle(LogEntry)
+    
+    CH->>CH: Check enabled & minLevel
+    CH->>CH: Format message with timestamp, icons, context
+    CH->>SLF4J: log.info/debug/error(message)
+    
+    UH->>UH: Convert to UI-friendly format
+    UH->>UH: Platform.runLater() for thread safety
+    UH->>EC: executionStart/nodeStart/error/etc.
+    
+    EC->>EC: Update UI with new log entry
+    EC->>EC: Auto-scroll if enabled
+```
+
+#### Data Flow - Complete Logging Pipeline
+
+```mermaid
+flowchart TB
+    subgraph Execution["Workflow Execution"]
+        ES[ExecutionService] --> EL[ExecutionLogger]
+        EL --> LE[LogEntry Creation]
+    end
+    
+    subgraph Handlers["Log Handlers"]
+        LE --> CH[ConsoleLogHandler]
+        LE --> UH[UILogHandler]
+    end
+    
+    subgraph Outputs["Output Destinations"]
+        CH --> SLF4J[SLF4J Logger]
+        SLF4J --> Console[Terminal/Console Output]
+        
+        UH --> ECS[ExecutionConsoleService]
+        ECS --> UI[ExecutionConsole UI]
+    end
+    
+    subgraph Configuration["Settings Integration"]
+        SS[SettingsService] --> CH
+        SS --> EL
+    end
+    
+    style Execution fill:#e3f2fd,stroke:#1565c0
+    style Handlers fill:#fff9c4,stroke:#f9a825
+    style Outputs fill:#c8e6c9,stroke:#2e7d32
+    style Configuration fill:#fce4ec,stroke:#c2185b
+```
+
+#### Log Entry Format Examples
+
+**Console Output (structured):**
+```
+[14:30:15.123] 🚀 [exec_abc123] EXECUTION_START: Workflow execution started | {"workflowId":"wf_456","workflowName":"Weather Alert"}
+[14:30:15.245] ▶️ [exec_abc123] NODE_START: Node execution started | {"nodeId":"node_1","nodeType":"httpRequest","nodeName":"Get Weather"}
+[14:30:16.789] ✅ [exec_abc123] NODE_END: Node execution completed | {"nodeId":"node_1","nodeType":"httpRequest","durationMs":1544,"success":true}
+[14:30:17.001] ❌ [exec_abc123] ERROR: Error in node execution | {"nodeId":"node_2","errorType":"java.net.ConnectException","errorMessage":"Connection refused","stackTrace":"..."}
+```
+
+**UI Console Display:**
+- Hierarchical view with indentation
+- Color-coded by log level (INFO=blue, ERROR=red, etc.)
+- Timestamps and execution IDs
+- Expandable error details with stack traces
+- Real-time updates during execution
+
+#### Configuration via Settings
+
+The logging system integrates with the settings service for configurable verbosity:
+
+```java
+// In ExecutionService.configureLogHandlers()
+ConsoleLogHandler consoleHandler = new ConsoleLogHandler();
+LogLevel logLevel = LogLevel.valueOf(
+    settingsService.get(EXECUTION_LOG_LEVEL, "DEBUG")
+);
+consoleHandler.setMinLevel(logLevel);
+consoleHandler.setEnabled(true);
+executionLogger.addHandler(consoleHandler);
+```
+
+**Available Settings:**
+- `EXECUTION_LOG_LEVEL`: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+- `EXECUTION_LOG_INCLUDE_CONTEXT`: true/false (include JSON context)
+- `EXECUTION_CONSOLE_ENABLED`: true/false (enable console logging)
+
+#### Key Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| **Independent Operation** | Console logging works without UI console open |
+| **Structured Data** | JSON context provides rich debugging information |
+| **Configurable Verbosity** | Settings control log level and detail |
+| **Thread-Safe UI Updates** | Platform.runLater() ensures JavaFX thread safety |
+| **Multiple Outputs** | Same log data sent to console and UI simultaneously |
+| **Performance Aware** | Configurable to reduce overhead in production |
 
 ---
 
@@ -2678,12 +2856,16 @@ node.setStyle("-fx-border-color: red; -fx-border-width: 2;");
 | **DTO** | Data Transfer Object - carries data between layers |
 | **Entity** | JPA-managed database object |
 | **Executor** | Code that runs a specific node type |
+| **Execution** | One complete run of a workflow |
 | **FXML** | XML format for JavaFX UI definitions |
 | **JPA** | Java Persistence API - database access standard |
+| **Log Handler** | Component that processes and outputs log entries |
+| **Log Level** | Severity level of log messages (TRACE, DEBUG, INFO, WARN, ERROR, FATAL) |
 | **Node** | Single step in a workflow |
 | **Record** | Immutable data carrier class (Java 16+) |
 | **Repository** | Spring Data interface for database access |
 | **Service** | Business logic component |
+| **SLF4J** | Simple Logging Facade for Java - logging abstraction |
 | **Trigger** | Node that starts workflow execution |
 | **Virtual Thread** | Lightweight thread (Java 21+) |
 | **Workflow** | Complete automation blueprint |
@@ -2705,9 +2887,10 @@ node.setStyle("-fx-border-color: red; -fx-border-width: 2;");
 | Directory | Contents |
 |-----------|----------|
 | `app/src/main/java/io/toflowai/app/executor/` | Node executors |
-| `app/src/main/java/io/toflowai/app/service/` | Business services |
+| `app/src/main/java/io/toflowai/app/service/` | Business services (including ExecutionLogger, ConsoleLogHandler) |
+| `ui/src/main/java/io/toflowai/ui/console/` | UI logging components (ExecutionConsole, UILogHandler) |
+| `common/src/main/java/io/toflowai/common/service/` | Shared interfaces (ExecutionLogHandler) |
 | `ui/src/main/java/io/toflowai/ui/` | JavaFX UI components |
-| `common/src/main/java/io/toflowai/common/` | Shared interfaces & DTOs |
 
 ### Add New Node Type (5 Steps)
 
@@ -2750,6 +2933,27 @@ flowchart LR
     style EX fill:#e1bee7,stroke:#7b1fa2
     style DB fill:#ffccbc,stroke:#e64a19
 ```
+
+### Logging System
+
+```mermaid
+graph LR
+    EL[ExecutionLogger] --> CH[ConsoleLogHandler]
+    EL --> UH[UILogHandler]
+    CH --> Console[Terminal Output]
+    UH --> UI[ExecutionConsole UI]
+    
+    style EL fill:#e3f2fd,stroke:#1565c0
+    style Console fill:#c8e6c9,stroke:#2e7d32
+    style UI fill:#fce4ec,stroke:#c2185b
+```
+
+| Component | Purpose |
+|-----------|---------|
+| **ExecutionLogger** | Central service creating structured log entries |
+| **ConsoleLogHandler** | Outputs to terminal with icons and JSON context |
+| **UILogHandler** | Updates UI console with thread-safe operations |
+| **ExecutionConsole** | JavaFX window displaying logs hierarchically |
 
 ### Interpolation Syntax
 
