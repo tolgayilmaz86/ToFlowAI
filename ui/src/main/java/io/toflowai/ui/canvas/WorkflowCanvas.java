@@ -218,6 +218,14 @@ public class WorkflowCanvas extends BorderPane {
                 createPaletteItem("Embedding", "embedding", MaterialDesignV.VECTOR_BEZIER),
                 createPaletteItem("RAG", "rag", MaterialDesignB.BOOK_SEARCH)));
 
+        // Advanced section (Phase 6 executors)
+        palette.getChildren().add(createPaletteSection("Advanced",
+                createPaletteItem("Subworkflow", "subworkflow", MaterialDesignS.SITEMAP),
+                createPaletteItem("Parallel", "parallel", MaterialDesignF.FORMAT_ALIGN_JUSTIFY),
+                createPaletteItem("Try/Catch", "tryCatch", MaterialDesignS.SHIELD_CHECK),
+                createPaletteItem("Retry", "retry", MaterialDesignR.REFRESH),
+                createPaletteItem("Rate Limit", "rate_limit", MaterialDesignS.SPEEDOMETER)));
+
         return palette;
     }
 

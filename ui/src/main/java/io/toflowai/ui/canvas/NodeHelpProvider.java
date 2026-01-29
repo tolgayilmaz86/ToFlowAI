@@ -685,6 +685,255 @@ public final class NodeHelpProvider {
                             }
                             """);
 
+            // ===== ADVANCED NODES (Phase 6) =====
+
+            case "subworkflow" -> new NodeHelp(
+                    "Subworkflow",
+                    "Execute another workflow as a nested operation within the current workflow.",
+                    """
+                            Subworkflow allows you to:
+                            • Reuse existing workflows as building blocks
+                            • Create modular, maintainable automations
+                            • Pass data between parent and child workflows
+
+                            Parameters:
+                            • workflowId: ID of workflow to execute (or use workflowName)
+                            • workflowName: Name of workflow to execute
+                            • inputMapping: Map parent data to subworkflow input
+                            • outputMapping: Map subworkflow output back to parent
+                            • waitForCompletion: Wait for subworkflow to finish (default: true)
+                            """,
+                    """
+                            // Execute a workflow by ID
+                            {
+                              "workflowId": 5,
+                              "inputMapping": {
+                                "userId": "$.user.id",
+                                "email": "$.user.email"
+                              },
+                              "outputMapping": {
+                                "result": "$.processedData"
+                              },
+                              "waitForCompletion": true
+                            }
+
+                            // Execute by workflow name
+                            {
+                              "workflowName": "Process User Data",
+                              "inputMapping": {
+                                "data": "$.items"
+                              }
+                            }
+
+                            // Fire and forget (async)
+                            {
+                              "workflowId": 10,
+                              "waitForCompletion": false
+                            }
+                            """);
+
+            case "parallel" -> new NodeHelp(
+                    "Parallel Execution",
+                    "Execute multiple operations concurrently using virtual threads.",
+                    """
+                            Run multiple branches at the same time to speed up workflows.
+                            Each branch executes independently and results are combined.
+
+                            Parameters:
+                            • branches: Array of named branches with operations
+                            • combineResults: How to combine results
+                              - "merge": Merge all branch outputs into one object
+                              - "array": Return array of branch results
+                              - "first": Return first completed branch result
+                            • timeout: Maximum execution time in ms (default: 60000)
+                            • failFast: Cancel other branches on first failure
+                            """,
+                    """
+                            // Fetch data from multiple APIs in parallel
+                            {
+                              "branches": [
+                                {
+                                  "name": "users",
+                                  "operations": [
+                                    { "type": "httpRequest", "config": { "url": "https://api.example.com/users" } }
+                                  ]
+                                },
+                                {
+                                  "name": "orders",
+                                  "operations": [
+                                    { "type": "httpRequest", "config": { "url": "https://api.example.com/orders" } }
+                                  ]
+                                },
+                                {
+                                  "name": "products",
+                                  "operations": [
+                                    { "type": "httpRequest", "config": { "url": "https://api.example.com/products" } }
+                                  ]
+                                }
+                              ],
+                              "combineResults": "merge",
+                              "timeout": 30000,
+                              "failFast": true
+                            }
+
+                            // Output when combineResults = "merge":
+                            {
+                              "users": [...],
+                              "orders": [...],
+                              "products": [...]
+                            }
+                            """);
+
+            case "tryCatch" -> new NodeHelp(
+                    "Try/Catch Error Handling",
+                    "Wrap operations in error handling with try/catch/finally blocks.",
+                    """
+                            Handle errors gracefully instead of failing the entire workflow.
+                            Execute fallback logic when operations fail.
+
+                            Parameters:
+                            • tryOperations: Operations to attempt
+                            • catchOperations: Operations to run if error occurs
+                            • finallyOperations: Operations that always run
+                            • errorVariable: Name to store error info (default: "error")
+                            • continueOnError: Continue workflow after error (default: true)
+                            • logErrors: Log errors to execution log (default: true)
+                            """,
+                    """
+                            // Handle API failures with fallback
+                            {
+                              "tryOperations": [
+                                { "type": "httpRequest", "config": { "url": "https://primary-api.com/data" } }
+                              ],
+                              "catchOperations": [
+                                { "type": "httpRequest", "config": { "url": "https://backup-api.com/data" } }
+                              ],
+                              "finallyOperations": [
+                                { "type": "code", "config": { "code": "console.log('Request completed')" } }
+                              ],
+                              "errorVariable": "lastError",
+                              "continueOnError": true
+                            }
+
+                            // Error info available in catchOperations:
+                            {
+                              "error": {
+                                "message": "Connection timeout",
+                                "type": "TimeoutException",
+                                "stackTrace": "...",
+                                "cause": "Network unreachable"
+                              }
+                            }
+                            """);
+
+            case "retry" -> new NodeHelp(
+                    "Retry with Backoff",
+                    "Automatically retry failed operations with configurable backoff strategies.",
+                    """
+                            Retry transient failures automatically with intelligent backoff.
+
+                            Backoff Strategies:
+                            • fixed: Same delay between each retry
+                            • linear: Delay increases linearly (1s, 2s, 3s, 4s...)
+                            • exponential: Delay doubles each time (1s, 2s, 4s, 8s...)
+                            • fibonacci: Delay follows Fibonacci sequence (1s, 1s, 2s, 3s, 5s...)
+
+                            Parameters:
+                            • operations: Operations to execute with retry
+                            • maxRetries: Maximum retry attempts (default: 3)
+                            • backoffStrategy: Backoff algorithm (default: "exponential")
+                            • initialDelayMs: Initial delay in ms (default: 1000)
+                            • maxDelayMs: Maximum delay cap (default: 30000)
+                            • multiplier: Backoff multiplier (default: 2.0)
+                            • jitter: Add randomness to prevent thundering herd (default: true)
+                            • retryableErrors: Only retry these error types
+                            • nonRetryableErrors: Never retry these error types
+                            """,
+                    """
+                            // Retry flaky API with exponential backoff
+                            {
+                              "operations": [
+                                { "type": "httpRequest", "config": { "url": "https://flaky-api.com/data" } }
+                              ],
+                              "maxRetries": 5,
+                              "backoffStrategy": "exponential",
+                              "initialDelayMs": 1000,
+                              "maxDelayMs": 30000,
+                              "multiplier": 2.0,
+                              "jitter": true
+                            }
+
+                            // Only retry specific errors
+                            {
+                              "operations": [...],
+                              "maxRetries": 3,
+                              "retryableErrors": ["TimeoutException", "ConnectException"],
+                              "nonRetryableErrors": ["AuthenticationException"]
+                            }
+
+                            // Output includes retry statistics:
+                            {
+                              "success": true,
+                              "attemptCount": 3,
+                              "totalDelayMs": 3500,
+                              "result": { ... }
+                            }
+                            """);
+
+            case "rate_limit" -> new NodeHelp(
+                    "Rate Limiting",
+                    "Throttle API calls to prevent overwhelming external services.",
+                    """
+                            Control request rate using token bucket or sliding window algorithms.
+                            Shared rate limit buckets across workflow executions.
+
+                            Strategies:
+                            • token_bucket: Allows bursting up to maxTokens, refills at tokensPerSecond
+                            • sliding_window: Limits requests per time window
+
+                            Parameters:
+                            • bucketId: Identifier for shared rate limit bucket
+                            • strategy: "token_bucket" or "sliding_window"
+                            • tokensPerSecond: Refill rate for token bucket
+                            • maxTokens: Maximum bucket capacity
+                            • tokensPerRequest: Tokens consumed per request
+                            • waitForTokens: Wait if no tokens available (default: true)
+                            • maxWaitMs: Maximum wait time (default: 60000)
+                            • windowSizeMs: Window size for sliding window
+                            • maxRequestsPerWindow: Max requests per window
+                            """,
+                    """
+                            // Token bucket rate limiting (5 req/sec, burst of 20)
+                            {
+                              "bucketId": "openai-api",
+                              "strategy": "token_bucket",
+                              "tokensPerSecond": 5,
+                              "maxTokens": 20,
+                              "waitForTokens": true,
+                              "operations": [
+                                { "type": "llmChat", "config": { "model": "gpt-4", "prompt": "..." } }
+                              ]
+                            }
+
+                            // Sliding window (10 requests per second)
+                            {
+                              "bucketId": "external-api",
+                              "strategy": "sliding_window",
+                              "windowSizeMs": 1000,
+                              "maxRequestsPerWindow": 10,
+                              "operations": [...]
+                            }
+
+                            // Output includes rate limit stats:
+                            {
+                              "success": true,
+                              "throttled": false,
+                              "waitedMs": 0,
+                              "tokensRemaining": 15,
+                              "result": { ... }
+                            }
+                            """);
+
             default -> new NodeHelp(
                     nodeType,
                     "No description available for this node type.",

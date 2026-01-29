@@ -47,6 +47,14 @@ public class WorkflowService implements WorkflowServiceInterface {
                 .map(this::toDTO);
     }
 
+    /**
+     * Find a workflow by its exact name.
+     */
+    public Optional<WorkflowDTO> findByName(String name) {
+        return workflowRepository.findByName(name)
+                .map(this::toDTO);
+    }
+
     @Override
     public List<WorkflowDTO> findByTriggerType(TriggerType triggerType) {
         return workflowRepository.findByTriggerType(triggerType).stream()

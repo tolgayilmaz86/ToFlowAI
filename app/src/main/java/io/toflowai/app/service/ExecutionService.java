@@ -39,19 +39,25 @@ public class ExecutionService implements ExecutionServiceInterface {
     private final NodeExecutorRegistry nodeExecutorRegistry;
     private final ObjectMapper objectMapper;
     private final ExecutorService executorService;
+    private final ExecutionLogger executionLogger;
 
     public ExecutionService(
             ExecutionRepository executionRepository,
             WorkflowService workflowService,
             CredentialService credentialService,
             NodeExecutorRegistry nodeExecutorRegistry,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            ExecutionLogger executionLogger,
+            ConsoleLogHandler consoleLogHandler) {
         this.executionRepository = executionRepository;
         this.workflowService = workflowService;
         this.credentialService = credentialService;
         this.nodeExecutorRegistry = nodeExecutorRegistry;
         this.objectMapper = objectMapper;
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
+        this.executionLogger = executionLogger;
+        // Register console handler for development logging
+        this.executionLogger.addHandler(consoleLogHandler);
     }
 
     @Override
@@ -111,6 +117,11 @@ public class ExecutionService implements ExecutionServiceInterface {
         execution.setInputDataJson(serializeData(input));
         execution = executionRepository.save(execution);
 
+        String executionIdStr = execution.getId().toString();
+
+        // Start structured logging
+        executionLogger.startExecution(executionIdStr, workflowId.toString(), workflow.name());
+
         try {
             // Build execution context
             ExecutionContext context = new ExecutionContext(
@@ -129,12 +140,21 @@ public class ExecutionService implements ExecutionServiceInterface {
             execution.setExecutionLog(serializeData(context.getNodeExecutions()));
             executionRepository.save(execution);
 
+            // End structured logging (success)
+            executionLogger.endExecution(executionIdStr, true, output);
+
         } catch (Exception e) {
+            // Log the error
+            executionLogger.error(executionIdStr, "workflow", e);
+
             // Update execution as failed
             execution.setStatus(ExecutionStatus.FAILED);
             execution.setFinishedAt(Instant.now());
             execution.setErrorMessage(e.getMessage());
             executionRepository.save(execution);
+
+            // End structured logging (failure)
+            executionLogger.endExecution(executionIdStr, false, null);
         }
 
         return toDTO(execution);
@@ -176,13 +196,19 @@ public class ExecutionService implements ExecutionServiceInterface {
             ExecutionContext context,
             Map<String, Object> input) {
 
+        String executionIdStr = context.getExecutionId().toString();
+
         if (node.disabled()) {
             // Skip disabled nodes
+            executionLogger.nodeSkip(executionIdStr, node.id(), "Node is disabled");
             return input;
         }
 
         Instant startTime = Instant.now();
         Map<String, Object> output;
+
+        // Log node start
+        executionLogger.nodeStart(executionIdStr, node.id(), node.type(), node.name());
 
         try {
             // Get executor for node type
@@ -191,12 +217,24 @@ public class ExecutionService implements ExecutionServiceInterface {
             // Execute node
             output = executor.execute(node, input, context);
 
+            long durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis();
+
             // Record successful execution
             context.recordNodeExecution(node.id(), ExecutionStatus.SUCCESS, startTime, output, null);
 
+            // Log node end
+            executionLogger.nodeEnd(executionIdStr, node.id(), node.type(), durationMs, true);
+
         } catch (Exception e) {
+            long durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis();
+
             // Record failed execution
             context.recordNodeExecution(node.id(), ExecutionStatus.FAILED, startTime, null, e.getMessage());
+
+            // Log node failure
+            executionLogger.nodeEnd(executionIdStr, node.id(), node.type(), durationMs, false);
+            executionLogger.error(executionIdStr, node.id(), e);
+
             throw new RuntimeException("Node execution failed: " + node.name(), e);
         }
 

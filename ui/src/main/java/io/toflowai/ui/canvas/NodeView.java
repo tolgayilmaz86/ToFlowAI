@@ -658,6 +658,7 @@ public class NodeView extends StackPane {
             case "if", "switch", "merge", "loop" -> Color.web("#10b981"); // Emerald
             case "set", "filter", "sort" -> Color.web("#8b5cf6"); // Violet
             case "llmChat", "textClassifier", "embedding", "rag" -> Color.web("#ec4899"); // Pink
+            case "subworkflow", "parallel", "tryCatch", "retry", "rate_limit" -> Color.web("#f97316"); // Orange
             default -> Color.web("#525252"); // Gray
         };
     }
@@ -669,6 +670,7 @@ public class NodeView extends StackPane {
             case "if", "switch", "merge", "loop" -> Color.web("#34d399"); // Emerald bright
             case "set", "filter", "sort" -> Color.web("#a78bfa"); // Violet bright
             case "llmChat", "textClassifier", "embedding", "rag" -> Color.web("#f472b6"); // Pink bright
+            case "subworkflow", "parallel", "tryCatch", "retry", "rate_limit" -> Color.web("#fb923c"); // Orange bright
             default -> Color.web("#a1a1aa"); // Gray
         };
     }
@@ -692,6 +694,11 @@ public class NodeView extends StackPane {
             case "textClassifier" -> MaterialDesignT.TAG_TEXT_OUTLINE;
             case "embedding" -> MaterialDesignV.VECTOR_BEZIER;
             case "rag" -> MaterialDesignB.BOOK_SEARCH;
+            case "subworkflow" -> MaterialDesignS.SITEMAP;
+            case "parallel" -> MaterialDesignF.FORMAT_ALIGN_JUSTIFY;
+            case "tryCatch" -> MaterialDesignS.SHIELD_CHECK;
+            case "retry" -> MaterialDesignR.REFRESH;
+            case "rate_limit" -> MaterialDesignS.SPEEDOMETER;
             default -> MaterialDesignC.CUBE_OUTLINE;
         };
     }
@@ -715,6 +722,11 @@ public class NodeView extends StackPane {
             case "textClassifier" -> "classifier";
             case "embedding" -> "vectors";
             case "rag" -> "retrieval";
+            case "subworkflow" -> "nested";
+            case "parallel" -> "parallel";
+            case "tryCatch" -> "error handling";
+            case "retry" -> "retry";
+            case "rate_limit" -> "throttle";
             default -> type;
         };
     }

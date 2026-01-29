@@ -1,18 +1,25 @@
 package io.toflowai.app.database.repository;
 
-import io.toflowai.app.database.model.WorkflowEntity;
-import io.toflowai.common.enums.TriggerType;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import io.toflowai.app.database.model.WorkflowEntity;
+import io.toflowai.common.enums.TriggerType;
 
 /**
  * Repository for Workflow entities.
  */
 @Repository
 public interface WorkflowRepository extends JpaRepository<WorkflowEntity, Long> {
+
+    /**
+     * Find workflow by exact name.
+     */
+    Optional<WorkflowEntity> findByName(String name);
 
     /**
      * Find all workflows by name (case-insensitive).
