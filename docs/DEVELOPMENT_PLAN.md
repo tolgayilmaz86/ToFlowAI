@@ -1,6 +1,6 @@
 # ToFlowAI Development Plan
 
-> **Last Updated:** January 29, 2026  
+> **Last Updated:** January 30, 2026  
 > **Java Version:** 25  
 > **Spring Boot:** 3.5.0  
 > **Gradle:** 9.2.0
@@ -40,6 +40,13 @@ ToFlowAI is a workflow automation application built with:
 - [x] `IfExecutor` - Conditional branching
 - [x] `LoopExecutor` - Loop iteration (with virtual threads)
 - [x] `SetExecutor` - Set/transform data
+- [x] `ScheduleTriggerExecutor` - Cron-based trigger
+- [x] `WebhookTriggerExecutor` - HTTP webhook receiver
+- [x] `SwitchExecutor` - Multi-branch conditionals
+- [x] `MergeExecutor` - Combine multiple branches
+- [x] `FilterExecutor` - Filter array data
+- [x] `SortExecutor` - Sort array data
+- [x] `ExecuteCommandExecutor` - Shell command execution
 
 ### Services
 - [x] `WorkflowService` - CRUD operations
@@ -72,14 +79,14 @@ ToFlowAI is a workflow automation application built with:
 - [x] **Workflow List View** - Browse and manage workflows (WorkflowListDialog)
 - [x] **Import/Export** - JSON workflow format
 
-### Phase 2: Additional Node Types
-- [ ] **Schedule Trigger** - Cron-based trigger executor
-- [ ] **Webhook Trigger** - HTTP webhook receiver
-- [ ] **Switch Node** - Multi-branch conditionals
-- [ ] **Merge Node** - Combine multiple branches
-- [ ] **Filter Node** - Filter array data
-- [ ] **Sort Node** - Sort array data
-- [ ] **Execute Command** - Shell command execution
+### Phase 2: Additional Node Types ✅ COMPLETE
+- [x] **Schedule Trigger** - Cron-based trigger executor
+- [x] **Webhook Trigger** - HTTP webhook receiver
+- [x] **Switch Node** - Multi-branch conditionals
+- [x] **Merge Node** - Combine multiple branches
+- [x] **Filter Node** - Filter array data
+- [x] **Sort Node** - Sort array data
+- [x] **Execute Command** - Shell command execution
 
 ### Phase 3: AI Integration
 - [ ] **LLM Chat Node** - OpenAI/Anthropic API integration

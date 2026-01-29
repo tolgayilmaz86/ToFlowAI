@@ -108,20 +108,30 @@
     -fx-text-fill: -fx-text;
 }
 
+.palette-scroll {
+    -fx-background-color: -fx-bg-card;
+    -fx-background: -fx-bg-card;
+}
+
+.palette-scroll .viewport {
+    -fx-background-color: -fx-bg-card;
+}
+
 .palette-section {
     -fx-background-color: transparent;
+    -fx-content-display: top;
 }
 
 .palette-section>.title {
     -fx-background-color: -fx-bg-card;
     -fx-text-fill: -fx-text-muted;
     -fx-font-size: 12;
-    -fx-padding: 5 10;
+    -fx-padding: 5 10 5 10;
 }
 
 .palette-section>.content {
     -fx-background-color: transparent;
-    -fx-padding: 5;
+    -fx-padding: 0 0 0 0;
 }
 
 .palette-item {

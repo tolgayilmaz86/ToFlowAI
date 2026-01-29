@@ -64,6 +64,7 @@ public class WorkflowCanvas extends BorderPane {
     private final Pane nodeLayer;
     private final Pane connectionLayer;
     private final Pane gridLayer;
+    private final ScrollPane paletteScrollPane;
     private final VBox nodePalette;
     private final Label statusLabel;
 
@@ -113,12 +114,17 @@ public class WorkflowCanvas extends BorderPane {
         scrollPane.setFitToHeight(true);
         scrollPane.getStyleClass().add("canvas-scroll");
 
-        // Node palette on the left
+        // Node palette on the left with scroll
         nodePalette = createNodePalette();
+        paletteScrollPane = new ScrollPane(nodePalette);
+        paletteScrollPane.setFitToWidth(true);
+        paletteScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        paletteScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        paletteScrollPane.getStyleClass().add("palette-scroll");
 
         // Layout
         setCenter(scrollPane);
-        setLeft(nodePalette);
+        setLeft(paletteScrollPane);
 
         // Setup interactions
         setupCanvasInteraction();
@@ -176,6 +182,7 @@ public class WorkflowCanvas extends BorderPane {
 
     private TitledPane createPaletteSection(String title, javafx.scene.Node... items) {
         VBox content = new VBox(5);
+        content.setPadding(Insets.EMPTY);
         content.getChildren().addAll(items);
 
         TitledPane section = new TitledPane(title, content);
