@@ -16,7 +16,6 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignE;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignI;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignK;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignS;
@@ -157,7 +156,6 @@ public class SettingsDialog extends Dialog<Void> {
                 new CategoryItem("Editor", MaterialDesignP.PENCIL, SettingCategory.EDITOR),
                 new CategoryItem("Execution", MaterialDesignP.PLAY_CIRCLE, SettingCategory.EXECUTION),
                 new CategoryItem("AI Providers", MaterialDesignR.ROBOT, SettingCategory.AI_PROVIDERS),
-                new CategoryItem("Credentials", MaterialDesignK.KEY_VARIANT, null), // Special case
                 new CategoryItem("HTTP & Network", MaterialDesignW.WEB, SettingCategory.HTTP_NETWORK),
                 new CategoryItem("Database & Storage", MaterialDesignD.DATABASE, SettingCategory.DATABASE_STORAGE),
                 new CategoryItem("Webhook & Server", MaterialDesignS.SERVER, SettingCategory.WEBHOOK_SERVER),
@@ -194,10 +192,7 @@ public class SettingsDialog extends Dialog<Void> {
         settingsContainer.setPadding(new Insets(20));
         settingsContainer.setStyle("-fx-background-color: #3b4252;");
 
-        if (item.category == null && "Credentials".equals(item.name)) {
-            // Special handling for credentials
-            settingsContainer.getChildren().add(createCredentialsSection());
-        } else if (item.category != null) {
+        if (item.category != null) {
             // Load settings for category
             List<SettingDTO> settings = settingsService.findByCategory(item.category);
 
@@ -510,29 +505,6 @@ public class SettingsDialog extends Dialog<Void> {
         textField.setStyle("-fx-background-color: #4c566a; -fx-text-fill: #eceff4;");
         textField.textProperty().addListener((obs, old, val) -> pendingChanges.put(setting.key(), val));
         return textField;
-    }
-
-    private Node createCredentialsSection() {
-        VBox section = new VBox(15);
-        section.setPadding(new Insets(10));
-
-        Label info = new Label("Credentials are managed through the Credential Manager.\n" +
-                "Click the button below to open the manager.");
-        info.setStyle("-fx-font-size: 13px; -fx-text-fill: #d8dee9;");
-        info.setWrapText(true);
-
-        Button openBtn = new Button("Open Credential Manager");
-        openBtn.setStyle("-fx-background-color: #5e81ac; -fx-text-fill: white; -fx-font-size: 13px;");
-        FontIcon keyIcon = FontIcon.of(MaterialDesignK.KEY_VARIANT, 16);
-        keyIcon.setIconColor(Color.WHITE);
-        openBtn.setGraphic(keyIcon);
-        openBtn.setOnAction(e -> {
-            CredentialManagerDialog dialog = new CredentialManagerDialog(credentialService);
-            dialog.showAndWait();
-        });
-
-        section.getChildren().addAll(info, openBtn);
-        return section;
     }
 
     private Node createResetSection(CategoryItem item) {

@@ -76,12 +76,12 @@ public class CredentialManagerDialog extends Dialog<Void> {
         // Header
         HBox header = createHeader();
 
-        // Toolbar
-        HBox toolbar = createToolbar();
-
         // Table
         credentialTable = createCredentialTable();
         VBox.setVgrow(credentialTable, Priority.ALWAYS);
+
+        // Toolbar
+        HBox toolbar = createToolbar();
 
         content.getChildren().addAll(header, toolbar, credentialTable);
 
