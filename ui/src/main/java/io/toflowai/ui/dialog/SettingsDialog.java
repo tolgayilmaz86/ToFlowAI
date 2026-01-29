@@ -1,6 +1,9 @@
 package io.toflowai.ui.dialog;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +15,7 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignE;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignI;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignK;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
@@ -47,6 +51,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -533,9 +538,120 @@ public class SettingsDialog extends Dialog<Void> {
             });
         });
 
-        buttonBox.getChildren().add(resetBtn);
+        // Spacer to push import/export to the right
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Export button
+        Button exportBtn = new Button("Export");
+        exportBtn.setStyle("-fx-background-color: #5e81ac; -fx-text-fill: white;");
+        FontIcon exportIcon = FontIcon.of(MaterialDesignE.EXPORT, 14);
+        exportIcon.setIconColor(Color.WHITE);
+        exportBtn.setGraphic(exportIcon);
+        exportBtn.setOnAction(e -> exportSettings());
+
+        // Import button
+        Button importBtn = new Button("Import");
+        importBtn.setStyle("-fx-background-color: #a3be8c; -fx-text-fill: white;");
+        FontIcon importIcon = FontIcon.of(MaterialDesignI.IMPORT, 14);
+        importIcon.setIconColor(Color.WHITE);
+        importBtn.setGraphic(importIcon);
+        importBtn.setOnAction(e -> importSettings());
+
+        buttonBox.getChildren().addAll(resetBtn, spacer, exportBtn, importBtn);
         section.getChildren().addAll(separator, buttonBox);
         return section;
+    }
+
+    /**
+     * Export all settings to a JSON file.
+     */
+    private void exportSettings() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export Settings");
+        fileChooser.setInitialFileName("toflowai-settings.json");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("JSON Files", "*.json"),
+                new FileChooser.ExtensionFilter("All Files", "*.*"));
+
+        Stage stage = (Stage) getDialogPane().getScene().getWindow();
+        File file = fileChooser.showSaveDialog(stage);
+
+        if (file != null) {
+            try {
+                String json = settingsService.exportAsJson();
+                try (FileWriter writer = new FileWriter(file)) {
+                    writer.write(json);
+                }
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Export Successful");
+                alert.setHeaderText(null);
+                alert.setContentText("Settings exported to:\n" + file.getAbsolutePath());
+                alert.showAndWait();
+            } catch (IOException e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Export Failed");
+                alert.setHeaderText("Failed to export settings");
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
+            }
+        }
+    }
+
+    /**
+     * Import settings from a JSON file.
+     */
+    private void importSettings() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Import Settings");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("JSON Files", "*.json"),
+                new FileChooser.ExtensionFilter("All Files", "*.*"));
+
+        Stage stage = (Stage) getDialogPane().getScene().getWindow();
+        File file = fileChooser.showOpenDialog(stage);
+
+        if (file != null) {
+            // Confirm before importing
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Import Settings");
+            confirm.setHeaderText("Import settings from file?");
+            confirm.setContentText("This will overwrite existing settings with values from:\n" + file.getName());
+
+            confirm.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    try {
+                        String json = Files.readString(file.toPath());
+                        settingsService.importFromJson(json);
+
+                        // Refresh the current view
+                        if (selectedCategory != null) {
+                            showCategoryContent(selectedCategory);
+                        }
+                        pendingChanges.clear();
+
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("Import Successful");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Settings imported successfully.");
+                        alert.showAndWait();
+                    } catch (IOException e) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Import Failed");
+                        alert.setHeaderText("Failed to read file");
+                        alert.setContentText(e.getMessage());
+                        alert.showAndWait();
+                    } catch (Exception e) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Import Failed");
+                        alert.setHeaderText("Failed to import settings");
+                        alert.setContentText(e.getMessage());
+                        alert.showAndWait();
+                    }
+                }
+            });
+        }
     }
 
     private String formatLabel(String key) {

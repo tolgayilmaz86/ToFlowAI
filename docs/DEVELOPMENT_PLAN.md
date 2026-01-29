@@ -1,6 +1,6 @@
 # ToFlowAI Development Plan
 
-> **Last Updated:** January 30, 2026  
+> **Last Updated:** January 29, 2026  
 > **Java Version:** 25  
 > **Spring Boot:** 3.5.0  
 > **Gradle:** 9.2.0
@@ -98,7 +98,7 @@ ToFlowAI is a workflow automation application built with:
 - [x] **Embedding Node** - Vector embeddings
 - [x] **RAG Node** - Retrieval-augmented generation
 
-### Phase 4: Enhanced UI
+### Phase 4: Enhanced UI ✅ COMPLETE
 - [x] **Node Properties Panel** - Edit node parameters
 - [x] **Execution Visualization** - Show running nodes
 - [x] **Execution History** - View past runs
@@ -106,7 +106,7 @@ ToFlowAI is a workflow automation application built with:
 - [x] **Mini-map** - Canvas overview navigation
 - [x] **Undo/Redo** - Command pattern implementation
 
-### Phase 5: Data & Credentials
+### Phase 5: Data & Credentials ✅ COMPLETE
 - [x] **Credential Manager** - Secure credential storage
 - [x] **Data Preview** - Show data flowing between nodes
 - [x] **Variable System** - Global/workflow variables
@@ -121,19 +121,19 @@ ToFlowAI is a workflow automation application built with:
 - [x] **Logging** - Structured execution logs (ExecutionLogger with JSON export)
 - [x] **Execution Console** - UI console with hierarchical logging and node state visualization
 
-### Phase 7: Settings & Preferences (⬜ PLANNED)
-- [ ] **Settings Infrastructure** - Database model, service, DTOs
-- [ ] **Settings View** - Tabbed settings UI with all categories
-- [ ] **General Settings** - Theme, language, auto-save, updates
-- [ ] **Editor Settings** - Grid, zoom, minimap, connection style
-- [ ] **Execution Settings** - Timeouts, retries, logging levels
-- [ ] **AI Providers** - OpenAI, Anthropic, Ollama, Azure configuration
-- [ ] **Credentials Migration** - Move from sidebar to Settings tab
-- [ ] **HTTP/Network** - Proxy, timeouts, user agent
-- [ ] **Database & Storage** - Backups, cleanup, optimization
-- [ ] **Webhook & Server** - Port, CORS, webhook secrets
-- [ ] **Notifications** - System and email notifications
-- [ ] **Advanced** - Developer mode, telemetry, logging config
+### Phase 7: Settings & Preferences ✅ COMPLETE
+- [x] **Settings Infrastructure** - Database model, service, DTOs
+- [x] **Settings View** - Tabbed settings UI with all categories
+- [x] **General Settings** - Theme, language, auto-save, updates
+- [x] **Editor Settings** - Grid, zoom, minimap, connection style
+- [x] **Execution Settings** - Timeouts, retries, logging levels
+- [x] **AI Providers** - OpenAI, Anthropic, Ollama, Azure configuration
+- [x] **Credentials Migration** - Credentials tab opens existing CredentialDialog
+- [x] **HTTP/Network** - Proxy, timeouts, user agent
+- [x] **Database & Storage** - Backups, cleanup, optimization
+- [x] **Webhook & Server** - Port, CORS, webhook secrets
+- [x] **Notifications** - System and email notifications
+- [x] **Advanced** - Developer mode, telemetry, logging config
 
 ---
 
@@ -144,6 +144,8 @@ ToFlowAI is a workflow automation application built with:
 | VS Code Debug | Java Language Server needs workspace clean before debug | Medium |
 | JavaFX Warning | "Unsupported JavaFX configuration" on startup | Low |
 | H2 Console | Security password generated each run | Low |
+| Database Reset | Must delete `app/data/*.db` files when Flyway migrations change | Medium |
+| V001 Schema | V001 already creates basic `settings` table; V003 extends it via ALTER | Info |
 
 ---
 
@@ -196,19 +198,21 @@ $env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-25.0.0.36-hotspot"
 
 ## 📌 Next Steps (Immediate)
 
-1. **Settings View Implementation** (Phase 7)
-   - Create SettingsView with tabbed interface
-   - Implement settings persistence (database + preferences)
-   - Move Credentials from sidebar to Settings
-
-2. **Execution Console Polish**
-   - Finalize console window integration
-   - Test hierarchical logging with real workflows
-
-3. **UI Polish**
+1. **UI Polish** (Phase 8)
    - Multi-selection support
    - Auto-layout algorithms
    - Clipboard functionality
+   - Settings search/filter
+
+2. **Testing**
+   - Unit tests for SettingsService
+   - Integration tests for workflow execution
+   - UI tests for critical paths
+
+3. **Documentation**
+   - User guide for settings
+   - Node reference documentation
+   - API documentation
 
 ---
 
@@ -373,26 +377,31 @@ The Settings view will consolidate all user preferences and application configur
 - [x] Editor Settings tab
 - [x] Execution Settings tab
 - [x] AI Providers tab
-- [x] Credentials tab (migrate existing dialog)
+- [x] Credentials tab (opens existing dialog)
 - [x] HTTP/Network tab
 - [x] Database & Storage tab
 - [x] Webhook & Server tab
 - [x] Notifications tab
 - [x] Advanced tab
 
-#### Phase 7.4: Settings Integration
+#### Phase 7.4: Settings Integration ✅ COMPLETE
 - [x] Replace sidebar Credentials button with full Settings
-- [ ] Wire settings to relevant services (ExecutionService, LlmChatExecutor, etc.)
-- [x] Add settings import/export functionality
+- [x] Wire settings to relevant services (ExecutionService, LlmChatExecutor, HttpRequestExecutor)
+- [x] Add settings import/export functionality (backend + UI buttons)
 - [x] Implement settings reset with confirmation
 - [x] Add settings change listeners for real-time updates
 
-#### Phase 7.5: Testing & Polish
-- [ ] Add settings search/filter functionality
+> **Note:** Services read settings at startup. To apply changed settings (e.g., timeouts), app restart is required for some values. API keys and models are read dynamically per execution.
+
+#### Phase 7.5: Testing & Polish (⬜ Optional)
+- [ ] Add settings search/filter functionality (UI)
+- [x] Add settings import/export buttons (UI) - Export/Import buttons in footer
 - [ ] Unit tests for SettingsService
 - [ ] UI tests for SettingsView
-- [ ] Settings migration for existing installations
+- [x] Settings migration for existing installations - V003 uses ALTER TABLE IF NOT EXISTS
 - [ ] Documentation for each setting
+
+> **Note:** Core functionality complete. Testing and search are nice-to-have enhancements.
 
 ---
 

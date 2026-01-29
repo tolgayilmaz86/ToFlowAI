@@ -19,7 +19,9 @@ import org.springframework.stereotype.Component;
 
 import io.toflowai.app.service.ExecutionService;
 import io.toflowai.app.service.NodeExecutor;
+import io.toflowai.app.service.SettingsDefaults;
 import io.toflowai.common.domain.Node;
+import io.toflowai.common.service.SettingsServiceInterface;
 
 /**
  * LLM Chat node - sends messages to LLM providers and returns the response.
@@ -59,10 +61,13 @@ public class LlmChatExecutor implements NodeExecutor {
     );
 
     private final HttpClient httpClient;
+    private final SettingsServiceInterface settingsService;
 
-    public LlmChatExecutor() {
+    public LlmChatExecutor(SettingsServiceInterface settingsService) {
+        this.settingsService = settingsService;
+        int connectTimeout = settingsService.getInt(SettingsDefaults.HTTP_CONNECT_TIMEOUT, 30);
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(connectTimeout))
                 .build();
     }
 
@@ -75,7 +80,12 @@ public class LlmChatExecutor implements NodeExecutor {
         String model = interpolate((String) params.getOrDefault("model", getDefaultModel(provider)), input);
         String apiKey = interpolate((String) params.get("apiKey"), input);
         String baseUrl = interpolate(
-                (String) params.getOrDefault("baseUrl", DEFAULT_BASE_URLS.getOrDefault(provider, "")), input);
+                (String) params.getOrDefault("baseUrl", getDefaultBaseUrl(provider)), input);
+
+        // Fall back to settings for API key if not specified in node params
+        if (apiKey == null || apiKey.isBlank()) {
+            apiKey = getApiKeyFromSettings(provider);
+        }
         String systemPrompt = interpolate((String) params.get("systemPrompt"), input);
         String prompt = interpolate((String) params.get("prompt"), input);
         double temperature = ((Number) params.getOrDefault("temperature", 0.7)).doubleValue();
@@ -121,12 +131,54 @@ public class LlmChatExecutor implements NodeExecutor {
     }
 
     private String getDefaultModel(String provider) {
+        // Try to get model from settings first
+        String settingsModel = switch (provider.toLowerCase()) {
+            case "anthropic" -> settingsService.getValue(SettingsDefaults.AI_ANTHROPIC_DEFAULT_MODEL, null);
+            case "ollama" -> settingsService.getValue(SettingsDefaults.AI_OLLAMA_DEFAULT_MODEL, null);
+            case "azure" -> settingsService.getValue(SettingsDefaults.AI_AZURE_DEPLOYMENT, null);
+            default -> settingsService.getValue(SettingsDefaults.AI_OPENAI_DEFAULT_MODEL, null);
+        };
+
+        if (settingsModel != null && !settingsModel.isBlank()) {
+            return settingsModel;
+        }
+
+        // Fall back to hardcoded defaults
         return switch (provider.toLowerCase()) {
             case "anthropic" -> "claude-3-5-sonnet-20241022";
             case "ollama" -> "llama3.2";
             case "azure" -> "gpt-4";
             default -> "gpt-4o";
         };
+    }
+
+    /**
+     * Gets the API key from settings based on provider.
+     */
+    private String getApiKeyFromSettings(String provider) {
+        return switch (provider.toLowerCase()) {
+            case "anthropic" -> settingsService.getValue(SettingsDefaults.AI_ANTHROPIC_API_KEY, null);
+            case "azure" -> settingsService.getValue(SettingsDefaults.AI_AZURE_API_KEY, null);
+            default -> settingsService.getValue(SettingsDefaults.AI_OPENAI_API_KEY, null);
+        };
+    }
+
+    /**
+     * Gets the default base URL for a provider, checking settings first.
+     */
+    private String getDefaultBaseUrl(String provider) {
+        String settingsUrl = switch (provider.toLowerCase()) {
+            case "anthropic" -> settingsService.getValue(SettingsDefaults.AI_ANTHROPIC_BASE_URL, null);
+            case "ollama" -> settingsService.getValue(SettingsDefaults.AI_OLLAMA_BASE_URL, null);
+            case "azure" -> settingsService.getValue(SettingsDefaults.AI_AZURE_ENDPOINT, null);
+            default -> settingsService.getValue(SettingsDefaults.AI_OPENAI_BASE_URL, null);
+        };
+
+        if (settingsUrl != null && !settingsUrl.isBlank()) {
+            return settingsUrl;
+        }
+
+        return DEFAULT_BASE_URLS.getOrDefault(provider, "");
     }
 
     private List<Map<String, String>> buildMessages(String systemPrompt, String prompt,

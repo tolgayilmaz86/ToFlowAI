@@ -26,6 +26,7 @@ import io.toflowai.common.enums.ExecutionStatus;
 import io.toflowai.common.enums.TriggerType;
 import io.toflowai.common.service.ExecutionLogHandler;
 import io.toflowai.common.service.ExecutionServiceInterface;
+import io.toflowai.common.service.SettingsServiceInterface;
 
 /**
  * Service for executing workflows.
@@ -41,6 +42,13 @@ public class ExecutionService implements ExecutionServiceInterface {
     private final ObjectMapper objectMapper;
     private final ExecutorService executorService;
     private final ExecutionLogger executionLogger;
+    private final SettingsServiceInterface settingsService;
+
+    // Execution configuration (read from settings)
+    private final int defaultTimeout;
+    private final int maxParallelNodes;
+    private final int retryAttempts;
+    private final long retryDelay;
 
     public ExecutionService(
             ExecutionRepository executionRepository,
@@ -49,6 +57,7 @@ public class ExecutionService implements ExecutionServiceInterface {
             NodeExecutorRegistry nodeExecutorRegistry,
             ObjectMapper objectMapper,
             ExecutionLogger executionLogger,
+            SettingsServiceInterface settingsService,
             java.util.List<ExecutionLogHandler> logHandlers) {
         this.executionRepository = executionRepository;
         this.workflowService = workflowService;
@@ -57,10 +66,50 @@ public class ExecutionService implements ExecutionServiceInterface {
         this.objectMapper = objectMapper;
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.executionLogger = executionLogger;
+        this.settingsService = settingsService;
+
+        // Read execution configuration from settings
+        this.defaultTimeout = settingsService.getInt(SettingsDefaults.EXECUTION_DEFAULT_TIMEOUT, 30000);
+        this.maxParallelNodes = settingsService.getInt(SettingsDefaults.EXECUTION_MAX_PARALLEL, 10);
+        this.retryAttempts = settingsService.getInt(SettingsDefaults.EXECUTION_RETRY_ATTEMPTS, 3);
+        this.retryDelay = settingsService.getLong(SettingsDefaults.EXECUTION_RETRY_DELAY, 1000L);
+
         // Register all log handlers (ConsoleLogHandler, UILogHandler, etc.)
         for (ExecutionLogHandler handler : logHandlers) {
             this.executionLogger.addHandler(handler);
         }
+    }
+
+    /**
+     * Gets the default execution timeout from settings.
+     * 
+     * @return timeout in milliseconds
+     */
+    public int getDefaultTimeout() {
+        return defaultTimeout;
+    }
+
+    /**
+     * Gets the maximum number of parallel node executions from settings.
+     */
+    public int getMaxParallelNodes() {
+        return maxParallelNodes;
+    }
+
+    /**
+     * Gets the default retry attempts from settings.
+     */
+    public int getRetryAttempts() {
+        return retryAttempts;
+    }
+
+    /**
+     * Gets the default retry delay from settings.
+     * 
+     * @return delay in milliseconds
+     */
+    public long getRetryDelay() {
+        return retryDelay;
     }
 
     @Override

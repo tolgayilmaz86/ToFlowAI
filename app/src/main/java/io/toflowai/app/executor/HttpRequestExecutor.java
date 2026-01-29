@@ -1,10 +1,5 @@
 package io.toflowai.app.executor;
 
-import io.toflowai.app.service.ExecutionService;
-import io.toflowai.app.service.NodeExecutor;
-import io.toflowai.common.domain.Node;
-import org.springframework.stereotype.Component;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -12,6 +7,14 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.stereotype.Component;
+
+import io.toflowai.app.service.ExecutionService;
+import io.toflowai.app.service.NodeExecutor;
+import io.toflowai.app.service.SettingsDefaults;
+import io.toflowai.common.domain.Node;
+import io.toflowai.common.service.SettingsServiceInterface;
 
 /**
  * HTTP Request node executor.
@@ -22,25 +25,32 @@ import java.util.Map;
 public class HttpRequestExecutor implements NodeExecutor {
 
     private final HttpClient httpClient;
+    private final SettingsServiceInterface settingsService;
+    private final int defaultTimeout;
 
-    public HttpRequestExecutor() {
+    public HttpRequestExecutor(SettingsServiceInterface settingsService) {
+        this.settingsService = settingsService;
+        int connectTimeout = settingsService.getInt(SettingsDefaults.HTTP_CONNECT_TIMEOUT, 30);
+        this.defaultTimeout = settingsService.getInt(SettingsDefaults.HTTP_READ_TIMEOUT, 30);
+
         // Configure HttpClient to use virtual threads for async operations
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(connectTimeout))
                 .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
                 .build();
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> execute(Node node, Map<String, Object> input, ExecutionService.ExecutionContext context) {
+    public Map<String, Object> execute(Node node, Map<String, Object> input,
+            ExecutionService.ExecutionContext context) {
         Map<String, Object> params = node.parameters();
 
         String url = interpolate((String) params.getOrDefault("url", ""), input);
         String method = (String) params.getOrDefault("method", "GET");
         Map<String, String> headers = (Map<String, String>) params.getOrDefault("headers", Map.of());
         String body = interpolate((String) params.getOrDefault("body", ""), input);
-        int timeout = (int) params.getOrDefault("timeout", 30);
+        int timeout = (int) params.getOrDefault("timeout", defaultTimeout);
 
         try {
             // Build request
@@ -60,8 +70,8 @@ public class HttpRequestExecutor implements NodeExecutor {
             }
 
             // Set method and body
-            HttpRequest.BodyPublisher bodyPublisher = body.isBlank() 
-                    ? HttpRequest.BodyPublishers.noBody() 
+            HttpRequest.BodyPublisher bodyPublisher = body.isBlank()
+                    ? HttpRequest.BodyPublishers.noBody()
                     : HttpRequest.BodyPublishers.ofString(body);
 
             requestBuilder.method(method.toUpperCase(), bodyPublisher);
@@ -82,7 +92,8 @@ public class HttpRequestExecutor implements NodeExecutor {
                 try {
                     // Simple JSON detection - in production use Jackson
                     output.put("json", response.body());
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
 
             return output;
@@ -96,8 +107,9 @@ public class HttpRequestExecutor implements NodeExecutor {
      * Simple template interpolation for {{ variable }} syntax.
      */
     private String interpolate(String template, Map<String, Object> data) {
-        if (template == null) return "";
-        
+        if (template == null)
+            return "";
+
         String result = template;
         for (Map.Entry<String, Object> entry : data.entrySet()) {
             String placeholder = "{{" + entry.getKey() + "}}";
