@@ -21,8 +21,8 @@
                     <MenuItem text="Save" onAction="#onSaveWorkflow" accelerator="Ctrl+S"/>
                     <MenuItem text="Save As..." accelerator="Ctrl+Shift+S"/>
                     <SeparatorMenuItem/>
-                    <MenuItem text="Import..." />
-                    <MenuItem text="Export..." />
+                    <MenuItem text="Import..." onAction="#onImportWorkflow"/>
+                    <MenuItem text="Export..." onAction="#onExportWorkflow"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Exit" onAction="#onExit" accelerator="Alt+F4"/>
                 </Menu>

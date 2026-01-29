@@ -12,19 +12,20 @@ import java.util.Map;
  * Data Transfer Object for Workflow.
  * Used for API communication and serialization.
  *
- * @param id              Workflow unique identifier
- * @param name            Workflow display name
- * @param description     Optional description
- * @param nodes           List of nodes in the workflow
- * @param connections     List of connections between nodes
- * @param settings        Workflow-level settings
- * @param isActive        Whether workflow is active (for scheduled/webhook triggers)
- * @param triggerType     Type of trigger (MANUAL, SCHEDULE, WEBHOOK)
- * @param cronExpression  Cron expression for scheduled workflows
- * @param createdAt       Creation timestamp
- * @param updatedAt       Last update timestamp
- * @param lastExecuted    Last execution timestamp
- * @param version         Workflow version number
+ * @param id             Workflow unique identifier
+ * @param name           Workflow display name
+ * @param description    Optional description
+ * @param nodes          List of nodes in the workflow
+ * @param connections    List of connections between nodes
+ * @param settings       Workflow-level settings
+ * @param isActive       Whether workflow is active (for scheduled/webhook
+ *                       triggers)
+ * @param triggerType    Type of trigger (MANUAL, SCHEDULE, WEBHOOK)
+ * @param cronExpression Cron expression for scheduled workflows
+ * @param createdAt      Creation timestamp
+ * @param updatedAt      Last update timestamp
+ * @param lastExecuted   Last execution timestamp
+ * @param version        Workflow version number
  */
 public record WorkflowDTO(
         Long id,
@@ -39,8 +40,7 @@ public record WorkflowDTO(
         Instant createdAt,
         Instant updatedAt,
         Instant lastExecuted,
-        int version
-) {
+        int version) {
     /**
      * Compact constructor with validation and defaults.
      */
@@ -72,8 +72,7 @@ public record WorkflowDTO(
         return new WorkflowDTO(
                 null, name, null, List.of(), List.of(), Map.of(),
                 false, TriggerType.MANUAL, null,
-                Instant.now(), Instant.now(), null, 1
-        );
+                Instant.now(), Instant.now(), null, 1);
     }
 
     /**
@@ -83,8 +82,7 @@ public record WorkflowDTO(
         return new WorkflowDTO(
                 null, name, description, List.of(), List.of(), Map.of(),
                 false, TriggerType.MANUAL, null,
-                Instant.now(), Instant.now(), null, 1
-        );
+                Instant.now(), Instant.now(), null, 1);
     }
 
     /**
@@ -135,8 +133,17 @@ public record WorkflowDTO(
         return new WorkflowDTO(
                 id, name, description, newNodes, connections, settings,
                 isActive, triggerType, cronExpression,
-                createdAt, Instant.now(), lastExecuted, version
-        );
+                createdAt, Instant.now(), lastExecuted, version);
+    }
+
+    /**
+     * Create a copy with updated name.
+     */
+    public WorkflowDTO withName(String newName) {
+        return new WorkflowDTO(
+                id, newName, description, nodes, connections, settings,
+                isActive, triggerType, cronExpression,
+                createdAt, Instant.now(), lastExecuted, version);
     }
 
     /**
@@ -146,8 +153,7 @@ public record WorkflowDTO(
         return new WorkflowDTO(
                 id, name, description, nodes, newConnections, settings,
                 isActive, triggerType, cronExpression,
-                createdAt, Instant.now(), lastExecuted, version
-        );
+                createdAt, Instant.now(), lastExecuted, version);
     }
 
     /**

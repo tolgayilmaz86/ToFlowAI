@@ -1,6 +1,8 @@
 package io.toflowai.ui.controller;
 
 import java.net.URL;
+import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -9,10 +11,15 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.springframework.stereotype.Component;
 
+import io.toflowai.common.dto.WorkflowDTO;
+import io.toflowai.common.service.ExecutionServiceInterface;
+import io.toflowai.common.service.WorkflowServiceInterface;
 import io.toflowai.ui.canvas.WorkflowCanvas;
+import io.toflowai.ui.dialog.WorkflowListDialog;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -25,6 +32,9 @@ import net.rgielen.fxweaver.core.FxmlView;
 @Component
 @FxmlView("Main.fxml")
 public class MainController implements Initializable {
+
+    private final WorkflowServiceInterface workflowService;
+    private final ExecutionServiceInterface executionService;
 
     @FXML
     private BorderPane rootPane;
@@ -51,6 +61,11 @@ public class MainController implements Initializable {
     private Button btnSettings;
 
     private WorkflowCanvas workflowCanvas;
+
+    public MainController(WorkflowServiceInterface workflowService, ExecutionServiceInterface executionService) {
+        this.workflowService = workflowService;
+        this.executionService = executionService;
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -79,8 +94,8 @@ public class MainController implements Initializable {
         clearActiveButton();
         btnWorkflows.getStyleClass().add("active");
 
-        // Create workflow editor view
-        workflowCanvas = new WorkflowCanvas();
+        // Create workflow editor view with injected services
+        workflowCanvas = new WorkflowCanvas(workflowService, executionService);
         contentArea.getChildren().setAll(workflowCanvas);
 
         updateStatus("Workflows");
@@ -148,7 +163,17 @@ public class MainController implements Initializable {
 
     @FXML
     private void onOpenWorkflow() {
-        // TODO: Show workflow selection dialog
+        List<WorkflowDTO> workflows = workflowService.findAll();
+        WorkflowListDialog dialog = new WorkflowListDialog(workflows);
+        Optional<WorkflowDTO> selected = dialog.showAndWait();
+
+        selected.ifPresent(workflow -> {
+            showWorkflowsView();
+            if (workflowCanvas != null) {
+                workflowCanvas.loadWorkflow(workflow);
+                updateStatus("Loaded: " + workflow.name());
+            }
+        });
     }
 
     @FXML
@@ -162,6 +187,20 @@ public class MainController implements Initializable {
     private void onRunWorkflow() {
         if (workflowCanvas != null) {
             workflowCanvas.runWorkflow();
+        }
+    }
+
+    @FXML
+    private void onImportWorkflow() {
+        if (workflowCanvas != null) {
+            workflowCanvas.importWorkflow();
+        }
+    }
+
+    @FXML
+    private void onExportWorkflow() {
+        if (workflowCanvas != null) {
+            workflowCanvas.exportWorkflow();
         }
     }
 

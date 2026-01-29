@@ -5,17 +5,44 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.kordamp.ikonli.materialdesign2.*;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignA;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignS;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignW;
 
 import io.toflowai.common.domain.Connection;
 import io.toflowai.common.domain.Node;
+import io.toflowai.common.dto.ExecutionDTO;
 import io.toflowai.common.dto.WorkflowDTO;
+import io.toflowai.common.enums.ExecutionStatus;
+import io.toflowai.common.service.ExecutionServiceInterface;
+import io.toflowai.common.service.WorkflowServiceInterface;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.TitledPane;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.ScrollEvent;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.CubicCurve;
 
@@ -30,11 +57,15 @@ public class WorkflowCanvas extends BorderPane {
     private static final double MAX_ZOOM = 2.0;
     private static final double ZOOM_FACTOR = 0.1;
 
+    private final WorkflowServiceInterface workflowService;
+    private final ExecutionServiceInterface executionService;
+
     private final Pane canvasPane;
     private final Pane nodeLayer;
     private final Pane connectionLayer;
     private final Pane gridLayer;
     private final VBox nodePalette;
+    private final Label statusLabel;
 
     private WorkflowDTO workflow;
     private final Map<String, NodeView> nodeViews = new HashMap<>();
@@ -57,7 +88,10 @@ public class WorkflowCanvas extends BorderPane {
     // Selection
     private NodeView selectedNode = null;
 
-    public WorkflowCanvas() {
+    public WorkflowCanvas(WorkflowServiceInterface workflowService, ExecutionServiceInterface executionService) {
+        this.workflowService = workflowService;
+        this.executionService = executionService;
+
         // Initialize layers
         gridLayer = new Pane();
         connectionLayer = new Pane();
@@ -65,6 +99,10 @@ public class WorkflowCanvas extends BorderPane {
 
         canvasPane = new Pane(gridLayer, connectionLayer, nodeLayer);
         canvasPane.getStyleClass().add("canvas-pane");
+
+        // Status label for feedback
+        statusLabel = new Label("");
+        statusLabel.getStyleClass().add("canvas-status");
 
         // Wrap in scroll pane
         ScrollPane scrollPane = new ScrollPane(canvasPane);
@@ -424,16 +462,201 @@ public class WorkflowCanvas extends BorderPane {
         for (Connection connection : workflow.connections()) {
             createConnectionLine(connection);
         }
+
+        showStatus("Loaded: " + workflow.name());
     }
 
     public void saveWorkflow() {
-        // TODO: Save workflow to database via service
-        System.out.println("Saving workflow: " + workflow.name());
+        try {
+            WorkflowDTO saved;
+            if (workflow.id() == null) {
+                // New workflow - prompt for name if needed
+                String name = workflow.name();
+                if (name == null || name.isBlank() || name.equals("New Workflow")) {
+                    TextInputDialog dialog = new TextInputDialog("My Workflow");
+                    dialog.setTitle("Save Workflow");
+                    dialog.setHeaderText("Enter workflow name:");
+                    dialog.setContentText("Name:");
+
+                    var result = dialog.showAndWait();
+                    if (result.isEmpty()) {
+                        return; // User cancelled
+                    }
+                    name = result.get();
+                    workflow = workflow.withName(name);
+                }
+                saved = workflowService.create(workflow);
+            } else {
+                // Update existing workflow
+                saved = workflowService.update(workflow);
+            }
+            this.workflow = saved;
+            showStatus("Saved: " + saved.name());
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Workflow Saved");
+            alert.setHeaderText(null);
+            alert.setContentText("Workflow '" + saved.name() + "' saved successfully!");
+            alert.showAndWait();
+        } catch (Exception e) {
+            showStatus("Error saving: " + e.getMessage());
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Save Error");
+            alert.setHeaderText("Failed to save workflow");
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
+        }
     }
 
     public void runWorkflow() {
-        // TODO: Execute workflow via service
-        System.out.println("Running workflow: " + workflow.name());
+        if (workflow.id() == null) {
+            // Must save first
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Save Required");
+            alert.setHeaderText("Workflow must be saved before running");
+            alert.setContentText("Please save the workflow first.");
+            alert.showAndWait();
+            return;
+        }
+
+        try {
+            showStatus("Running: " + workflow.name() + "...");
+
+            // Execute asynchronously
+            executionService.executeAsync(workflow.id(), Map.of())
+                    .thenAccept(result -> Platform.runLater(() -> {
+                        if (result.status() == ExecutionStatus.SUCCESS) {
+                            showStatus("Completed: " + workflow.name());
+                            showExecutionResult(result);
+                        } else {
+                            showStatus("Failed: " + workflow.name());
+                            showExecutionError(result);
+                        }
+                    }))
+                    .exceptionally(ex -> {
+                        Platform.runLater(() -> {
+                            showStatus("Error: " + ex.getMessage());
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("Execution Error");
+                            alert.setHeaderText("Workflow execution failed");
+                            alert.setContentText(ex.getMessage());
+                            alert.showAndWait();
+                        });
+                        return null;
+                    });
+        } catch (Exception e) {
+            showStatus("Error: " + e.getMessage());
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Execution Error");
+            alert.setHeaderText("Failed to start workflow execution");
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
+        }
+    }
+
+    private void showStatus(String message) {
+        statusLabel.setText(message);
+    }
+
+    private void showExecutionResult(ExecutionDTO result) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Execution Complete");
+        alert.setHeaderText("Workflow executed successfully");
+        alert.setContentText("Duration: " +
+                (result.finishedAt() != null && result.startedAt() != null
+                        ? java.time.Duration.between(result.startedAt(), result.finishedAt()).toMillis() + "ms"
+                        : "N/A"));
+        alert.showAndWait();
+    }
+
+    private void showExecutionError(ExecutionDTO result) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Execution Failed");
+        alert.setHeaderText("Workflow execution failed");
+        alert.setContentText("Status: " + result.status() +
+                (result.errorMessage() != null ? "\nError: " + result.errorMessage() : ""));
+        alert.showAndWait();
+    }
+
+    public void exportWorkflow() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Export Workflow");
+        fileChooser.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter("JSON Files", "*.json"));
+        fileChooser.setInitialFileName(workflow.name().replaceAll("[^a-zA-Z0-9]", "_") + ".json");
+
+        java.io.File file = fileChooser.showSaveDialog(getScene().getWindow());
+        if (file != null) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+                mapper.enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
+                mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+                mapper.writeValue(file, workflow);
+                showStatus("Exported: " + file.getName());
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Export Successful");
+                alert.setHeaderText(null);
+                alert.setContentText("Workflow exported to:\n" + file.getAbsolutePath());
+                alert.showAndWait();
+            } catch (Exception e) {
+                showStatus("Export failed: " + e.getMessage());
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Export Error");
+                alert.setHeaderText("Failed to export workflow");
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
+            }
+        }
+    }
+
+    public void importWorkflow() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Import Workflow");
+        fileChooser.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter("JSON Files", "*.json"));
+
+        java.io.File file = fileChooser.showOpenDialog(getScene().getWindow());
+        if (file != null) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+
+                WorkflowDTO imported = mapper.readValue(file, WorkflowDTO.class);
+
+                // Create a new workflow (no ID) from the imported data
+                WorkflowDTO newWorkflow = new WorkflowDTO(
+                        null, // New ID will be assigned on save
+                        imported.name() + " (Imported)",
+                        imported.description(),
+                        imported.nodes(),
+                        imported.connections(),
+                        imported.settings(),
+                        false, // Not active by default
+                        imported.triggerType(),
+                        imported.cronExpression(),
+                        null, null, null, 1);
+
+                loadWorkflow(newWorkflow);
+                showStatus("Imported: " + newWorkflow.name());
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Import Successful");
+                alert.setHeaderText(null);
+                alert.setContentText(
+                        "Workflow '" + newWorkflow.name() + "' imported.\nRemember to save to persist changes.");
+                alert.showAndWait();
+            } catch (Exception e) {
+                showStatus("Import failed: " + e.getMessage());
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Import Error");
+                alert.setHeaderText("Failed to import workflow");
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
+            }
+        }
     }
 
     private void addNode(String type, String name, double x, double y) {

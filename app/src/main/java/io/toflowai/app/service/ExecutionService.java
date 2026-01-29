@@ -24,13 +24,14 @@ import io.toflowai.common.dto.ExecutionDTO;
 import io.toflowai.common.dto.WorkflowDTO;
 import io.toflowai.common.enums.ExecutionStatus;
 import io.toflowai.common.enums.TriggerType;
+import io.toflowai.common.service.ExecutionServiceInterface;
 
 /**
  * Service for executing workflows.
  */
 @Service
 @Transactional
-public class ExecutionService {
+public class ExecutionService implements ExecutionServiceInterface {
 
     private final ExecutionRepository executionRepository;
     private final WorkflowService workflowService;
@@ -53,29 +54,34 @@ public class ExecutionService {
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
     }
 
+    @Override
     public List<ExecutionDTO> findAll() {
         return executionRepository.findAll().stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    @Override
     public Optional<ExecutionDTO> findById(Long id) {
         return executionRepository.findById(id)
                 .map(this::toDTO);
     }
 
+    @Override
     public List<ExecutionDTO> findByWorkflowId(Long workflowId) {
         return executionRepository.findByWorkflowIdOrderByStartedAtDesc(workflowId).stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    @Override
     public List<ExecutionDTO> findRunningExecutions() {
         return executionRepository.findRunningExecutions().stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    @Override
     public List<ExecutionDTO> findByTimeRange(Instant start, Instant end) {
         return executionRepository.findByTimeRange(start, end).stream()
                 .map(this::toDTO)
@@ -85,6 +91,7 @@ public class ExecutionService {
     /**
      * Execute a workflow asynchronously.
      */
+    @Override
     public CompletableFuture<ExecutionDTO> executeAsync(Long workflowId, Map<String, Object> input) {
         return CompletableFuture.supplyAsync(() -> execute(workflowId, input), executorService);
     }
@@ -92,6 +99,7 @@ public class ExecutionService {
     /**
      * Execute a workflow synchronously.
      */
+    @Override
     public ExecutionDTO execute(Long workflowId, Map<String, Object> input) {
         WorkflowDTO workflow = workflowService.findById(workflowId)
                 .orElseThrow(() -> new IllegalArgumentException("Workflow not found: " + workflowId));

@@ -1,27 +1,30 @@
 package io.toflowai.app.service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.toflowai.app.database.model.WorkflowEntity;
 import io.toflowai.app.database.repository.WorkflowRepository;
 import io.toflowai.common.domain.Connection;
 import io.toflowai.common.domain.Node;
 import io.toflowai.common.dto.WorkflowDTO;
 import io.toflowai.common.enums.TriggerType;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import io.toflowai.common.service.WorkflowServiceInterface;
 
 /**
  * Service for managing workflows.
  */
 @Service
 @Transactional
-public class WorkflowService {
+public class WorkflowService implements WorkflowServiceInterface {
 
     private final WorkflowRepository workflowRepository;
     private final ObjectMapper objectMapper;
@@ -31,17 +34,20 @@ public class WorkflowService {
         this.objectMapper = objectMapper;
     }
 
+    @Override
     public List<WorkflowDTO> findAll() {
         return workflowRepository.findAll().stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    @Override
     public Optional<WorkflowDTO> findById(Long id) {
         return workflowRepository.findById(id)
                 .map(this::toDTO);
     }
 
+    @Override
     public List<WorkflowDTO> findByTriggerType(TriggerType triggerType) {
         return workflowRepository.findByTriggerType(triggerType).stream()
                 .map(this::toDTO)
@@ -54,6 +60,7 @@ public class WorkflowService {
                 .toList();
     }
 
+    @Override
     public WorkflowDTO create(WorkflowDTO dto) {
         WorkflowEntity entity = toEntity(dto);
         // ID is auto-generated, createdAt/updatedAt handled by @PrePersist
@@ -61,6 +68,7 @@ public class WorkflowService {
         return toDTO(saved);
     }
 
+    @Override
     public WorkflowDTO update(WorkflowDTO dto) {
         if (dto.id() == null) {
             throw new IllegalArgumentException("Workflow ID cannot be null for update");
@@ -82,10 +90,12 @@ public class WorkflowService {
         return toDTO(saved);
     }
 
+    @Override
     public void delete(Long id) {
         workflowRepository.deleteById(id);
     }
 
+    @Override
     public WorkflowDTO duplicate(Long id) {
         WorkflowDTO original = findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Workflow not found: " + id));
@@ -100,12 +110,12 @@ public class WorkflowService {
                 false,
                 original.triggerType(),
                 original.cronExpression(),
-                null, null, null, 0
-        );
+                null, null, null, 0);
 
         return create(copy);
     }
 
+    @Override
     public void setActive(Long id, boolean active) {
         WorkflowEntity entity = workflowRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Workflow not found: " + id));
@@ -131,8 +141,7 @@ public class WorkflowService {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getLastExecuted(),
-                entity.getVersion()
-        );
+                entity.getVersion());
     }
 
     private WorkflowEntity toEntity(WorkflowDTO dto) {
@@ -148,18 +157,22 @@ public class WorkflowService {
     }
 
     private List<Node> parseNodes(String json) {
-        if (json == null || json.isBlank()) return List.of();
+        if (json == null || json.isBlank())
+            return List.of();
         try {
-            return objectMapper.readValue(json, new TypeReference<>() {});
+            return objectMapper.readValue(json, new TypeReference<>() {
+            });
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to parse nodes JSON", e);
         }
     }
 
     private List<Connection> parseConnections(String json) {
-        if (json == null || json.isBlank()) return List.of();
+        if (json == null || json.isBlank())
+            return List.of();
         try {
-            return objectMapper.readValue(json, new TypeReference<>() {});
+            return objectMapper.readValue(json, new TypeReference<>() {
+            });
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to parse connections JSON", e);
         }
@@ -167,7 +180,8 @@ public class WorkflowService {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> parseSettings(String json) {
-        if (json == null || json.isBlank()) return Map.of();
+        if (json == null || json.isBlank())
+            return Map.of();
         try {
             return objectMapper.readValue(json, Map.class);
         } catch (JsonProcessingException e) {
@@ -176,7 +190,8 @@ public class WorkflowService {
     }
 
     private String serializeNodes(List<Node> nodes) {
-        if (nodes == null) return "[]";
+        if (nodes == null)
+            return "[]";
         try {
             return objectMapper.writeValueAsString(nodes);
         } catch (JsonProcessingException e) {
@@ -185,7 +200,8 @@ public class WorkflowService {
     }
 
     private String serializeConnections(List<Connection> connections) {
-        if (connections == null) return "[]";
+        if (connections == null)
+            return "[]";
         try {
             return objectMapper.writeValueAsString(connections);
         } catch (JsonProcessingException e) {
@@ -194,7 +210,8 @@ public class WorkflowService {
     }
 
     private String serializeSettings(Map<String, Object> settings) {
-        if (settings == null) return null;
+        if (settings == null)
+            return null;
         try {
             return objectMapper.writeValueAsString(settings);
         } catch (JsonProcessingException e) {
