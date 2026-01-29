@@ -458,6 +458,36 @@ public class NodeView extends StackPane {
             default -> "node-default";
         };
         getStyleClass().add(styleClass);
+
+        // Apply colored border based on node type
+        Color borderColor = switch (node.type()) {
+            case "manualTrigger", "scheduleTrigger", "webhookTrigger" -> Color.web("#40c057"); // Green
+            case "httpRequest", "code", "executeCommand" -> Color.web("#4a9eff"); // Blue
+            case "if", "switch", "merge", "loop" -> Color.web("#fcc419"); // Yellow
+            case "set", "filter", "sort" -> Color.web("#fa5252"); // Red
+            case "llmChat", "textClassifier" -> Color.web("#9775fa"); // Purple
+            default -> Color.web("#8b949e"); // Gray
+        };
+
+        // Create rounded border
+        contentBox.setBorder(new Border(new BorderStroke(
+                borderColor,
+                BorderStrokeStyle.SOLID,
+                new CornerRadii(12),
+                new BorderWidths(2))));
+
+        // Add background with matching radius
+        contentBox.setBackground(new Background(new BackgroundFill(
+                Color.web("#3b4252"),
+                new CornerRadii(12),
+                Insets.EMPTY)));
+
+        // Add drop shadow effect
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.rgb(0, 0, 0, 0.4));
+        shadow.setRadius(10);
+        shadow.setOffsetY(3);
+        contentBox.setEffect(shadow);
     }
 
     private org.kordamp.ikonli.Ikon getIconForType(String type) {

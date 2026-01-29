@@ -187,6 +187,8 @@
 
 .node-body {
     -fx-background-color: transparent;
+    -fx-padding: 8 10 10 10;
+    -fx-background-radius: 0 0 10 10;
 }
 
 .node-type-label {
@@ -195,20 +197,40 @@
 }
 
 /* Node type styles */
+.node-trigger .node-content {
+    -fx-border-color: #40c057;
+}
+
 .node-trigger .node-header {
     -fx-background-color: derive(#40c057, -40%);
+}
+
+.node-action .node-content {
+    -fx-border-color: #4a9eff;
 }
 
 .node-action .node-header {
     -fx-background-color: derive(#4a9eff, -40%);
 }
 
+.node-flow .node-content {
+    -fx-border-color: #fcc419;
+}
+
 .node-flow .node-header {
     -fx-background-color: derive(#fcc419, -40%);
 }
 
+.node-data .node-content {
+    -fx-border-color: #fa5252;
+}
+
 .node-data .node-header {
     -fx-background-color: derive(#fa5252, -40%);
+}
+
+.node-ai .node-content {
+    -fx-border-color: #9775fa;
 }
 
 .node-ai .node-header {
