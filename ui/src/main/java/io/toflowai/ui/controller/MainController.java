@@ -16,6 +16,7 @@ import io.toflowai.common.service.CredentialServiceInterface;
 import io.toflowai.common.service.ExecutionServiceInterface;
 import io.toflowai.common.service.WorkflowServiceInterface;
 import io.toflowai.ui.canvas.WorkflowCanvas;
+import io.toflowai.ui.console.ExecutionConsoleService;
 import io.toflowai.ui.dialog.CredentialManagerDialog;
 import io.toflowai.ui.dialog.WorkflowListDialog;
 import javafx.fxml.FXML;
@@ -213,5 +214,10 @@ public class MainController implements Initializable {
     @FXML
     private void onExit() {
         javafx.application.Platform.exit();
+    }
+
+    @FXML
+    private void onShowExecutionConsole() {
+        ExecutionConsoleService.getInstance().showConsole();
     }
 }

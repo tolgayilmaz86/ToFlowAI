@@ -24,6 +24,7 @@ import io.toflowai.common.dto.ExecutionDTO;
 import io.toflowai.common.dto.WorkflowDTO;
 import io.toflowai.common.enums.ExecutionStatus;
 import io.toflowai.common.enums.TriggerType;
+import io.toflowai.common.service.ExecutionLogHandler;
 import io.toflowai.common.service.ExecutionServiceInterface;
 
 /**
@@ -48,7 +49,7 @@ public class ExecutionService implements ExecutionServiceInterface {
             NodeExecutorRegistry nodeExecutorRegistry,
             ObjectMapper objectMapper,
             ExecutionLogger executionLogger,
-            ConsoleLogHandler consoleLogHandler) {
+            java.util.List<ExecutionLogHandler> logHandlers) {
         this.executionRepository = executionRepository;
         this.workflowService = workflowService;
         this.credentialService = credentialService;
@@ -56,8 +57,10 @@ public class ExecutionService implements ExecutionServiceInterface {
         this.objectMapper = objectMapper;
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.executionLogger = executionLogger;
-        // Register console handler for development logging
-        this.executionLogger.addHandler(consoleLogHandler);
+        // Register all log handlers (ConsoleLogHandler, UILogHandler, etc.)
+        for (ExecutionLogHandler handler : logHandlers) {
+            this.executionLogger.addHandler(handler);
+        }
     }
 
     @Override

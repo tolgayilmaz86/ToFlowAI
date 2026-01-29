@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.toflowai.common.service.ExecutionLogHandler;
+
 /**
  * Structured logging service for workflow execution.
  * Provides JSON-formatted log entries with context and timing.
@@ -31,7 +33,7 @@ public class ExecutionLogger {
 
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, ExecutionLog> executionLogs = new ConcurrentHashMap<>();
-    private final List<LogHandler> logHandlers = new CopyOnWriteArrayList<>();
+    private final List<ExecutionLogHandler> logHandlers = new CopyOnWriteArrayList<>();
 
     public ExecutionLogger() {
         this.objectMapper = new ObjectMapper();
@@ -221,10 +223,20 @@ public class ExecutionLogger {
             log.addEntry(entry);
         }
 
+        // Convert to common interface type for handlers
+        ExecutionLogHandler.LogEntry commonEntry = new ExecutionLogHandler.LogEntry(
+                entry.id(),
+                entry.executionId(),
+                entry.timestamp(),
+                ExecutionLogHandler.LogLevel.valueOf(entry.level().name()),
+                ExecutionLogHandler.LogCategory.valueOf(entry.category().name()),
+                entry.message(),
+                entry.context());
+
         // Notify handlers
-        for (LogHandler handler : logHandlers) {
+        for (ExecutionLogHandler handler : logHandlers) {
             try {
-                handler.handle(entry);
+                handler.handle(commonEntry);
             } catch (Exception e) {
                 // Don't let handler errors affect execution
             }
@@ -313,14 +325,14 @@ public class ExecutionLogger {
     /**
      * Add a log handler.
      */
-    public void addHandler(LogHandler handler) {
+    public void addHandler(ExecutionLogHandler handler) {
         logHandlers.add(handler);
     }
 
     /**
      * Remove a log handler.
      */
-    public void removeHandler(LogHandler handler) {
+    public void removeHandler(ExecutionLogHandler handler) {
         logHandlers.remove(handler);
     }
 
@@ -380,13 +392,6 @@ public class ExecutionLogger {
             int errorCount,
             int warnCount,
             int totalEntries) {
-    }
-
-    /**
-     * Handler interface for log entries.
-     */
-    public interface LogHandler {
-        void handle(LogEntry entry);
     }
 
     /**

@@ -25,6 +25,10 @@ import io.toflowai.common.enums.ExecutionStatus;
 import io.toflowai.common.service.ExecutionServiceInterface;
 import io.toflowai.common.service.WorkflowServiceInterface;
 import io.toflowai.ui.canvas.NodeHelpProvider.NodeHelp;
+import io.toflowai.ui.canvas.NodeView.ExecutionState;
+import io.toflowai.ui.console.ExecutionConsoleService;
+import io.toflowai.ui.console.ExecutionConsoleService.NodeState;
+import io.toflowai.ui.console.ExecutionConsoleService.NodeStateListener;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
@@ -58,7 +62,7 @@ import javafx.scene.shape.CubicCurve;
  * Workflow canvas for visual node editing.
  * Supports drag-drop, zoom, pan, and node connections.
  */
-public class WorkflowCanvas extends BorderPane {
+public class WorkflowCanvas extends BorderPane implements NodeStateListener {
 
     private static final double GRID_SIZE = 20;
     private static final double MIN_ZOOM = 0.25;
@@ -168,6 +172,9 @@ public class WorkflowCanvas extends BorderPane {
         // Setup interactions
         setupCanvasInteraction();
         setupKeyboardShortcuts();
+
+        // Register for node state changes from ExecutionConsoleService
+        ExecutionConsoleService.getInstance().addNodeStateListener(this);
 
         // Draw grid
         drawGrid();
@@ -1508,6 +1515,27 @@ public class WorkflowCanvas extends BorderPane {
         for (NodeView nodeView : nodeViews.values()) {
             nodeView.resetExecutionState();
         }
+    }
+
+    /**
+     * Handle node state changes from ExecutionConsoleService.
+     * This updates the visual state of nodes during execution.
+     */
+    @Override
+    public void onNodeStateChanged(String nodeId, NodeState state) {
+        Platform.runLater(() -> {
+            NodeView nodeView = getNodeViewById(nodeId);
+            if (nodeView != null) {
+                ExecutionState executionState = switch (state) {
+                    case RUNNING -> ExecutionState.RUNNING;
+                    case SUCCESS -> ExecutionState.SUCCESS;
+                    case FAILED -> ExecutionState.ERROR;
+                    case SKIPPED -> ExecutionState.SKIPPED;
+                    case IDLE -> ExecutionState.IDLE;
+                };
+                nodeView.setExecutionState(executionState);
+            }
+        });
     }
 
     /**

@@ -11,19 +11,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.toflowai.common.service.ExecutionLogHandler;
+
 /**
  * Console log handler that outputs structured logs to SLF4J.
  * Formats log entries for human readability while preserving structure.
  */
 @Component
-public class ConsoleLogHandler implements ExecutionLogger.LogHandler {
+public class ConsoleLogHandler implements ExecutionLogHandler {
 
     private static final Logger log = LoggerFactory.getLogger("workflow.execution");
     private final ObjectMapper objectMapper;
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     private boolean enabled = true;
-    private ExecutionLogger.LogLevel minLevel = ExecutionLogger.LogLevel.INFO;
+    private ExecutionLogHandler.LogLevel minLevel = ExecutionLogHandler.LogLevel.INFO;
     private boolean includeContext = true;
 
     public ConsoleLogHandler() {
@@ -33,7 +35,7 @@ public class ConsoleLogHandler implements ExecutionLogger.LogHandler {
     }
 
     @Override
-    public void handle(ExecutionLogger.LogEntry entry) {
+    public void handle(ExecutionLogHandler.LogEntry entry) {
         if (!enabled)
             return;
         if (entry.level().ordinal() < minLevel.ordinal())
@@ -50,7 +52,7 @@ public class ConsoleLogHandler implements ExecutionLogger.LogHandler {
         }
     }
 
-    private String formatMessage(ExecutionLogger.LogEntry entry) {
+    private String formatMessage(ExecutionLogHandler.LogEntry entry) {
         StringBuilder sb = new StringBuilder();
 
         // Timestamp
@@ -86,7 +88,7 @@ public class ConsoleLogHandler implements ExecutionLogger.LogHandler {
         return sb.toString();
     }
 
-    private String getCategoryIcon(ExecutionLogger.LogCategory category) {
+    private String getCategoryIcon(ExecutionLogHandler.LogCategory category) {
         return switch (category) {
             case EXECUTION_START -> "🚀";
             case EXECUTION_END -> "🏁";
@@ -113,11 +115,11 @@ public class ConsoleLogHandler implements ExecutionLogger.LogHandler {
         return enabled;
     }
 
-    public void setMinLevel(ExecutionLogger.LogLevel minLevel) {
+    public void setMinLevel(ExecutionLogHandler.LogLevel minLevel) {
         this.minLevel = minLevel;
     }
 
-    public ExecutionLogger.LogLevel getMinLevel() {
+    public ExecutionLogHandler.LogLevel getMinLevel() {
         return minLevel;
     }
 

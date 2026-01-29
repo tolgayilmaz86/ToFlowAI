@@ -46,6 +46,8 @@
                     <CheckMenuItem text="Snap to Grid" selected="true"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Fit to Window" accelerator="Ctrl+1"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Execution Console" onAction="#onShowExecutionConsole" accelerator="Ctrl+`"/>
                 </Menu>
                 <Menu text="Workflow">
                     <MenuItem text="Run" onAction="#onRunWorkflow" accelerator="F5"/>
