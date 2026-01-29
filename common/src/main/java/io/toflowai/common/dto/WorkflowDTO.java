@@ -1,12 +1,12 @@
 package io.toflowai.common.dto;
 
-import io.toflowai.common.domain.Connection;
-import io.toflowai.common.domain.Node;
-import io.toflowai.common.enums.TriggerType;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
+import io.toflowai.common.domain.Connection;
+import io.toflowai.common.domain.Node;
+import io.toflowai.common.enums.TriggerType;
 
 /**
  * Data Transfer Object for Workflow.
@@ -171,6 +171,24 @@ public record WorkflowDTO(
     public WorkflowDTO withAddedConnection(Connection connection) {
         var newConnections = new java.util.ArrayList<>(connections);
         newConnections.add(connection);
+        return withConnections(newConnections);
+    }
+
+    /**
+     * Create a copy with a node removed.
+     */
+    public WorkflowDTO withRemovedNode(String nodeId) {
+        var newNodes = new java.util.ArrayList<>(nodes);
+        newNodes.removeIf(n -> n.id().equals(nodeId));
+        return withNodes(newNodes);
+    }
+
+    /**
+     * Create a copy with a connection removed.
+     */
+    public WorkflowDTO withRemovedConnection(String connectionId) {
+        var newConnections = new java.util.ArrayList<>(connections);
+        newConnections.removeIf(c -> c.id().equals(connectionId));
         return withConnections(newConnections);
     }
 }

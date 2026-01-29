@@ -61,9 +61,25 @@ public class NodeView extends StackPane {
     private final Label subtitleLabel;
     private final Circle inputHandle;
     private final Circle outputHandle;
+    private final javafx.scene.control.ProgressIndicator executionIndicator;
+    private final Label executionBadge;
+    private final Label errorLabel;
+    private final Tooltip errorTooltip;
 
     private double dragOffsetX, dragOffsetY;
     private boolean selected = false;
+    private ExecutionState executionState = ExecutionState.IDLE;
+    private String errorMessage = null;
+
+    /** Execution states for visual feedback */
+    public enum ExecutionState {
+        IDLE, // Normal state
+        QUEUED, // Waiting to execute
+        RUNNING, // Currently executing
+        SUCCESS, // Executed successfully
+        ERROR, // Execution failed
+        SKIPPED // Skipped (disabled or conditional)
+    }
 
     public NodeView(Node node, WorkflowCanvas canvas) {
         this.node = node;
@@ -94,7 +110,29 @@ public class NodeView extends StackPane {
         icon = FontIcon.of(getIconForType(node.type()), 28);
         icon.setIconColor(getIconColorForType(node.type()));
 
-        nodeBox.getChildren().addAll(background, icon);
+        // === Execution indicator (spinning progress for RUNNING state) ===
+        executionIndicator = new javafx.scene.control.ProgressIndicator();
+        executionIndicator.setPrefSize(24, 24);
+        executionIndicator.setMaxSize(24, 24);
+        executionIndicator.setVisible(false);
+        executionIndicator.getStyleClass().add("execution-indicator");
+
+        // === Execution badge (for SUCCESS, ERROR, SKIPPED states) ===
+        executionBadge = new Label();
+        executionBadge.setPrefSize(20, 20);
+        executionBadge.setMinSize(20, 20);
+        executionBadge.setMaxSize(20, 20);
+        executionBadge.setAlignment(Pos.CENTER);
+        executionBadge.setVisible(false);
+        executionBadge.getStyleClass().add("execution-badge");
+
+        nodeBox.getChildren().addAll(background, icon, executionIndicator, executionBadge);
+        StackPane.setAlignment(executionIndicator, Pos.TOP_RIGHT);
+        StackPane.setAlignment(executionBadge, Pos.TOP_RIGHT);
+        executionIndicator.setTranslateX(8);
+        executionIndicator.setTranslateY(-8);
+        executionBadge.setTranslateX(8);
+        executionBadge.setTranslateY(-8);
 
         // === Create handles ===
         inputHandle = createHandle(true);
@@ -124,10 +162,28 @@ public class NodeView extends StackPane {
         subtitleLabel.setMaxWidth(120);
         subtitleLabel.setAlignment(Pos.CENTER);
 
+        // === Error label (hidden by default) ===
+        errorLabel = new Label();
+        errorLabel.getStyleClass().add("node-error-label");
+        errorLabel.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 10px; -fx-padding: 2 6 2 6; " +
+                "-fx-background-color: rgba(239, 68, 68, 0.15); -fx-background-radius: 4;");
+        errorLabel.setMaxWidth(140);
+        errorLabel.setAlignment(Pos.CENTER);
+        errorLabel.setWrapText(true);
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
+
+        // Error tooltip for longer messages
+        errorTooltip = new Tooltip();
+        errorTooltip.setStyle("-fx-background-color: #1a1a1a; -fx-text-fill: #ef4444; -fx-font-size: 11px; " +
+                "-fx-background-radius: 4; -fx-padding: 8;");
+        errorTooltip.setWrapText(true);
+        errorTooltip.setMaxWidth(300);
+
         // === Main container: node + labels ===
         container = new VBox(4);
         container.setAlignment(Pos.TOP_CENTER);
-        container.getChildren().addAll(nodeWithHandles, nameLabel, subtitleLabel);
+        container.getChildren().addAll(nodeWithHandles, nameLabel, subtitleLabel, errorLabel);
 
         getChildren().add(container);
 
@@ -440,6 +496,143 @@ public class NodeView extends StackPane {
 
     public double getOutputY() {
         return getLayoutY() + NODE_SIZE / 2;
+    }
+
+    /**
+     * Set the execution state and update visual indicators.
+     */
+    public void setExecutionState(ExecutionState state) {
+        this.executionState = state;
+
+        // Reset visuals
+        executionIndicator.setVisible(false);
+        executionBadge.setVisible(false);
+        nodeBox.getStyleClass().removeAll("node-running", "node-queued", "node-success", "node-error", "node-skipped");
+
+        switch (state) {
+            case IDLE -> {
+                // Default state, no indicator
+            }
+            case QUEUED -> {
+                nodeBox.getStyleClass().add("node-queued");
+                executionBadge.setVisible(true);
+                executionBadge.setText("⏱");
+                executionBadge.setStyle(
+                        "-fx-background-color: #6b7280; -fx-background-radius: 10; -fx-text-fill: white; -fx-font-size: 11px;");
+            }
+            case RUNNING -> {
+                nodeBox.getStyleClass().add("node-running");
+                executionIndicator.setVisible(true);
+
+                // Add pulsing border animation
+                DropShadow runningGlow = new DropShadow();
+                runningGlow.setColor(Color.web("#3b82f6"));
+                runningGlow.setRadius(15);
+                runningGlow.setSpread(0.4);
+                nodeBox.setEffect(runningGlow);
+            }
+            case SUCCESS -> {
+                nodeBox.getStyleClass().add("node-success");
+                executionBadge.setVisible(true);
+                executionBadge.setText("✓");
+                executionBadge.setStyle(
+                        "-fx-background-color: #10b981; -fx-background-radius: 10; -fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+                // Green glow briefly
+                DropShadow successGlow = new DropShadow();
+                successGlow.setColor(Color.web("#10b981"));
+                successGlow.setRadius(10);
+                successGlow.setSpread(0.3);
+                nodeBox.setEffect(successGlow);
+            }
+            case ERROR -> {
+                nodeBox.getStyleClass().add("node-error");
+                executionBadge.setVisible(true);
+                executionBadge.setText("✕");
+                executionBadge.setStyle(
+                        "-fx-background-color: #ef4444; -fx-background-radius: 10; -fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+                // Red glow
+                DropShadow errorGlow = new DropShadow();
+                errorGlow.setColor(Color.web("#ef4444"));
+                errorGlow.setRadius(12);
+                errorGlow.setSpread(0.4);
+                nodeBox.setEffect(errorGlow);
+            }
+            case SKIPPED -> {
+                nodeBox.getStyleClass().add("node-skipped");
+                executionBadge.setVisible(true);
+                executionBadge.setText("⊘");
+                executionBadge.setStyle(
+                        "-fx-background-color: #737373; -fx-background-radius: 10; -fx-text-fill: white; -fx-font-size: 11px;");
+            }
+        }
+    }
+
+    /**
+     * Get the current execution state.
+     */
+    public ExecutionState getExecutionState() {
+        return executionState;
+    }
+
+    /**
+     * Reset execution state to IDLE and restore normal shadow.
+     */
+    public void resetExecutionState() {
+        setExecutionState(ExecutionState.IDLE);
+        clearError();
+        applyNodeShadow();
+    }
+
+    /**
+     * Set an error message to display on the node.
+     */
+    public void setError(String message) {
+        this.errorMessage = message;
+        if (message != null && !message.isEmpty()) {
+            // Show truncated message in label
+            String displayText = message.length() > 30
+                    ? message.substring(0, 27) + "..."
+                    : message;
+            errorLabel.setText("⚠ " + displayText);
+            errorLabel.setVisible(true);
+            errorLabel.setManaged(true);
+
+            // Full message in tooltip
+            errorTooltip.setText(message);
+            Tooltip.install(errorLabel, errorTooltip);
+
+            // Set error execution state
+            setExecutionState(ExecutionState.ERROR);
+        } else {
+            clearError();
+        }
+    }
+
+    /**
+     * Get the current error message.
+     */
+    public String getError() {
+        return errorMessage;
+    }
+
+    /**
+     * Clear the error message from the node.
+     */
+    public void clearError() {
+        this.errorMessage = null;
+        errorLabel.setText("");
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
+        Tooltip.uninstall(errorLabel, errorTooltip);
+    }
+
+    /**
+     * Check if the node has an error.
+     */
+    public boolean hasError() {
+        return errorMessage != null && !errorMessage.isEmpty();
     }
 
     public boolean canBeConnectionSource() {

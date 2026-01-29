@@ -168,6 +168,16 @@
     -fx-background: -fx-bg-dark;
 }
 
+/* ===== Canvas Minimap ===== */
+.canvas-minimap {
+    -fx-background-color: #1a1a1a;
+    -fx-background-radius: 8;
+    -fx-border-color: #404040;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 10, 0, 0, 3);
+}
+
 /* ===== Node View (n8n style) ===== */
 .node-view {
     -fx-background-color: transparent;
@@ -176,6 +186,55 @@
 
 .node-box {
     -fx-cursor: hand;
+}
+
+/* ===== Execution State Indicators ===== */
+.execution-indicator {
+    -fx-progress-color: #3b82f6;
+}
+
+.execution-badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+/* Node state: Running */
+.node-running .node-box {
+    -fx-border-color: #3b82f6;
+    -fx-border-width: 2;
+}
+
+/* Node state: Queued */
+.node-queued .node-box {
+    -fx-border-color: #6b7280;
+    -fx-border-width: 2;
+}
+
+/* Node state: Success */
+.node-success .node-box {
+    -fx-border-color: #10b981;
+    -fx-border-width: 2;
+}
+
+/* Node state: Error */
+.node-error .node-box {
+    -fx-border-color: #ef4444;
+    -fx-border-width: 2;
+}
+
+/* Node state: Skipped */
+.node-skipped .node-box {
+    -fx-opacity: 0.6;
+}
+
+/* Node error label */
+.node-error-label {
+    -fx-text-fill: #ef4444;
+    -fx-font-size: 10px;
+    -fx-padding: 2 6 2 6;
+    -fx-background-color: rgba(239, 68, 68, 0.15);
+    -fx-background-radius: 4;
 }
 
 /* Node name and subtitle labels */
@@ -445,4 +504,125 @@
     -fx-text-fill: -fx-text;
     -fx-background-radius: 4;
     -fx-padding: 5 10;
+}
+
+/* ===== Node Properties Panel ===== */
+.properties-panel {
+    -fx-background-color: -fx-bg-darker;
+    -fx-border-color: -fx-bg-card;
+    -fx-border-width: 0 0 0 1;
+}
+
+.properties-header {
+    -fx-background-color: -fx-bg-card;
+    -fx-border-color: #404040;
+    -fx-border-width: 0 0 1 0;
+}
+
+.properties-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+}
+
+.properties-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: -fx-text-muted;
+}
+
+.properties-section {
+    -fx-background-color: transparent;
+}
+
+.property-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #a1a1aa;
+}
+
+.properties-titled-pane {
+    -fx-background-color: transparent;
+}
+
+.properties-titled-pane>.title {
+    -fx-background-color: -fx-bg-card;
+    -fx-text-fill: -fx-text;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 15;
+}
+
+.properties-titled-pane>.content {
+    -fx-background-color: transparent;
+}
+
+.properties-actions {
+    -fx-background-color: -fx-bg-card;
+    -fx-border-color: #404040;
+    -fx-border-width: 1 0 0 0;
+}
+
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-padding: 5;
+    -fx-cursor: hand;
+}
+
+.icon-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-background-radius: 4;
+}
+
+.accent-button {
+    -fx-background-color: -fx-primary;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 6 16;
+    -fx-cursor: hand;
+}
+
+.accent-button:hover {
+    -fx-background-color: -fx-primary-hover;
+}
+
+/* Properties panel form controls */
+.properties-panel .text-field,
+.properties-panel .text-area,
+.properties-panel .combo-box,
+.properties-panel .spinner {
+    -fx-background-color: -fx-bg-card;
+    -fx-text-fill: -fx-text;
+    -fx-border-color: #404040;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.properties-panel .text-field:focused,
+.properties-panel .text-area:focused {
+    -fx-border-color: -fx-primary;
+}
+
+.properties-panel .check-box {
+    -fx-text-fill: -fx-text;
+}
+
+.properties-panel .check-box .box {
+    -fx-background-color: -fx-bg-card;
+    -fx-border-color: #404040;
+    -fx-border-radius: 3;
+}
+
+.properties-panel .check-box:selected .box {
+    -fx-background-color: -fx-primary;
+    -fx-border-color: -fx-primary;
+}
+
+.properties-panel .separator {
+    -fx-background-color: #404040;
+}
+
+.properties-panel .separator .line {
+    -fx-border-color: #404040;
+    -fx-border-width: 1 0 0 0;
 }

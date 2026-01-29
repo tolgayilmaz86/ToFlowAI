@@ -48,6 +48,8 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.CubicCurve;
@@ -71,8 +73,13 @@ public class WorkflowCanvas extends BorderPane {
     private final Pane connectionLayer;
     private final Pane gridLayer;
     private final ScrollPane paletteScrollPane;
+    private final ScrollPane canvasScrollPane;
     private final VBox nodePalette;
     private final Label statusLabel;
+    private final NodePropertiesPanel propertiesPanel;
+    private final ExecutionHistoryPanel executionHistoryPanel;
+    private final CanvasMinimap minimap;
+    private final UndoRedoManager undoRedoManager;
 
     private WorkflowDTO workflow;
     private final Map<String, NodeView> nodeViews = new HashMap<>();
@@ -112,13 +119,13 @@ public class WorkflowCanvas extends BorderPane {
         statusLabel.getStyleClass().add("canvas-status");
 
         // Wrap in scroll pane
-        ScrollPane scrollPane = new ScrollPane(canvasPane);
-        scrollPane.setPannable(false);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setFitToHeight(true);
-        scrollPane.getStyleClass().add("canvas-scroll");
+        canvasScrollPane = new ScrollPane(canvasPane);
+        canvasScrollPane.setPannable(false);
+        canvasScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        canvasScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        canvasScrollPane.setFitToWidth(true);
+        canvasScrollPane.setFitToHeight(true);
+        canvasScrollPane.getStyleClass().add("canvas-scroll");
 
         // Node palette on the left with scroll
         nodePalette = createNodePalette();
@@ -128,9 +135,35 @@ public class WorkflowCanvas extends BorderPane {
         paletteScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         paletteScrollPane.getStyleClass().add("palette-scroll");
 
+        // Properties panel on the right
+        propertiesPanel = new NodePropertiesPanel(this);
+
+        // Execution history panel (toggleable on the right side below properties)
+        executionHistoryPanel = new ExecutionHistoryPanel(this);
+
+        // Create right side container for properties and history
+        VBox rightContainer = new VBox();
+        rightContainer.getChildren().addAll(propertiesPanel, executionHistoryPanel);
+        VBox.setVgrow(propertiesPanel, Priority.NEVER);
+        VBox.setVgrow(executionHistoryPanel, Priority.ALWAYS);
+
+        // Minimap in bottom-right corner (positioned over canvas)
+        minimap = new CanvasMinimap(this);
+        minimap.setVisible(true);
+        minimap.setManaged(true);
+
+        // Create a container for center with minimap overlay
+        StackPane centerContainer = new StackPane(canvasScrollPane, minimap);
+        StackPane.setAlignment(minimap, javafx.geometry.Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(minimap, new Insets(0, 16, 16, 0));
+
+        // Initialize undo/redo manager
+        undoRedoManager = new UndoRedoManager();
+
         // Layout
-        setCenter(scrollPane);
+        setCenter(centerContainer);
         setLeft(paletteScrollPane);
+        setRight(rightContainer);
 
         // Setup interactions
         setupCanvasInteraction();
@@ -704,6 +737,9 @@ public class WorkflowCanvas extends BorderPane {
         deselectAll();
         selectedNode = nodeView;
         nodeView.setSelected(true);
+
+        // Show properties panel
+        propertiesPanel.show(nodeView);
     }
 
     public void deselectAll() {
@@ -711,6 +747,8 @@ public class WorkflowCanvas extends BorderPane {
             selectedNode.setSelected(false);
             selectedNode = null;
         }
+        // Hide properties panel
+        propertiesPanel.hide();
     }
 
     private void deleteSelected() {
@@ -1412,5 +1450,322 @@ public class WorkflowCanvas extends BorderPane {
 
     public WorkflowDTO getWorkflow() {
         return workflow;
+    }
+
+    /**
+     * Update a node with new properties.
+     */
+    public void updateNode(NodeView nodeView, Node updatedNode) {
+        String nodeId = updatedNode.id();
+
+        // Update workflow nodes list
+        var newNodes = workflow.nodes().stream()
+                .map(n -> n.id().equals(nodeId) ? updatedNode : n)
+                .toList();
+        workflow = workflow.withNodes(newNodes);
+
+        // Rebuild the node view
+        nodeLayer.getChildren().remove(nodeView);
+        nodeViews.remove(nodeId);
+
+        NodeView newView = new NodeView(updatedNode, this);
+        nodeViews.put(nodeId, newView);
+        nodeLayer.getChildren().add(newView);
+
+        // Re-select the new view
+        selectNode(newView);
+
+        // Update connections for this node
+        updateConnectionsForNode(nodeId);
+    }
+
+    /**
+     * Get the properties panel.
+     */
+    public NodePropertiesPanel getPropertiesPanel() {
+        return propertiesPanel;
+    }
+
+    /**
+     * Get a node view by its ID.
+     */
+    public NodeView getNodeViewById(String nodeId) {
+        return nodeViews.get(nodeId);
+    }
+
+    /**
+     * Reset all node execution states to IDLE.
+     */
+    public void resetAllNodeExecutionStates() {
+        for (NodeView nodeView : nodeViews.values()) {
+            nodeView.resetExecutionState();
+        }
+    }
+
+    /**
+     * Get the execution history panel.
+     */
+    public ExecutionHistoryPanel getExecutionHistoryPanel() {
+        return executionHistoryPanel;
+    }
+
+    /**
+     * Toggle the execution history panel visibility.
+     */
+    public void toggleExecutionHistory() {
+        executionHistoryPanel.toggle();
+    }
+
+    /**
+     * Get all node views.
+     */
+    public java.util.Collection<NodeView> getNodeViews() {
+        return nodeViews.values();
+    }
+
+    /**
+     * Get the current viewport bounds.
+     */
+    public javafx.geometry.Bounds getViewportBounds() {
+        return canvasScrollPane.getViewportBounds();
+    }
+
+    /**
+     * Get current scroll X position.
+     */
+    public double getScrollX() {
+        double hvalue = canvasScrollPane.getHvalue();
+        double contentWidth = canvasPane.getWidth() - canvasScrollPane.getViewportBounds().getWidth();
+        return hvalue * contentWidth;
+    }
+
+    /**
+     * Get current scroll Y position.
+     */
+    public double getScrollY() {
+        double vvalue = canvasScrollPane.getVvalue();
+        double contentHeight = canvasPane.getHeight() - canvasScrollPane.getViewportBounds().getHeight();
+        return vvalue * contentHeight;
+    }
+
+    /**
+     * Center the canvas view on a specific position.
+     */
+    public void centerOn(double x, double y) {
+        double viewportWidth = canvasScrollPane.getViewportBounds().getWidth();
+        double viewportHeight = canvasScrollPane.getViewportBounds().getHeight();
+        double contentWidth = canvasPane.getWidth();
+        double contentHeight = canvasPane.getHeight();
+
+        // Calculate scroll values to center on (x, y)
+        double hvalue = (x - viewportWidth / 2) / (contentWidth - viewportWidth);
+        double vvalue = (y - viewportHeight / 2) / (contentHeight - viewportHeight);
+
+        // Clamp values
+        hvalue = Math.max(0, Math.min(1, hvalue));
+        vvalue = Math.max(0, Math.min(1, vvalue));
+
+        canvasScrollPane.setHvalue(hvalue);
+        canvasScrollPane.setVvalue(vvalue);
+    }
+
+    /**
+     * Get the minimap component.
+     */
+    public CanvasMinimap getMinimap() {
+        return minimap;
+    }
+
+    /**
+     * Toggle minimap visibility.
+     */
+    public void toggleMinimap() {
+        minimap.toggle();
+    }
+
+    /**
+     * Update the minimap (call after node changes).
+     */
+    public void updateMinimap() {
+        if (minimap != null && minimap.isVisible()) {
+            minimap.update();
+        }
+    }
+
+    // ==================== Undo/Redo Support ====================
+
+    /**
+     * Get the undo/redo manager.
+     */
+    public UndoRedoManager getUndoRedoManager() {
+        return undoRedoManager;
+    }
+
+    /**
+     * Undo the last action.
+     */
+    public void undo() {
+        undoRedoManager.undo();
+    }
+
+    /**
+     * Redo the last undone action.
+     */
+    public void redo() {
+        undoRedoManager.redo();
+    }
+
+    /**
+     * Create a node internally (for command pattern).
+     */
+    public io.toflowai.common.domain.Node createNodeInternal(String type, double x, double y) {
+        String id = UUID.randomUUID().toString();
+        String name = getDefaultNameForType(type);
+        io.toflowai.common.domain.Node node = new io.toflowai.common.domain.Node(
+                id, type, name, new io.toflowai.common.domain.Node.Position(x, y),
+                java.util.Map.of(), null, false, "");
+
+        workflow = workflow.withAddedNode(node);
+        NodeView nodeView = new NodeView(node, this);
+        nodeViews.put(id, nodeView);
+        nodeLayer.getChildren().add(nodeView);
+        updateMinimap();
+        return node;
+    }
+
+    /**
+     * Delete a node internally (for command pattern).
+     */
+    public void deleteNodeInternal(String nodeId) {
+        NodeView nodeView = nodeViews.remove(nodeId);
+        if (nodeView != null) {
+            nodeLayer.getChildren().remove(nodeView);
+        }
+
+        // Remove connections involving this node
+        workflow.connections().stream()
+                .filter(c -> c.sourceNodeId().equals(nodeId) || c.targetNodeId().equals(nodeId))
+                .map(io.toflowai.common.domain.Connection::id)
+                .toList()
+                .forEach(this::deleteConnectionInternal);
+
+        workflow = workflow.withRemovedNode(nodeId);
+        updateMinimap();
+    }
+
+    /**
+     * Restore a deleted node (for undo).
+     */
+    public void restoreNode(io.toflowai.common.domain.Node node) {
+        workflow = workflow.withAddedNode(node);
+        NodeView nodeView = new NodeView(node, this);
+        nodeViews.put(node.id(), nodeView);
+        nodeLayer.getChildren().add(nodeView);
+        updateMinimap();
+    }
+
+    /**
+     * Get a node by ID.
+     */
+    public io.toflowai.common.domain.Node getNodeById(String nodeId) {
+        return workflow.nodes().stream()
+                .filter(n -> n.id().equals(nodeId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Set node position (for move command).
+     */
+    public void setNodePosition(String nodeId, double x, double y) {
+        NodeView nodeView = nodeViews.get(nodeId);
+        if (nodeView != null) {
+            nodeView.setLayoutX(x);
+            nodeView.setLayoutY(y);
+            updateNodePosition(nodeId, x, y);
+        }
+    }
+
+    /**
+     * Create a connection internally (for command pattern).
+     */
+    public String createConnectionInternal(String sourceNodeId, String targetNodeId) {
+        String id = UUID.randomUUID().toString();
+        io.toflowai.common.domain.Connection connection = new io.toflowai.common.domain.Connection(
+                id, sourceNodeId, "main", targetNodeId, "main");
+
+        workflow = workflow.withAddedConnection(connection);
+
+        NodeView source = nodeViews.get(sourceNodeId);
+        NodeView target = nodeViews.get(targetNodeId);
+        if (source != null && target != null) {
+            ConnectionLine line = new ConnectionLine(connection, source, target);
+            connectionLines.put(id, line);
+            connectionLayer.getChildren().add(line);
+        }
+
+        return id;
+    }
+
+    /**
+     * Delete a connection internally (for command pattern).
+     */
+    public void deleteConnectionInternal(String connectionId) {
+        ConnectionLine line = connectionLines.remove(connectionId);
+        if (line != null) {
+            connectionLayer.getChildren().remove(line);
+        }
+        workflow = workflow.withRemovedConnection(connectionId);
+    }
+
+    /**
+     * Get a connection by ID.
+     */
+    public io.toflowai.common.domain.Connection getConnectionById(String connectionId) {
+        return workflow.connections().stream()
+                .filter(c -> c.id().equals(connectionId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Restore a deleted connection (for undo).
+     */
+    public void restoreConnection(io.toflowai.common.domain.Connection connection) {
+        workflow = workflow.withAddedConnection(connection);
+
+        NodeView source = nodeViews.get(connection.sourceNodeId());
+        NodeView target = nodeViews.get(connection.targetNodeId());
+        if (source != null && target != null) {
+            ConnectionLine line = new ConnectionLine(connection, source, target);
+            connectionLines.put(connection.id(), line);
+            connectionLayer.getChildren().add(line);
+        }
+    }
+
+    /**
+     * Get default name for node type.
+     */
+    private String getDefaultNameForType(String type) {
+        return switch (type) {
+            case "manualTrigger" -> "Manual Trigger";
+            case "scheduleTrigger" -> "Schedule";
+            case "webhookTrigger" -> "Webhook";
+            case "httpRequest" -> "HTTP Request";
+            case "code" -> "Code";
+            case "executeCommand" -> "Execute Command";
+            case "if" -> "IF";
+            case "switch" -> "Switch";
+            case "merge" -> "Merge";
+            case "loop" -> "Loop";
+            case "set" -> "Set";
+            case "filter" -> "Filter";
+            case "sort" -> "Sort";
+            case "llmChat" -> "AI Chat";
+            case "textClassifier" -> "Text Classifier";
+            case "embedding" -> "Embedding";
+            case "rag" -> "RAG Query";
+            default -> type;
+        };
     }
 }
