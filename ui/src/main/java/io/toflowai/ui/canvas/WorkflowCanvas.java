@@ -6,12 +6,14 @@ import java.util.UUID;
 
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignA;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignB;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignS;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignV;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignW;
 
 import io.toflowai.common.domain.Connection;
@@ -175,13 +177,15 @@ public class WorkflowCanvas extends BorderPane {
         // AI section
         palette.getChildren().add(createPaletteSection("AI",
                 createPaletteItem("LLM Chat", "llmChat", MaterialDesignR.ROBOT),
-                createPaletteItem("Text Classifier", "textClassifier", MaterialDesignT.TAG_TEXT_OUTLINE)));
+                createPaletteItem("Text Classifier", "textClassifier", MaterialDesignT.TAG_TEXT_OUTLINE),
+                createPaletteItem("Embedding", "embedding", MaterialDesignV.VECTOR_BEZIER),
+                createPaletteItem("RAG", "rag", MaterialDesignB.BOOK_SEARCH)));
 
         return palette;
     }
 
     private TitledPane createPaletteSection(String title, javafx.scene.Node... items) {
-        VBox content = new VBox(5);
+        VBox content = new VBox(2);
         content.setPadding(Insets.EMPTY);
         content.getChildren().addAll(items);
 

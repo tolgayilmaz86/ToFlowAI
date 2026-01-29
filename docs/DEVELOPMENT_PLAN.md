@@ -47,6 +47,10 @@ ToFlowAI is a workflow automation application built with:
 - [x] `FilterExecutor` - Filter array data
 - [x] `SortExecutor` - Sort array data
 - [x] `ExecuteCommandExecutor` - Shell command execution
+- [x] `LlmChatExecutor` - OpenAI/Anthropic/Ollama chat
+- [x] `TextClassifierExecutor` - AI text classification
+- [x] `EmbeddingExecutor` - Vector embeddings
+- [x] `RagExecutor` - Retrieval-augmented generation
 
 ### Services
 - [x] `WorkflowService` - CRUD operations
@@ -88,11 +92,11 @@ ToFlowAI is a workflow automation application built with:
 - [x] **Sort Node** - Sort array data
 - [x] **Execute Command** - Shell command execution
 
-### Phase 3: AI Integration
-- [ ] **LLM Chat Node** - OpenAI/Anthropic API integration
-- [ ] **Text Classifier** - AI-based text classification
-- [ ] **Embedding Node** - Vector embeddings
-- [ ] **RAG Node** - Retrieval-augmented generation
+### Phase 3: AI Integration ✅ COMPLETE
+- [x] **LLM Chat Node** - OpenAI/Anthropic API integration
+- [x] **Text Classifier** - AI-based text classification
+- [x] **Embedding Node** - Vector embeddings
+- [x] **RAG Node** - Retrieval-augmented generation
 
 ### Phase 4: Enhanced UI
 - [ ] **Node Properties Panel** - Edit node parameters

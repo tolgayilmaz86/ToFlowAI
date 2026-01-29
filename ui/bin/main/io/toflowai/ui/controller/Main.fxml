@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="rootPane"
+            fx:controller="io.toflowai.ui.controller.MainController"
+            styleClass="root-pane">
+
+    <!-- Top Menu Bar -->
+    <top>
+        <VBox>
+            <MenuBar>
+                <Menu text="File">
+                    <MenuItem text="New Workflow" onAction="#onNewWorkflow" accelerator="Ctrl+N"/>
+                    <MenuItem text="Open Workflow..." onAction="#onOpenWorkflow" accelerator="Ctrl+O"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Save" onAction="#onSaveWorkflow" accelerator="Ctrl+S"/>
+                    <MenuItem text="Save As..." accelerator="Ctrl+Shift+S"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Import..." onAction="#onImportWorkflow"/>
+                    <MenuItem text="Export..." onAction="#onExportWorkflow"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Exit" onAction="#onExit" accelerator="Alt+F4"/>
+                </Menu>
+                <Menu text="Edit">
+                    <MenuItem text="Undo" accelerator="Ctrl+Z"/>
+                    <MenuItem text="Redo" accelerator="Ctrl+Y"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Cut" accelerator="Ctrl+X"/>
+                    <MenuItem text="Copy" accelerator="Ctrl+C"/>
+                    <MenuItem text="Paste" accelerator="Ctrl+V"/>
+                    <MenuItem text="Delete" accelerator="Delete"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Select All" accelerator="Ctrl+A"/>
+                </Menu>
+                <Menu text="View">
+                    <MenuItem text="Zoom In" accelerator="Ctrl+Plus"/>
+                    <MenuItem text="Zoom Out" accelerator="Ctrl+Minus"/>
+                    <MenuItem text="Reset Zoom" accelerator="Ctrl+0"/>
+                    <SeparatorMenuItem/>
+                    <CheckMenuItem text="Show Grid" selected="true"/>
+                    <CheckMenuItem text="Snap to Grid" selected="true"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Fit to Window" accelerator="Ctrl+1"/>
+                </Menu>
+                <Menu text="Workflow">
+                    <MenuItem text="Run" onAction="#onRunWorkflow" accelerator="F5"/>
+                    <MenuItem text="Stop" accelerator="Shift+F5"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Validate"/>
+                    <MenuItem text="Clear Execution Data"/>
+                </Menu>
+                <Menu text="Help">
+                    <MenuItem text="Documentation"/>
+                    <MenuItem text="Keyboard Shortcuts"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="About ToFlowAI"/>
+                </Menu>
+            </MenuBar>
+
+            <!-- Toolbar -->
+            <ToolBar styleClass="main-toolbar">
+                <Button text="New" onAction="#onNewWorkflow" styleClass="toolbar-button"/>
+                <Button text="Open" onAction="#onOpenWorkflow" styleClass="toolbar-button"/>
+                <Button text="Save" onAction="#onSaveWorkflow" styleClass="toolbar-button"/>
+                <Separator/>
+                <Button text="▶ Run" onAction="#onRunWorkflow" styleClass="toolbar-button, run-button"/>
+                <Separator/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <TextField promptText="Search nodes..." prefWidth="200"/>
+            </ToolBar>
+        </VBox>
+    </top>
+
+    <!-- Left Sidebar Navigation -->
+    <left>
+        <VBox fx:id="sidebarNav" styleClass="sidebar" spacing="5" prefWidth="60">
+            <padding>
+                <Insets top="10" right="5" bottom="10" left="5"/>
+            </padding>
+            <Button fx:id="btnWorkflows" styleClass="sidebar-button">
+                <tooltip><Tooltip text="Workflows"/></tooltip>
+            </Button>
+            <Button fx:id="btnExecutions" styleClass="sidebar-button">
+                <tooltip><Tooltip text="Executions"/></tooltip>
+            </Button>
+            <Button fx:id="btnCredentials" styleClass="sidebar-button">
+                <tooltip><Tooltip text="Credentials"/></tooltip>
+            </Button>
+            <Region VBox.vgrow="ALWAYS"/>
+            <Button fx:id="btnSettings" styleClass="sidebar-button">
+                <tooltip><Tooltip text="Settings"/></tooltip>
+            </Button>
+        </VBox>
+    </left>
+
+    <!-- Main Content Area -->
+    <center>
+        <StackPane fx:id="contentArea" styleClass="content-area">
+            <!-- Content loaded dynamically -->
+        </StackPane>
+    </center>
+
+    <!-- Bottom Status Bar -->
+    <bottom>
+        <HBox styleClass="status-bar" spacing="10" alignment="CENTER_LEFT">
+            <padding>
+                <Insets top="5" right="10" bottom="5" left="10"/>
+            </padding>
+            <Label fx:id="statusLabel" text="Ready"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="ToFlowAI v0.1.0"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
