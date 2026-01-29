@@ -1,0 +1,487 @@
+/*
+ * ToFlowAI - Main Stylesheet
+ * Uses AtlantaFX NordDark as base theme
+ */
+
+/* ===== Root Variables ===== */
+.root {
+    -fx-primary: #4a9eff;
+    -fx-primary-hover: #6bb3ff;
+    -fx-success: #40c057;
+    -fx-warning: #fcc419;
+    -fx-danger: #fa5252;
+    -fx-ai-purple: #9775fa;
+
+    -fx-bg-dark: #2e3440;
+    -fx-bg-darker: #242933;
+    -fx-bg-card: #3b4252;
+    -fx-text: #eceff4;
+    -fx-text-muted: #8b949e;
+}
+
+/* ===== Main Container ===== */
+.main-container {
+    -fx-background-color: -fx-bg-dark;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    -fx-background-color: -fx-bg-darker;
+    -fx-padding: 10;
+    -fx-spacing: 5;
+}
+
+.sidebar .button {
+    -fx-min-width: 40;
+    -fx-min-height: 40;
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.sidebar .button:hover {
+    -fx-background-color: -fx-bg-card;
+}
+
+.sidebar .button:selected,
+.sidebar .button:pressed {
+    -fx-background-color: -fx-primary;
+}
+
+.sidebar .button .ikonli-font-icon {
+    -fx-icon-size: 20;
+    -fx-icon-color: -fx-text-muted;
+}
+
+.sidebar .button:hover .ikonli-font-icon,
+.sidebar .button:selected .ikonli-font-icon {
+    -fx-icon-color: -fx-text;
+}
+
+/* ===== Toolbar ===== */
+.toolbar {
+    -fx-background-color: -fx-bg-darker;
+    -fx-padding: 8 15;
+    -fx-spacing: 10;
+}
+
+.toolbar .button {
+    -fx-background-color: -fx-bg-card;
+    -fx-background-radius: 6;
+    -fx-padding: 6 12;
+    -fx-cursor: hand;
+}
+
+.toolbar .button:hover {
+    -fx-background-color: derive(-fx-bg-card, 20%);
+}
+
+.toolbar .button.primary {
+    -fx-background-color: -fx-primary;
+}
+
+.toolbar .button.primary:hover {
+    -fx-background-color: -fx-primary-hover;
+}
+
+/* ===== Status Bar ===== */
+.status-bar {
+    -fx-background-color: -fx-bg-darker;
+    -fx-padding: 5 15;
+}
+
+.status-bar .label {
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 11;
+}
+
+/* ===== Node Palette ===== */
+.node-palette {
+    -fx-background-color: -fx-bg-darker;
+    -fx-border-color: -fx-bg-card;
+    -fx-border-width: 0 1 0 0;
+}
+
+.palette-title {
+    -fx-font-size: 14;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+}
+
+.palette-section {
+    -fx-background-color: transparent;
+}
+
+.palette-section>.title {
+    -fx-background-color: -fx-bg-card;
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 12;
+    -fx-padding: 5 10;
+}
+
+.palette-section>.content {
+    -fx-background-color: transparent;
+    -fx-padding: 5;
+}
+
+.palette-item {
+    -fx-background-color: -fx-bg-card;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.palette-item:hover {
+    -fx-background-color: derive(-fx-bg-card, 20%);
+}
+
+.palette-item .label {
+    -fx-text-fill: -fx-text;
+    -fx-font-size: 12;
+}
+
+.palette-item .ikonli-font-icon {
+    -fx-icon-color: -fx-text-muted;
+}
+
+/* ===== Canvas ===== */
+.canvas-pane {
+    -fx-background-color: -fx-bg-dark;
+}
+
+.canvas-scroll {
+    -fx-background-color: transparent;
+    -fx-background: -fx-bg-dark;
+}
+
+/* ===== Node View ===== */
+.node-view {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.node-view:hover .node-content {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 16, 0, 0, 6);
+}
+
+.node-view.selected .node-content {
+    -fx-border-color: -fx-primary;
+    -fx-effect: dropshadow(gaussian, -fx-primary, 16, 0.4, 0, 0);
+}
+
+.node-header {
+    -fx-background-color: derive(-fx-bg-card, -15%);
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.1) transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.node-title {
+    -fx-text-fill: -fx-text;
+    -fx-font-weight: bold;
+    -fx-font-size: 12;
+}
+
+.node-icon {
+    -fx-icon-color: -fx-text;
+}
+
+.node-body {
+    -fx-background-color: transparent;
+}
+
+.node-type-label {
+    -fx-text-fill: -fx-text-muted;
+    -fx-font-size: 10;
+}
+
+/* Node type styles */
+.node-trigger .node-header {
+    -fx-background-color: derive(#40c057, -40%);
+}
+
+.node-action .node-header {
+    -fx-background-color: derive(#4a9eff, -40%);
+}
+
+.node-flow .node-header {
+    -fx-background-color: derive(#fcc419, -40%);
+}
+
+.node-data .node-header {
+    -fx-background-color: derive(#fa5252, -40%);
+}
+
+.node-ai .node-header {
+    -fx-background-color: derive(#9775fa, -40%);
+}
+
+/* Connection handles */
+.input-handle {
+    -fx-fill: #40c057;
+    /* Green for input */
+    -fx-stroke: white;
+    -fx-stroke-width: 2;
+    -fx-cursor: crosshair;
+}
+
+.output-handle {
+    -fx-fill: #4a9eff;
+    /* Blue for output */
+    -fx-stroke: white;
+    -fx-stroke-width: 2;
+    -fx-cursor: crosshair;
+}
+
+.input-handle:hover {
+    -fx-fill: #ffd43b;
+}
+
+.output-handle:hover {
+    -fx-fill: #ffd43b;
+}
+
+/* Node content box styling */
+.node-content {
+    -fx-background-color: -fx-bg-card;
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(255, 255, 255, 0.15);
+    -fx-border-width: 2;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0, 0, 3);
+}
+
+/* Valid connection target highlighting */
+.node-view.valid-target {
+    -fx-border-color: #40c057;
+    -fx-border-width: 3;
+    -fx-effect: dropshadow(gaussian, #40c057, 20, 0.6, 0, 0);
+}
+
+.node-view.valid-target .input-handle {
+    -fx-fill: #ffd43b;
+}
+
+/* Disabled node styling */
+.node-view.disabled {
+    -fx-opacity: 0.5;
+}
+
+.node-view.disabled .node-header {
+    -fx-background-color: #555;
+}
+
+/* Temporary connection line while dragging */
+.temp-connection {
+    -fx-stroke: -fx-primary;
+    -fx-stroke-width: 2;
+    -fx-stroke-dash-array: 5 5;
+}
+
+/* ===== Connection Lines ===== */
+.connection-line {
+    -fx-stroke: -fx-primary;
+    -fx-stroke-width: 2;
+}
+
+.connection-arrow {
+    -fx-fill: -fx-primary;
+}
+
+/* ===== Tables ===== */
+.table-view {
+    -fx-background-color: -fx-bg-darker;
+    -fx-border-color: transparent;
+}
+
+.table-view .column-header {
+    -fx-background-color: -fx-bg-card;
+    -fx-text-fill: -fx-text;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-row-cell {
+    -fx-background-color: -fx-bg-darker;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: derive(-fx-bg-darker, 5%);
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: -fx-primary;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: -fx-text;
+}
+
+/* ===== Cards ===== */
+.card {
+    -fx-background-color: -fx-bg-card;
+    -fx-background-radius: 8;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 4, 0, 0, 1);
+}
+
+.card-title {
+    -fx-font-size: 14;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+}
+
+.card-subtitle {
+    -fx-font-size: 12;
+    -fx-text-fill: -fx-text-muted;
+}
+
+/* ===== Dialogs ===== */
+.dialog-pane {
+    -fx-background-color: -fx-bg-card;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: -fx-bg-darker;
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: -fx-bg-darker;
+}
+
+/* ===== Forms ===== */
+.text-field,
+.text-area,
+.combo-box {
+    -fx-background-color: -fx-bg-darker;
+    -fx-text-fill: -fx-text;
+    -fx-border-color: -fx-bg-card;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.text-field:focused,
+.text-area:focused,
+.combo-box:focused {
+    -fx-border-color: -fx-primary;
+}
+
+.label {
+    -fx-text-fill: -fx-text;
+}
+
+/* ===== Execution Status Badges ===== */
+.status-badge {
+    -fx-padding: 2 8;
+    -fx-background-radius: 10;
+    -fx-font-size: 10;
+    -fx-font-weight: bold;
+}
+
+.status-pending {
+    -fx-background-color: -fx-text-muted;
+    -fx-text-fill: white;
+}
+
+.status-running {
+    -fx-background-color: -fx-primary;
+    -fx-text-fill: white;
+}
+
+.status-success {
+    -fx-background-color: -fx-success;
+    -fx-text-fill: white;
+}
+
+.status-failed {
+    -fx-background-color: -fx-danger;
+    -fx-text-fill: white;
+}
+
+.status-cancelled {
+    -fx-background-color: -fx-warning;
+    -fx-text-fill: black;
+}
+
+/* ===== Scrollbars ===== */
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -fx-bg-card;
+    -fx-background-radius: 4;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: derive(-fx-bg-card, 20%);
+}
+
+.scroll-bar .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+}
+
+/* ===== Tabs ===== */
+.tab-pane .tab-header-area {
+    -fx-background-color: -fx-bg-darker;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 8 15;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: -fx-bg-card;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: -fx-text-muted;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -fx-text;
+}
+
+/* ===== Menus ===== */
+.menu-bar {
+    -fx-background-color: -fx-bg-darker;
+}
+
+.menu {
+    -fx-background-color: transparent;
+}
+
+.menu .label {
+    -fx-text-fill: -fx-text;
+}
+
+.context-menu {
+    -fx-background-color: -fx-bg-card;
+    -fx-background-radius: 4;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 2);
+}
+
+.menu-item {
+    -fx-background-color: transparent;
+}
+
+.menu-item:hover,
+.menu-item:focused {
+    -fx-background-color: -fx-primary;
+}
+
+.menu-item .label {
+    -fx-text-fill: -fx-text;
+}
+
+/* ===== Tooltips ===== */
+.tooltip {
+    -fx-background-color: -fx-bg-card;
+    -fx-text-fill: -fx-text;
+    -fx-background-radius: 4;
+    -fx-padding: 5 10;
+}

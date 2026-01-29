@@ -1,0 +1,40 @@
+# ToFlowAI
+
+# Build outputs
+build/
+out/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+
+# Data files
+data/
+*.db
+*.mv.db
+*.trace.db
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Installer outputs
+installer/output/
+
+# Credentials (never commit)
+**/credentials.json
+**/secrets.properties
+
+# Environment variables
+.env

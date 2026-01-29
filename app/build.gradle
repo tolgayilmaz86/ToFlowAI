@@ -1,0 +1,175 @@
+import org.panteleyev.jpackage.ImageType
+
+plugins {
+    id 'org.springframework.boot'
+    id 'org.flywaydb.flyway'
+    id 'org.panteleyev.jpackageplugin'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+javafx {
+    version = "21.0.5"
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.swing', 'javafx.graphics']
+}
+
+flyway {
+    url = "jdbc:h2:file:${project.rootDir}/data/toflowai"
+    user = 'sa'
+}
+
+tasks.register('cleanLibs', Delete) {
+    delete layout.buildDirectory.dir("libs")
+}
+
+bootJar {
+    dependsOn cleanLibs
+    manifest {
+        attributes 'Implementation-Version': "${project.version}"
+        attributes 'Implementation-Title': "${project.name}"
+    }
+}
+
+bootRun {
+    jvmArgs "-ea", 
+            "--enable-preview",
+            "-Djava.net.preferIPv4Stack=true", 
+            "-Dfile.encoding=UTF-8",
+            "--enable-native-access=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang=ALL-UNNAMED"
+    systemProperty 'spring.profiles.active', 'dev'
+}
+
+springBoot {
+    mainClass = 'io.toflowai.app.ToFlowAIApplication'
+    buildInfo {
+        excludes = ['time']
+        properties {
+            name = rootProject.name
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+    jvmArgs "-ea", 
+            "--enable-preview",
+            "-Djava.net.preferIPv4Stack=true", 
+            "-Dfile.encoding=UTF-8",
+            "--enable-native-access=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang=ALL-UNNAMED"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jpackage {
+    dependsOn bootJar
+    appName = rootProject.name
+    appVersion = "${project.version}".split("-")[0]
+    vendor = "ToFlowAI"
+    copyright = "Copyright 2024 ToFlowAI. All Rights Reserved"
+    appDescription = "AI-Native Workflow Automation Platform"
+    input = layout.buildDirectory.dir("libs").get().asFile.absolutePath
+    destination = layout.buildDirectory.dir("distributions").get().asFile.absolutePath
+    mainJar = tasks.bootJar.archiveFileName.get()
+    
+    javaOptions = [
+        '-Djava.net.preferIPv4Stack=true',
+        '-Dfile.encoding=UTF-8',
+        '--enable-preview',
+        '--enable-native-access=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '-Xms256m',
+        '-Xmx1024m',
+        '-XX:MaxMetaspaceSize=256m',
+        '-Dvisualvm.display.name=ToFlowAI',
+        '-Dspring.output.ansi.enabled=never'
+    ]
+    
+    windows {
+        type = ImageType.MSI
+        winMenu = true
+        winPerUserInstall = true
+        winDirChooser = true
+        winMenuGroup = rootProject.name
+        winUpgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    }
+    
+    linux {
+        linuxShortcut = true
+    }
+}
+
+dependencies {
+    // Spring Boot BOM
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
+    annotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
+    developmentOnly(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
+    
+    // Configuration processor
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    
+    // Project modules
+    implementation project(':common')
+    implementation project(':ui')
+    
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation('org.springframework.boot:spring-boot-starter-webflux') {
+        exclude group: 'io.netty', module: 'netty-transport-native-epoll'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    
+    // Flyway
+    implementation "org.flywaydb:flyway-core:$flywayDbVersion"
+    
+    // Database
+    implementation 'com.h2database:h2'
+    
+    // Encryption
+    implementation "org.bouncycastle:bcpg-jdk18on:$bouncycastleVersion"
+    implementation "org.bouncycastle:bcpkix-jdk18on:$bouncycastleVersion"
+    
+    // GraalVM for scripting
+    implementation "org.graalvm.polyglot:polyglot:$graalvmVersion"
+    implementation "org.graalvm.polyglot:js:$graalvmVersion"
+    
+    // Apache Commons
+    implementation "org.apache.commons:commons-lang3:$apacheCommonsLangVersion"
+    implementation "org.apache.commons:commons-collections4:$apacheCommonsCollectionsVersion"
+    
+    // JSON processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    
+    // API Documentation
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0'
+    
+    // JNA for native access
+    implementation "net.java.dev.jna:jna-platform:$jnaVersion"
+    
+    // Development
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    developmentOnly 'org.springframework.boot:spring-boot-starter-actuator'
+    
+    // Testing
+    testImplementation "org.junit.jupiter:junit-jupiter:$junitVersion"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: "com.vaadin.external.google", module: "android-json"
+    }
+    testImplementation "com.tngtech.archunit:archunit-junit5:$archunitVersion"
+}

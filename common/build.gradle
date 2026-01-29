@@ -1,0 +1,59 @@
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+test {
+    useJUnitPlatform()
+    jvmArgs "-ea", "--enable-preview", "-Djava.net.preferIPv4Stack=true", "-Dfile.encoding=UTF-8"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = false
+    }
+}
+
+dependencies {
+    // Spring Boot BOM for dependency management
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
+    testFixturesImplementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
+
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // Jackson for JSON processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    
+    // JPA (for annotations, not runtime)
+    compileOnly 'org.springframework.boot:spring-boot-starter-data-jpa'
+    
+    // WebFlux for reactive WebClient
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    
+    // Apache Commons
+    implementation "org.apache.commons:commons-lang3:$apacheCommonsLangVersion"
+    implementation "org.apache.commons:commons-collections4:$apacheCommonsCollectionsVersion"
+    
+    // Testing
+    testImplementation "org.junit.jupiter:junit-jupiter:$junitVersion"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: "com.vaadin.external.google", module: "android-json"
+    }
+    testImplementation "com.tngtech.archunit:archunit-junit5:$archunitVersion"
+    
+    // Test fixtures
+    testFixturesImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: "com.vaadin.external.google", module: "android-json"
+    }
+    testFixturesImplementation "org.apache.commons:commons-lang3:$apacheCommonsLangVersion"
+}

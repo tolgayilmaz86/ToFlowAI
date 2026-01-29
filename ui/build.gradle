@@ -1,0 +1,79 @@
+plugins {
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+javafx {
+    version = "21.0.5"
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.swing', 'javafx.media']
+}
+
+test {
+    useJUnitPlatform()
+    jvmArgs "-ea", 
+            "--enable-preview",
+            "-Djava.net.preferIPv4Stack=true", 
+            "-Dfile.encoding=UTF-8",
+            "-Djava.awt.headless=true",
+            "-Dtestfx.robot=glass",
+            "-Dtestfx.headless=true",
+            "-Dprism.order=sw",
+            "--enable-native-access=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang=ALL-UNNAMED"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+dependencies {
+    // Spring Boot BOM
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
+    
+    // Project modules
+    implementation project(':common')
+    
+    // Spring Boot starters
+    implementation('org.springframework.boot:spring-boot-starter-webflux') {
+        exclude group: 'io.netty', module: 'netty-transport-native-epoll'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    
+    // JavaFX Spring integration
+    implementation 'net.rgielen:javafx-weaver-spring-boot-starter:2.0.1'
+    
+    // AtlantaFX theme
+    implementation "io.github.mkpaz:atlantafx-base:$atlantafxVersion"
+    
+    // Ikonli icons
+    implementation platform("org.kordamp.ikonli:ikonli-bom:$ikonliVersion")
+    implementation 'org.kordamp.ikonli:ikonli-javafx'
+    implementation 'org.kordamp.ikonli:ikonli-materialdesign2-pack'
+    implementation 'org.kordamp.ikonli:ikonli-fontawesome5-pack'
+    
+    // Apache Commons
+    implementation "org.apache.commons:commons-lang3:$apacheCommonsLangVersion"
+    implementation "org.apache.commons:commons-collections4:$apacheCommonsCollectionsVersion"
+    implementation 'commons-io:commons-io:2.17.0'
+    
+    // JNA for native
+    implementation "net.java.dev.jna:jna-platform:$jnaVersion"
+    
+    // Testing
+    testImplementation "org.junit.jupiter:junit-jupiter:$junitVersion"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: "com.vaadin.external.google", module: "android-json"
+    }
+    testImplementation "com.tngtech.archunit:archunit-junit5:$archunitVersion"
+    testImplementation "org.testfx:testfx-core:$testfxVersion"
+    testImplementation "org.testfx:testfx-junit5:$testfxVersion"
+}
