@@ -115,55 +115,57 @@
         {
             "id": "conn_1",
             "sourceNodeId": "trigger_1",
+            "sourceOutput": "main",
             "targetNodeId": "http_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_2",
             "sourceNodeId": "http_1",
+            "sourceOutput": "main",
             "targetNodeId": "code_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_3",
             "sourceNodeId": "code_1",
+            "sourceOutput": "main",
             "targetNodeId": "if_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_4",
             "sourceNodeId": "if_1",
+            "sourceOutput": "true",
             "targetNodeId": "code_hot",
-            "sourceHandle": "true",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_5",
             "sourceNodeId": "if_1",
+            "sourceOutput": "false",
             "targetNodeId": "code_normal",
-            "sourceHandle": "false",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_6",
             "sourceNodeId": "code_hot",
+            "sourceOutput": "main",
             "targetNodeId": "set_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_7",
             "sourceNodeId": "code_normal",
+            "sourceOutput": "main",
             "targetNodeId": "set_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         }
     ],
     "settings": {
         "apiKey": "YOUR_OPENWEATHERMAP_API_KEY"
     },
-    "active": true
+    "isActive": true,
+    "triggerType": "MANUAL",
+    "version": 1
 }

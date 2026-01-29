@@ -119,48 +119,50 @@
         {
             "id": "conn_1",
             "sourceNodeId": "trigger_1",
+            "sourceOutput": "main",
             "targetNodeId": "http_user",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_2",
             "sourceNodeId": "http_user",
+            "sourceOutput": "main",
             "targetNodeId": "code_parse_user",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_3",
             "sourceNodeId": "code_parse_user",
+            "sourceOutput": "main",
             "targetNodeId": "http_weather",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_4",
             "sourceNodeId": "http_weather",
+            "sourceOutput": "main",
             "targetNodeId": "code_parse_weather",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_5",
             "sourceNodeId": "code_parse_weather",
+            "sourceOutput": "main",
             "targetNodeId": "llm_greeting",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_6",
             "sourceNodeId": "llm_greeting",
+            "sourceOutput": "main",
             "targetNodeId": "code_final",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         }
     ],
     "settings": {
         "apiKey": "YOUR_OPENWEATHERMAP_API_KEY"
     },
-    "active": true
+    "isActive": true,
+    "triggerType": "MANUAL",
+    "version": 1
 }

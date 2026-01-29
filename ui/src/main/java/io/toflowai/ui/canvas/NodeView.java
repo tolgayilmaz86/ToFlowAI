@@ -368,7 +368,7 @@ public class NodeView extends StackPane {
     private void setupClickBehavior() {
         nodeBox.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
-                canvas.selectNode(this);
+                canvas.selectNode(this, e.isControlDown());
                 if (e.getClickCount() == 2) {
                     canvas.openNodeEditor(this);
                 }

@@ -104,7 +104,14 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     private CubicCurve tempConnectionLine = null;
 
     // Selection
-    private NodeView selectedNode = null;
+    private final java.util.Set<NodeView> selectedNodes = new java.util.HashSet<>();
+
+    // Clipboard
+    private final java.util.List<Node> clipboardNodes = new java.util.ArrayList<>();
+
+    // File chooser state
+    private java.io.File lastImportDirectory = null;
+    private java.io.File lastExportDirectory = null;
 
     public WorkflowCanvas(WorkflowServiceInterface workflowService, ExecutionServiceInterface executionService) {
         this.workflowService = workflowService;
@@ -411,10 +418,16 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         MenuItem deselectAllItem = new MenuItem("Deselect All");
         deselectAllItem.setOnAction(e -> deselectAll());
 
+        // Copy
+        MenuItem copyItem = new MenuItem("Copy");
+        copyItem.setGraphic(FontIcon.of(MaterialDesignC.CONTENT_COPY, 14));
+        copyItem.setOnAction(e -> copySelected());
+
         // Paste (if something in clipboard)
         MenuItem pasteItem = new MenuItem("Paste");
         pasteItem.setGraphic(FontIcon.of(MaterialDesignC.CONTENT_PASTE, 14));
-        pasteItem.setDisable(true); // TODO: implement clipboard
+        pasteItem.setDisable(clipboardNodes.isEmpty());
+        pasteItem.setOnAction(e -> pasteNodes());
 
         contextMenu.getItems().addAll(
                 addNodeMenu,
@@ -425,6 +438,7 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                 selectAllItem,
                 deselectAllItem,
                 new SeparatorMenuItem(),
+                copyItem,
                 pasteItem);
 
         contextMenu.show(canvasPane, screenX, screenY);
@@ -464,10 +478,29 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
 
     private void setupKeyboardShortcuts() {
         setOnKeyPressed(e -> {
-            switch (e.getCode()) {
-                case DELETE, BACK_SPACE -> deleteSelected();
-                case ESCAPE -> deselectAll();
-                default -> {
+            if (e.isControlDown()) {
+                switch (e.getCode()) {
+                    case C -> {
+                        if (!selectedNodes.isEmpty()) {
+                            copySelected();
+                        }
+                        e.consume();
+                    }
+                    case V -> {
+                        pasteNodes();
+                        e.consume();
+                    }
+                    case A -> {
+                        selectAll();
+                        e.consume();
+                    }
+                }
+            } else {
+                switch (e.getCode()) {
+                    case DELETE, BACK_SPACE -> deleteSelected();
+                    case ESCAPE -> deselectAll();
+                    default -> {
+                    }
                 }
             }
         });
@@ -648,8 +681,16 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                 new javafx.stage.FileChooser.ExtensionFilter("JSON Files", "*.json"));
         fileChooser.setInitialFileName(workflow.name().replaceAll("[^a-zA-Z0-9]", "_") + ".json");
 
+        // Set initial directory to last used location
+        if (lastExportDirectory != null && lastExportDirectory.exists()) {
+            fileChooser.setInitialDirectory(lastExportDirectory);
+        }
+
         java.io.File file = fileChooser.showSaveDialog(getScene().getWindow());
         if (file != null) {
+            // Remember the directory for next time
+            lastExportDirectory = file.getParentFile();
+
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
@@ -681,8 +722,16 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         fileChooser.getExtensionFilters().add(
                 new javafx.stage.FileChooser.ExtensionFilter("JSON Files", "*.json"));
 
+        // Set initial directory to last used location
+        if (lastImportDirectory != null && lastImportDirectory.exists()) {
+            fileChooser.setInitialDirectory(lastImportDirectory);
+        }
+
         java.io.File file = fileChooser.showOpenDialog(getScene().getWindow());
         if (file != null) {
+            // Remember the directory for next time
+            lastImportDirectory = file.getParentFile();
+
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
@@ -749,33 +798,55 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     }
 
     public void selectNode(NodeView nodeView) {
-        deselectAll();
-        selectedNode = nodeView;
-        nodeView.setSelected(true);
+        selectNode(nodeView, false);
+    }
 
-        // Show properties panel
-        propertiesPanel.show(nodeView);
+    public void selectNode(NodeView nodeView, boolean multiSelect) {
+        if (!multiSelect) {
+            deselectAll();
+        }
+
+        if (selectedNodes.contains(nodeView)) {
+            // Deselect if already selected
+            selectedNodes.remove(nodeView);
+            nodeView.setSelected(false);
+        } else {
+            // Select the node
+            selectedNodes.add(nodeView);
+            nodeView.setSelected(true);
+        }
+
+        // Show properties panel for single selection, hide for multi-selection
+        if (selectedNodes.size() == 1) {
+            propertiesPanel.show(selectedNodes.iterator().next());
+        } else {
+            propertiesPanel.hide();
+        }
     }
 
     public void deselectAll() {
-        if (selectedNode != null) {
-            selectedNode.setSelected(false);
-            selectedNode = null;
+        for (NodeView nodeView : selectedNodes) {
+            nodeView.setSelected(false);
         }
+        selectedNodes.clear();
         // Hide properties panel
         propertiesPanel.hide();
     }
 
     private void deleteSelected() {
-        if (selectedNode != null) {
-            String nodeId = selectedNode.getNode().id();
+        if (!selectedNodes.isEmpty()) {
+            // Collect all node IDs to delete
+            java.util.Set<String> nodeIdsToDelete = selectedNodes.stream()
+                    .map(nodeView -> nodeView.getNode().id())
+                    .collect(java.util.stream.Collectors.toSet());
 
             // Remove from workflow
             var newNodes = workflow.nodes().stream()
-                    .filter(n -> !n.id().equals(nodeId))
+                    .filter(n -> !nodeIdsToDelete.contains(n.id()))
                     .toList();
             var newConnections = workflow.connections().stream()
-                    .filter(c -> !c.involvesNode(nodeId))
+                    .filter(c -> !nodeIdsToDelete.contains(c.sourceNodeId()) &&
+                            !nodeIdsToDelete.contains(c.targetNodeId()))
                     .toList();
             workflow = new WorkflowDTO(
                     workflow.id(), workflow.name(), workflow.description(),
@@ -784,20 +855,22 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                     workflow.createdAt(), workflow.updatedAt(), workflow.lastExecuted(),
                     workflow.version());
 
-            // Remove view
-            nodeLayer.getChildren().remove(selectedNode);
-            nodeViews.remove(nodeId);
+            // Remove views
+            for (NodeView nodeView : selectedNodes) {
+                nodeLayer.getChildren().remove(nodeView);
+                nodeViews.remove(nodeView.getNode().id());
+            }
 
             // Remove connections
             connectionLines.entrySet().removeIf(entry -> {
-                if (entry.getValue().involvesNode(nodeId)) {
+                if (nodeIdsToDelete.stream().anyMatch(entry.getValue()::involvesNode)) {
                     connectionLayer.getChildren().remove(entry.getValue());
                     return true;
                 }
                 return false;
             });
 
-            selectedNode = null;
+            selectedNodes.clear();
         }
     }
 
@@ -1254,14 +1327,37 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         Node node = nodeView.getNode();
         System.out.println("Executing node: " + node.name());
 
-        // Show execution indicator
-        Alert info = new Alert(Alert.AlertType.INFORMATION);
-        info.setTitle("Execute Node");
-        info.setHeaderText("Executing: " + node.name());
-        info.setContentText("Node execution triggered. Check console for output.");
-        info.show();
+        // Create temporary workflow with single node for execution
+        WorkflowDTO tempWorkflow = WorkflowDTO.create("Single Node Test")
+                .withAddedNode(node);
 
-        // TODO: Actually execute the node via service
+        try {
+            // Execute asynchronously
+            executionService.executeAsync(tempWorkflow.id(), Map.of())
+                    .thenAccept(result -> Platform.runLater(() -> {
+                        if (result.status() == ExecutionStatus.SUCCESS) {
+                            showExecutionResult(result);
+                        } else {
+                            showExecutionError(result);
+                        }
+                    }))
+                    .exceptionally(ex -> {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("Execution Error");
+                            alert.setHeaderText("Failed to execute node");
+                            alert.setContentText(ex.getMessage());
+                            alert.showAndWait();
+                        });
+                        return null;
+                    });
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Execution Error");
+            alert.setHeaderText("Failed to start node execution");
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
+        }
     }
 
     /**
@@ -1294,6 +1390,78 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         selectNode(newView);
 
         System.out.println("Duplicated node: " + original.name());
+    }
+
+    /**
+     * Copy selected nodes to clipboard.
+     */
+    public void copySelected() {
+        clipboardNodes.clear();
+        for (NodeView nodeView : selectedNodes) {
+            clipboardNodes.add(nodeView.getNode());
+        }
+        updatePasteMenuState();
+    }
+
+    /**
+     * Paste nodes from clipboard.
+     */
+    public void pasteNodes() {
+        if (clipboardNodes.isEmpty()) {
+            return;
+        }
+
+        // Calculate paste position (slightly offset from original positions)
+        double baseX = 100;
+        double baseY = 100;
+
+        // Clear selection before pasting
+        deselectAll();
+
+        for (Node node : clipboardNodes) {
+            String newId = UUID.randomUUID().toString();
+            Node pastedNode = new Node(
+                    newId,
+                    node.type(),
+                    node.name() + " (copy)",
+                    new Node.Position(baseX, baseY),
+                    node.parameters() != null ? new java.util.HashMap<>(node.parameters()) : Map.of(),
+                    node.credentialId(),
+                    node.disabled(),
+                    node.notes());
+
+            // Add to workflow
+            workflow = workflow.withAddedNode(pastedNode);
+
+            // Create view
+            NodeView newView = new NodeView(pastedNode, this);
+            nodeViews.put(newId, newView);
+            nodeLayer.getChildren().add(newView);
+
+            // Select the pasted node
+            selectedNodes.add(newView);
+            newView.setSelected(true);
+
+            // Offset next node position
+            baseX += 50;
+            baseY += 50;
+        }
+
+        // Update properties panel for multi-selection
+        if (selectedNodes.size() == 1) {
+            propertiesPanel.show(selectedNodes.iterator().next());
+        } else {
+            propertiesPanel.hide();
+        }
+
+        updateMinimap();
+    }
+
+    /**
+     * Update paste menu item state based on clipboard contents.
+     */
+    private void updatePasteMenuState() {
+        // This will be called when the context menu is shown
     }
 
     /**
@@ -1385,9 +1553,7 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
             return false;
         });
 
-        if (selectedNode == nodeView) {
-            selectedNode = null;
-        }
+        selectedNodes.remove(nodeView);
 
         System.out.println("Deleted node: " + nodeView.getNode().name());
     }
@@ -1396,8 +1562,13 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
      * Select all nodes.
      */
     public void selectAll() {
-        // TODO: Implement multi-selection
-        System.out.println("Select all - not yet implemented");
+        deselectAll();
+        for (NodeView nodeView : nodeViews.values()) {
+            selectedNodes.add(nodeView);
+            nodeView.setSelected(true);
+        }
+        // Hide properties panel for multi-selection
+        propertiesPanel.hide();
     }
 
     /**
@@ -1415,18 +1586,66 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         double xSpacing = 250;
         double ySpacing = 120;
 
-        // Layout trigger nodes first
-        for (int i = 0; i < triggerNodes.size(); i++) {
-            Node trigger = triggerNodes.get(i);
-            NodeView view = nodeViews.get(trigger.id());
-            if (view != null) {
-                view.setLayoutX(startX);
-                view.setLayoutY(startY + i * ySpacing);
-                updateNodePosition(trigger.id(), startX, startY + i * ySpacing);
+        // Layout connected nodes in columns using topological sort
+        java.util.Set<String> visited = new java.util.HashSet<>();
+        java.util.Queue<Node> queue = new java.util.LinkedList<>();
+        java.util.Map<String, Integer> nodeColumns = new java.util.HashMap<>();
+
+        // Mark trigger nodes as visited and in column 0
+        for (Node trigger : triggerNodes) {
+            visited.add(trigger.id());
+            nodeColumns.put(trigger.id(), 0);
+        }
+
+        // Add trigger nodes to queue
+        queue.addAll(triggerNodes);
+
+        // Process nodes level by level (breadth-first)
+        while (!queue.isEmpty()) {
+            Node current = queue.poll();
+            int currentColumn = nodeColumns.get(current.id());
+
+            // Find all nodes that this node connects to (outgoing connections)
+            for (Connection connection : workflow.connections()) {
+                if (connection.sourceNodeId().equals(current.id())) {
+                    String targetId = connection.targetNodeId();
+                    if (!visited.contains(targetId)) {
+                        visited.add(targetId);
+                        nodeColumns.put(targetId, currentColumn + 1);
+                        Node targetNode = workflow.findNode(targetId);
+                        if (targetNode != null) {
+                            queue.add(targetNode);
+                        }
+                    }
+                }
             }
         }
 
-        // TODO: Layout connected nodes in columns
+        // Group nodes by column
+        java.util.Map<Integer, java.util.List<Node>> columnGroups = new java.util.HashMap<>();
+        for (Node node : workflow.nodes()) {
+            int column = nodeColumns.getOrDefault(node.id(), 0);
+            columnGroups.computeIfAbsent(column, k -> new java.util.ArrayList<>()).add(node);
+        }
+
+        // Layout nodes in each column
+        for (java.util.Map.Entry<Integer, java.util.List<Node>> entry : columnGroups.entrySet()) {
+            int column = entry.getKey();
+            java.util.List<Node> nodesInColumn = entry.getValue();
+
+            double columnX = startX + column * xSpacing;
+            double columnY = startY;
+
+            for (Node node : nodesInColumn) {
+                NodeView view = nodeViews.get(node.id());
+                if (view != null) {
+                    view.setLayoutX(columnX);
+                    view.setLayoutY(columnY);
+                    updateNodePosition(node.id(), columnX, columnY);
+                    columnY += ySpacing;
+                }
+            }
+        }
     }
 
     /**
@@ -1465,6 +1684,13 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
 
     public WorkflowDTO getWorkflow() {
         return workflow;
+    }
+
+    /**
+     * Get the execution service.
+     */
+    public ExecutionServiceInterface getExecutionService() {
+        return executionService;
     }
 
     /**

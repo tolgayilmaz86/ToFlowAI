@@ -33,6 +33,15 @@ ToFlowAI is a workflow automation application built with:
 - [x] Connection lines between nodes
 - [x] Node selection and context menus
 
+### High Priority UI Features ✅ COMPLETE
+- [x] **Workflow selection dialog** - WorkflowListDialog for opening saved workflows
+- [x] **Clipboard copy/paste functionality** - Copy selected nodes (Ctrl+C) and paste (Ctrl+V)
+- [x] **Save workflow to database** - Full CRUD operations with WorkflowService
+- [x] **Execute workflow via service** - Async execution with ExecutionService
+- [x] **Execute single node via service** - Test individual nodes
+- [x] **Multi-selection support** - Select multiple nodes with Ctrl+click, Select All/Deselect All
+- [x] **Auto-layout connected nodes** - Automatic node positioning in columns based on connections
+
 ### Node Executors (Backend)
 - [x] `ManualTriggerExecutor` - Manual workflow start
 - [x] `HttpRequestExecutor` - HTTP/REST calls
@@ -56,22 +65,6 @@ ToFlowAI is a workflow automation application built with:
 - [x] `WorkflowService` - CRUD operations
 - [x] `ExecutionService` - Workflow execution engine
 - [x] `SchedulerService` - Cron-based scheduling
-
----
-
-## 🔄 In Progress / Pending TODO Items
-
-### High Priority - UI Features
-
-| Task | File | Line | Status |
-|------|------|------|--------|
-| Workflow selection dialog | `MainController.java` | 151 | ⬜ TODO |
-| Clipboard paste functionality | `WorkflowCanvas.java` | 316 | ⬜ TODO |
-| Save workflow to database | `WorkflowCanvas.java` | 430 | ⬜ TODO |
-| Execute workflow via service | `WorkflowCanvas.java` | 435 | ⬜ TODO |
-| Execute node via service | `WorkflowCanvas.java` | 898 | ⬜ TODO |
-| Multi-selection support | `WorkflowCanvas.java` | 1033 | ⬜ TODO |
-| Auto-layout connected nodes | `WorkflowCanvas.java` | 1063 | ⬜ TODO |
 
 ---
 

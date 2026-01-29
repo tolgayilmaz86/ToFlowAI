@@ -171,88 +171,90 @@
         {
             "id": "conn_1",
             "sourceNodeId": "trigger_1",
+            "sourceOutput": "main",
             "targetNodeId": "set_config",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_2",
             "sourceNodeId": "set_config",
+            "sourceOutput": "main",
             "targetNodeId": "code_attempt",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_3",
             "sourceNodeId": "code_attempt",
+            "sourceOutput": "main",
             "targetNodeId": "if_success",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_4",
             "sourceNodeId": "if_success",
+            "sourceOutput": "true",
             "targetNodeId": "code_success",
-            "sourceHandle": "true",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_5",
             "sourceNodeId": "if_success",
+            "sourceOutput": "false",
             "targetNodeId": "code_retry_check",
-            "sourceHandle": "false",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_6",
             "sourceNodeId": "code_retry_check",
+            "sourceOutput": "main",
             "targetNodeId": "if_retry",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_7",
             "sourceNodeId": "if_retry",
+            "sourceOutput": "true",
             "targetNodeId": "code_wait",
-            "sourceHandle": "true",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_8",
             "sourceNodeId": "if_retry",
+            "sourceOutput": "false",
             "targetNodeId": "code_fallback",
-            "sourceHandle": "false",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_9",
             "sourceNodeId": "code_wait",
+            "sourceOutput": "main",
             "targetNodeId": "code_attempt",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_10",
             "sourceNodeId": "code_fallback",
+            "sourceOutput": "main",
             "targetNodeId": "code_success",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_11",
             "sourceNodeId": "code_success",
+            "sourceOutput": "main",
             "targetNodeId": "merge_results",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_12",
             "sourceNodeId": "merge_results",
+            "sourceOutput": "main",
             "targetNodeId": "code_report",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         }
     ],
     "settings": {},
-    "active": true
+    "isActive": true,
+    "triggerType": "MANUAL",
+    "version": 1
 }

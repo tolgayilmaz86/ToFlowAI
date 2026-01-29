@@ -351,8 +351,54 @@ public class ExecutionHistoryPanel extends VBox {
     }
 
     private void refreshExecutions() {
-        // TODO: Load executions from service
-        // For now, just trigger a visual refresh
+        // Get current workflow
+        var workflow = canvas.getWorkflow();
+        if (workflow.id() != null) {
+            try {
+                // Load executions from service
+                var executionDTOs = canvas.getExecutionService().findByWorkflowId(workflow.id());
+
+                // Convert DTOs to domain objects
+                executions.clear();
+                for (var dto : executionDTOs) {
+                    var nodeExecutions = dto.nodeExecutions().stream()
+                            .map(nodeDto -> new Execution.NodeExecution(
+                                    nodeDto.nodeId(),
+                                    nodeDto.nodeName(),
+                                    nodeDto.nodeType(),
+                                    nodeDto.status(),
+                                    nodeDto.startedAt(),
+                                    nodeDto.finishedAt(),
+                                    nodeDto.inputData(),
+                                    nodeDto.outputData(),
+                                    nodeDto.errorMessage()))
+                            .toList();
+
+                    var execution = new Execution(
+                            dto.id(),
+                            dto.workflowId(),
+                            dto.workflowName(),
+                            dto.status(),
+                            dto.triggerType(),
+                            dto.startedAt(),
+                            dto.finishedAt(),
+                            dto.inputData(),
+                            dto.outputData(),
+                            dto.errorMessage(),
+                            nodeExecutions);
+
+                    executions.add(execution);
+                }
+
+                // Sort by start time (newest first)
+                executions.sort((a, b) -> b.startedAt().compareTo(a.startedAt()));
+
+            } catch (Exception e) {
+                System.err.println("Failed to load executions: " + e.getMessage());
+                // Keep existing executions on error
+            }
+        }
+
         executionTable.refresh();
     }
 

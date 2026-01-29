@@ -134,53 +134,55 @@
         {
             "id": "conn_1",
             "sourceNodeId": "trigger_1",
+            "sourceOutput": "main",
             "targetNodeId": "set_input",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_2",
             "sourceNodeId": "set_input",
+            "sourceOutput": "main",
             "targetNodeId": "llm_outline",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_3",
             "sourceNodeId": "llm_outline",
+            "sourceOutput": "main",
             "targetNodeId": "llm_content",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_4",
             "sourceNodeId": "llm_content",
+            "sourceOutput": "main",
             "targetNodeId": "code_format",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_5",
             "sourceNodeId": "code_format",
+            "sourceOutput": "main",
             "targetNodeId": "if_valid",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_6",
             "sourceNodeId": "if_valid",
+            "sourceOutput": "true",
             "targetNodeId": "code_success",
-            "sourceHandle": "true",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_7",
             "sourceNodeId": "if_valid",
+            "sourceOutput": "false",
             "targetNodeId": "code_error",
-            "sourceHandle": "false",
-            "targetHandle": "main"
+            "targetInput": "main"
         }
     ],
     "settings": {},
-    "active": true
+    "isActive": true,
+    "triggerType": "MANUAL",
+    "version": 1
 }

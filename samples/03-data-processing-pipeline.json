@@ -189,74 +189,76 @@
         {
             "id": "conn_1",
             "sourceNodeId": "trigger_1",
+            "sourceOutput": "main",
             "targetNodeId": "set_data",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_2",
             "sourceNodeId": "set_data",
+            "sourceOutput": "main",
             "targetNodeId": "loop_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_3",
             "sourceNodeId": "loop_1",
+            "sourceOutput": "loop",
             "targetNodeId": "if_instock",
-            "sourceHandle": "loop",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_4",
             "sourceNodeId": "if_instock",
+            "sourceOutput": "true",
             "targetNodeId": "if_minprice",
-            "sourceHandle": "true",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_5",
             "sourceNodeId": "if_instock",
+            "sourceOutput": "false",
             "targetNodeId": "code_skip",
-            "sourceHandle": "false",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_6",
             "sourceNodeId": "if_minprice",
+            "sourceOutput": "true",
             "targetNodeId": "code_transform",
-            "sourceHandle": "true",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_7",
             "sourceNodeId": "if_minprice",
+            "sourceOutput": "false",
             "targetNodeId": "code_skip",
-            "sourceHandle": "false",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_8",
             "sourceNodeId": "code_transform",
+            "sourceOutput": "main",
             "targetNodeId": "merge_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_9",
             "sourceNodeId": "code_skip",
+            "sourceOutput": "main",
             "targetNodeId": "merge_1",
-            "sourceHandle": "main",
-            "targetHandle": "main"
+            "targetInput": "main"
         },
         {
             "id": "conn_10",
             "sourceNodeId": "loop_1",
+            "sourceOutput": "done",
             "targetNodeId": "code_aggregate",
-            "sourceHandle": "done",
-            "targetHandle": "main"
+            "targetInput": "main"
         }
     ],
     "settings": {},
-    "active": true
+    "isActive": true,
+    "triggerType": "MANUAL",
+    "version": 1
 }

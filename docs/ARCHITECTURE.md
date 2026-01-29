@@ -1,7 +1,7 @@
 # ToFlowAI Architecture Guide
 
 > **A Comprehensive Guide for Junior Developers**  
-> **Version:** 1.2  
+> **Version:** 1.3  
 > **Last Updated:** January 29, 2026
 
 ---
@@ -2337,8 +2337,182 @@ The settings schema uses two migrations:
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS category VARCHAR(50);
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS setting_type VARCHAR(20);
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS label VARCHAR(255);
-ALTER TABLE settings ADD COLUMN IF NOT EXISTS description TEXT;
 -- ...
+```
+
+### 14.4 UI Workflow Canvas Enhancements
+
+The workflow canvas has been significantly enhanced with advanced editing features:
+
+```mermaid
+graph LR
+    subgraph WorkflowCanvas["WorkflowCanvas Features"]
+        CLIP[Clipboard System]
+        MULTI[Multi-Selection]
+        AUTOL[Auto-Layout]
+        SAVE[Save/Load System]
+    end
+    
+    subgraph Keyboard["Keyboard Shortcuts"]
+        CTRL_C[Ctrl+C: Copy]
+        CTRL_V[Ctrl+V: Paste]
+        CTRL_A[Ctrl+A: Select All]
+        ESC[Esc: Deselect]
+    end
+    
+    subgraph Context["Context Menu"]
+        COPY[Copy Selected]
+        PASTE[Paste]
+        SELECT[Select All/Deselect]
+        AUTOFIX[Auto Layout]
+    end
+    
+    CLIP --> Keyboard
+    MULTI --> Keyboard
+    AUTOL --> Context
+    SAVE --> Context
+    
+    style WorkflowCanvas fill:#f3e5f5,stroke:#7b1fa2
+    style Keyboard fill:#e8f5e9,stroke:#2e7d32
+    style Context fill:#e3f2fd,stroke:#1565c0
+```
+
+#### Clipboard System
+
+The canvas now supports full copy/paste functionality:
+
+```java
+// WorkflowCanvas.java - Clipboard implementation
+private final List<Node> clipboardNodes = new ArrayList<>();
+
+public void copySelected() {
+    clipboardNodes.clear();
+    for (NodeView selected : selectedNodes) {
+        // Create deep copy of node with new ID
+        Node copied = selected.getNode().withId(UUID.randomUUID().toString());
+        clipboardNodes.add(copied);
+    }
+}
+
+public void pasteNodes() {
+    if (clipboardNodes.isEmpty()) return;
+    
+    // Offset pasted nodes by 50px to avoid overlap
+    double offsetX = 50, offsetY = 50;
+    for (Node node : clipboardNodes) {
+        Node positioned = node.withPosition(
+            node.position().x() + offsetX,
+            node.position().y() + offsetY
+        );
+        addNode(positioned);
+        offsetX += 50; offsetY += 50; // Cascade positioning
+    }
+}
+```
+
+#### Multi-Selection System
+
+Advanced node selection with keyboard and mouse support:
+
+```java
+// WorkflowCanvas.java - Multi-selection implementation
+private final Set<NodeView> selectedNodes = new HashSet<>();
+
+public void selectNode(NodeView nodeView, boolean multiSelect) {
+    if (!multiSelect) {
+        deselectAll(); // Single selection mode
+    }
+    
+    if (selectedNodes.contains(nodeView)) {
+        selectedNodes.remove(nodeView); // Toggle off
+    } else {
+        selectedNodes.add(nodeView); // Toggle on
+    }
+    
+    updateSelectionVisuals();
+}
+
+public void selectAll() {
+    selectedNodes.addAll(nodeViews.values());
+    updateSelectionVisuals();
+}
+```
+
+#### Auto-Layout Algorithm
+
+Automatic node positioning using topological sorting:
+
+```java
+// WorkflowCanvas.java - Auto-layout implementation
+public void autoLayoutNodes() {
+    // Find trigger nodes (no incoming connections)
+    var triggerNodes = workflow.getTriggerNodes();
+    
+    // Use breadth-first traversal to assign columns
+    Map<String, Integer> nodeColumns = new HashMap<>();
+    Queue<Node> queue = new LinkedList<>();
+    
+    // Start with triggers in column 0
+    for (Node trigger : triggerNodes) {
+        nodeColumns.put(trigger.id(), 0);
+        queue.add(trigger);
+    }
+    
+    // Process nodes level by level
+    while (!queue.isEmpty()) {
+        Node current = queue.poll();
+        int currentColumn = nodeColumns.get(current.id());
+        
+        // Find connected nodes and assign to next column
+        for (Connection conn : workflow.connections()) {
+            if (conn.sourceNodeId().equals(current.id())) {
+                String targetId = conn.targetNodeId();
+                if (!nodeColumns.containsKey(targetId)) {
+                    nodeColumns.put(targetId, currentColumn + 1);
+                    queue.add(workflow.findNode(targetId));
+                }
+            }
+        }
+    }
+    
+    // Position nodes in their assigned columns
+    layoutNodesByColumns(nodeColumns);
+}
+```
+
+#### Workflow Save/Load Integration
+
+Complete CRUD operations with user-friendly dialogs:
+
+```java
+// WorkflowCanvas.java - Save workflow
+public void saveWorkflow() {
+    try {
+        WorkflowDTO saved;
+        if (workflow.id() == null) {
+            // New workflow - prompt for name
+            String name = promptWorkflowName();
+            workflow = workflow.withName(name);
+            saved = workflowService.create(workflow);
+        } else {
+            // Update existing
+            saved = workflowService.update(workflow);
+        }
+        
+        this.workflow = saved;
+        showStatus("Saved: " + saved.name());
+        
+        // Success notification
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Workflow Saved");
+        alert.setContentText("Workflow '" + saved.name() + "' saved successfully!");
+        alert.showAndWait();
+        
+    } catch (Exception e) {
+        showStatus("Error saving: " + e.getMessage());
+        // Error dialog...
+    }
+}
 ```
 
 ---
