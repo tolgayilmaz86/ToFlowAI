@@ -197,10 +197,10 @@ public class ExecutionService {
 
         if (outgoing.size() > 1) {
             // Multiple outgoing connections - execute in parallel with virtual threads
-            try (var scope = new java.util.concurrent.StructuredTaskScope.ShutdownOnFailure()) {
+            try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
                 Map<String, Object> finalOutput = output;
-                List<java.util.concurrent.StructuredTaskScope.Subtask<Map<String, Object>>> subtasks = outgoing.stream()
-                        .map(connection -> scope.fork(() -> {
+                List<java.util.concurrent.Future<Map<String, Object>>> futures = outgoing.stream()
+                        .map(connection -> executor.submit(() -> {
                             Node targetNode = workflow.findNode(connection.targetNodeId());
                             if (targetNode == null) {
                                 throw new IllegalStateException("Target node not found: " + connection.targetNodeId());
@@ -209,8 +209,10 @@ public class ExecutionService {
                         }))
                         .toList();
 
-                scope.join();
-                scope.throwIfFailed();
+                // Wait for all tasks to complete
+                for (var future : futures) {
+                    future.get();
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Parallel execution interrupted", e);

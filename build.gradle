@@ -1,7 +1,7 @@
 buildscript {
     ext {
         // Core versions
-        springBootVersion = "3.4.1"
+        springBootVersion = "3.5.0"
         flywayDbVersion = "10.20.1"
         jpackageVersion = "1.7.0"
         
@@ -30,7 +30,7 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = "8.12"
+    gradleVersion = "9.2.0"
 }
 
 // Project versioning - use environment variable or default
@@ -45,7 +45,7 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
+            languageVersion = JavaLanguageVersion.of(25)
         }
     }
 

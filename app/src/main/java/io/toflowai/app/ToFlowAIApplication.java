@@ -2,9 +2,7 @@ package io.toflowai.app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -15,11 +13,9 @@ import javafx.application.Application;
  * Main entry point for ToFlowAI application.
  * Launches both Spring Boot backend and JavaFX frontend.
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "io.toflowai")
 @EnableScheduling
-@ComponentScan(basePackages = { "io.toflowai" })
-@EntityScan(basePackages = { "io.toflowai.app.database.model" })
-@EnableJpaRepositories(basePackages = { "io.toflowai.app.database.repository" })
+@EnableJpaRepositories(basePackages = "io.toflowai.app.database.repository")
 public class ToFlowAIApplication {
 
     public static void main(String[] args) {

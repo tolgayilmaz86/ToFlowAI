@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.StructuredTaskScope;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.springframework.stereotype.Component;
 
@@ -75,21 +77,21 @@ public class LoopExecutor implements NodeExecutor {
     private List<Map<String, Object>> executeParallel(List<?> items, Map<String, Object> input, int batchSize) {
         List<Map<String, Object>> results = new ArrayList<>();
 
-        // Process in batches using virtual threads with structured concurrency
+        // Process in batches using virtual threads
         for (int i = 0; i < items.size(); i += batchSize) {
             int end = Math.min(i + batchSize, items.size());
             List<?> batch = items.subList(i, end);
 
-            try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
                 int startIndex = i;
-                List<StructuredTaskScope.Subtask<Map<String, Object>>> subtasks = new ArrayList<>();
+                List<Future<Map<String, Object>>> futures = new ArrayList<>();
 
                 for (int j = 0; j < batch.size(); j++) {
                     Object item = batch.get(j);
                     int index = startIndex + j;
 
                     // Each item processed in its own virtual thread
-                    subtasks.add(scope.fork(() -> {
+                    futures.add(executor.submit(() -> {
                         Map<String, Object> itemResult = new HashMap<>();
                         itemResult.put("item", item);
                         itemResult.put("index", index);
@@ -98,12 +100,9 @@ public class LoopExecutor implements NodeExecutor {
                     }));
                 }
 
-                scope.join();
-                scope.throwIfFailed();
-
                 // Collect results
-                for (var subtask : subtasks) {
-                    results.add(subtask.get());
+                for (var future : futures) {
+                    results.add(future.get());
                 }
 
             } catch (InterruptedException e) {
