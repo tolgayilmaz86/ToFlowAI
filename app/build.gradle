@@ -83,17 +83,46 @@ jpackage {
     destination = layout.buildDirectory.dir("distributions").get().asFile.absolutePath
     mainJar = tasks.bootJar.archiveFileName.get()
     
+    // Embedded GraalVM runtime configuration
+    // Downloads and bundles a complete JRE with the installer
+    // This ensures the application runs without requiring Java installation
+    runtimeImage = findProperty('jpackage.runtime') ?: null
+    
+    // JVM options for the bundled runtime
     javaOptions = [
         '-Djava.net.preferIPv4Stack=true',
         '-Dfile.encoding=UTF-8',
         '--enable-preview',
         '--enable-native-access=ALL-UNNAMED',
         '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.nio=ALL-UNNAMED',
         '-Xms256m',
         '-Xmx1024m',
         '-XX:MaxMetaspaceSize=256m',
+        '-XX:+UseG1GC',
+        '-XX:+UseStringDeduplication',
         '-Dvisualvm.display.name=ToFlowAI',
-        '-Dspring.output.ansi.enabled=never'
+        '-Dspring.output.ansi.enabled=never',
+        // GraalVM polyglot options for JavaScript execution
+        '-Dpolyglot.engine.WarnInterpreterOnly=false'
+    ]
+    
+    // Additional modules to include in the runtime image
+    addModules = [
+        'java.base',
+        'java.desktop',
+        'java.logging',
+        'java.management',
+        'java.naming',
+        'java.net.http',
+        'java.prefs',
+        'java.scripting',
+        'java.security.jgss',
+        'java.sql',
+        'java.xml',
+        'jdk.crypto.ec',
+        'jdk.unsupported'
     ]
     
     windows {

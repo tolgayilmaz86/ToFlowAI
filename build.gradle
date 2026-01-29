@@ -4,6 +4,7 @@ buildscript {
         springBootVersion = "3.5.0"
         flywayDbVersion = "10.20.1"
         jpackageVersion = "1.7.0"
+        sonarqubeVersion = "6.0.1.5171"
         
         // Library versions
         atlantafxVersion = "2.0.1"
@@ -27,6 +28,7 @@ plugins {
     id 'org.springframework.boot' version "$springBootVersion" apply false
     id 'org.flywaydb.flyway' version "$flywayDbVersion" apply false
     id 'org.panteleyev.jpackageplugin' version "$jpackageVersion" apply false
+    id 'org.sonarqube' version "$sonarqubeVersion"
 }
 
 wrapper {
@@ -73,4 +75,56 @@ subprojects {
     tasks.withType(JavaCompile).configureEach {
         options.compilerArgs << '-parameters'
     }
+}
+
+// =============================================================================
+// SonarQube Configuration
+// =============================================================================
+// Usage:
+//   ./gradlew sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=YOUR_TOKEN
+//
+// For local analysis without server (SonarLint compatible):
+//   ./gradlew sonar -Dsonar.host.url=http://localhost:9000
+// =============================================================================
+sonar {
+    properties {
+        property "sonar.projectKey", "ToFlowAI"
+        property "sonar.projectName", "ToFlowAI"
+        property "sonar.projectVersion", project.version
+        property "sonar.organization", "toflowai"
+        
+        // Source configuration
+        property "sonar.sources", "src/main/java"
+        property "sonar.tests", "src/test/java"
+        property "sonar.java.source", "25"
+        property "sonar.sourceEncoding", "UTF-8"
+        
+        // Coverage reports (JaCoCo)
+        property "sonar.coverage.jacoco.xmlReportPaths", 
+            "${project.rootDir}/app/build/reports/jacoco/test/jacocoTestReport.xml," +
+            "${project.rootDir}/ui/build/reports/jacoco/test/jacocoTestReport.xml," +
+            "${project.rootDir}/common/build/reports/jacoco/test/jacocoTestReport.xml"
+        
+        // Exclusions
+        property "sonar.exclusions", [
+            "**/generated/**",
+            "**/build/**",
+            "**/*.css",
+            "**/*.fxml"
+        ].join(",")
+        
+        property "sonar.test.exclusions", [
+            "**/test/**"
+        ].join(",")
+        
+        // Quality profile settings
+        property "sonar.java.checkstyle.reportPaths", "build/reports/checkstyle/main.xml"
+        property "sonar.java.pmd.reportPaths", "build/reports/pmd/main.xml"
+        property "sonar.java.spotbugs.reportPaths", "build/reports/spotbugs/main.xml"
+    }
+}
+
+// Ensure test and coverage reports are generated before sonar analysis
+tasks.named('sonar').configure {
+    dependsOn tasks.named('check')
 }

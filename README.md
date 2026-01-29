@@ -178,7 +178,11 @@ ToFlowAI/
 │   └── ARCHITECTURE.md     # Comprehensive architecture guide
 │
 ├── tools/                  # Build and packaging tools
+│   └── build-installer.ps1 # Windows installer builder
+├── .github/workflows/      # CI/CD pipelines
+│   └── build.yml           # Build, test, analyze, package
 ├── build.gradle            # Root build configuration
+├── sonar-project.properties # SonarQube configuration
 └── settings.gradle         # Multi-module settings
 ```
 
@@ -196,7 +200,60 @@ ToFlowAI/
 | **Migrations** | Flyway | 10.20.1 |
 | **Build** | Gradle | 9.2.0 |
 | **JavaScript** | GraalVM JS | 24.1.1 |
+| **Code Quality** | SonarQube | 6.0.1 |
 | **Testing** | JUnit 5, TestFX, ArchUnit | - |
+
+---
+
+## 📦 Building Installers
+
+ToFlowAI can be packaged as a standalone installer with an embedded GraalVM runtime. Users don't need Java installed.
+
+### Windows MSI Installer
+
+```powershell
+# Build installer with embedded runtime
+.\tools\build-installer.ps1
+
+# Or with specific version
+.\tools\build-installer.ps1 -Version "1.0.0" -Clean
+```
+
+The installer will be created at `app/build/distributions/ToFlowAI-{version}.msi`
+
+### What's Included
+
+- ✅ ToFlowAI application
+- ✅ Embedded GraalVM runtime (~60MB compressed)
+- ✅ All dependencies bundled
+- ✅ Windows Start Menu shortcuts
+- ✅ No Java installation required
+
+---
+
+## 🔍 Code Quality & Analysis
+
+### SonarQube Integration
+
+ToFlowAI uses SonarQube for static code analysis, code coverage, and quality gates.
+
+```bash
+# Run local analysis (requires SonarQube server)
+./gradlew sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=YOUR_TOKEN
+
+# With Docker
+docker run -d --name sonarqube -p 9000:9000 sonarqube:community
+# Wait for startup, create project, then run analysis
+```
+
+### Coverage Reports
+
+```bash
+# Generate JaCoCo coverage reports
+./gradlew test jacocoTestReport
+
+# Reports at: app/build/reports/jacoco/test/html/index.html
+```
 
 ---
 
