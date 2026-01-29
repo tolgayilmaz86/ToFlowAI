@@ -363,29 +363,29 @@ The Settings view will consolidate all user preferences and application configur
 - [x] Implement settings validation logic
 
 #### Phase 7.2: Settings View UI
-- [ ] Create `SettingsView` component with tabbed layout
-- [ ] Create reusable form controls (toggle, dropdown, number input, path picker)
-- [ ] Implement settings binding (UI ↔ Service)
-- [ ] Style consistent with Nord Dark theme
+- [x] Create `SettingsView` component with tabbed layout
+- [x] Create reusable form controls (toggle, dropdown, number input, path picker)
+- [x] Implement settings binding (UI ↔ Service)
+- [x] Style consistent with Nord Dark theme
 
 #### Phase 7.3: Category Implementation
-- [ ] General Settings tab
-- [ ] Editor Settings tab
-- [ ] Execution Settings tab
-- [ ] AI Providers tab
-- [ ] Credentials tab (migrate existing dialog)
-- [ ] HTTP/Network tab
-- [ ] Database & Storage tab
-- [ ] Webhook & Server tab
-- [ ] Notifications tab
-- [ ] Advanced tab
+- [x] General Settings tab
+- [x] Editor Settings tab
+- [x] Execution Settings tab
+- [x] AI Providers tab
+- [x] Credentials tab (migrate existing dialog)
+- [x] HTTP/Network tab
+- [x] Database & Storage tab
+- [x] Webhook & Server tab
+- [x] Notifications tab
+- [x] Advanced tab
 
 #### Phase 7.4: Settings Integration
-- [ ] Replace sidebar Credentials button with full Settings
+- [x] Replace sidebar Credentials button with full Settings
 - [ ] Wire settings to relevant services (ExecutionService, LlmChatExecutor, etc.)
-- [ ] Add settings import/export functionality
-- [ ] Implement settings reset with confirmation
-- [ ] Add settings change listeners for real-time updates
+- [x] Add settings import/export functionality
+- [x] Implement settings reset with confirmation
+- [x] Add settings change listeners for real-time updates
 
 #### Phase 7.5: Testing & Polish
 - [ ] Add settings search/filter functionality

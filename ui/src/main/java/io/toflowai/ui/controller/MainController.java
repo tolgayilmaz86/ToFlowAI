@@ -14,10 +14,12 @@ import org.springframework.stereotype.Component;
 import io.toflowai.common.dto.WorkflowDTO;
 import io.toflowai.common.service.CredentialServiceInterface;
 import io.toflowai.common.service.ExecutionServiceInterface;
+import io.toflowai.common.service.SettingsServiceInterface;
 import io.toflowai.common.service.WorkflowServiceInterface;
 import io.toflowai.ui.canvas.WorkflowCanvas;
 import io.toflowai.ui.console.ExecutionConsoleService;
 import io.toflowai.ui.dialog.CredentialManagerDialog;
+import io.toflowai.ui.dialog.SettingsDialog;
 import io.toflowai.ui.dialog.WorkflowListDialog;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -39,6 +41,7 @@ public class MainController implements Initializable {
     private final WorkflowServiceInterface workflowService;
     private final ExecutionServiceInterface executionService;
     private final CredentialServiceInterface credentialService;
+    private final SettingsServiceInterface settingsService;
 
     @FXML
     private BorderPane rootPane;
@@ -68,10 +71,12 @@ public class MainController implements Initializable {
 
     public MainController(WorkflowServiceInterface workflowService,
             ExecutionServiceInterface executionService,
-            CredentialServiceInterface credentialService) {
+            CredentialServiceInterface credentialService,
+            SettingsServiceInterface settingsService) {
         this.workflowService = workflowService;
         this.executionService = executionService;
         this.credentialService = credentialService;
+        this.settingsService = settingsService;
     }
 
     @Override
@@ -139,12 +144,12 @@ public class MainController implements Initializable {
         clearActiveButton();
         btnSettings.getStyleClass().add("active");
 
-        // Placeholder for settings view
-        Label placeholder = new Label("Settings View");
-        placeholder.setStyle("-fx-font-size: 24px;");
-        contentArea.getChildren().setAll(placeholder);
+        // Show settings dialog
+        SettingsDialog dialog = new SettingsDialog(settingsService, credentialService);
+        dialog.showAndWait();
 
-        updateStatus("Settings");
+        // Return to workflows view after closing dialog
+        showWorkflowsView();
     }
 
     private void clearActiveButton() {
