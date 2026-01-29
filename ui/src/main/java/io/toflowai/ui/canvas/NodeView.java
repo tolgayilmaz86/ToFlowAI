@@ -1,15 +1,30 @@
 package io.toflowai.ui.canvas;
 
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.kordamp.ikonli.materialdesign2.*;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignB;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignE;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignS;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignV;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignW;
 
 import io.toflowai.common.domain.Node;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
-import javafx.scene.control.*;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.*;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
@@ -368,7 +383,7 @@ public class NodeView extends StackPane {
             case "httpRequest", "code", "executeCommand" -> "node-action";
             case "if", "switch", "merge", "loop" -> "node-flow";
             case "set", "filter", "sort" -> "node-data";
-            case "llmChat", "textClassifier" -> "node-ai";
+            case "llmChat", "textClassifier", "embedding", "rag" -> "node-ai";
             default -> "node-default";
         };
         getStyleClass().add(styleClass);
@@ -449,7 +464,7 @@ public class NodeView extends StackPane {
             case "httpRequest", "code", "executeCommand" -> Color.web("#525252"); // Gray
             case "if", "switch", "merge", "loop" -> Color.web("#10b981"); // Emerald
             case "set", "filter", "sort" -> Color.web("#8b5cf6"); // Violet
-            case "llmChat", "textClassifier" -> Color.web("#ec4899"); // Pink
+            case "llmChat", "textClassifier", "embedding", "rag" -> Color.web("#ec4899"); // Pink
             default -> Color.web("#525252"); // Gray
         };
     }
@@ -460,7 +475,7 @@ public class NodeView extends StackPane {
             case "httpRequest", "code", "executeCommand" -> Color.web("#60a5fa"); // Blue
             case "if", "switch", "merge", "loop" -> Color.web("#34d399"); // Emerald bright
             case "set", "filter", "sort" -> Color.web("#a78bfa"); // Violet bright
-            case "llmChat", "textClassifier" -> Color.web("#f472b6"); // Pink bright
+            case "llmChat", "textClassifier", "embedding", "rag" -> Color.web("#f472b6"); // Pink bright
             default -> Color.web("#a1a1aa"); // Gray
         };
     }
@@ -482,6 +497,8 @@ public class NodeView extends StackPane {
             case "sort" -> MaterialDesignS.SORT_ASCENDING;
             case "llmChat" -> MaterialDesignR.ROBOT;
             case "textClassifier" -> MaterialDesignT.TAG_TEXT_OUTLINE;
+            case "embedding" -> MaterialDesignV.VECTOR_BEZIER;
+            case "rag" -> MaterialDesignB.BOOK_SEARCH;
             default -> MaterialDesignC.CUBE_OUTLINE;
         };
     }
@@ -503,6 +520,8 @@ public class NodeView extends StackPane {
             case "sort" -> "sort";
             case "llmChat" -> "AI chat";
             case "textClassifier" -> "classifier";
+            case "embedding" -> "vectors";
+            case "rag" -> "retrieval";
             default -> type;
         };
     }

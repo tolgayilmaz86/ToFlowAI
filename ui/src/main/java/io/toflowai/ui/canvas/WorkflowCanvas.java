@@ -9,6 +9,7 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignA;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignB;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignH;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignS;
@@ -23,10 +24,12 @@ import io.toflowai.common.dto.WorkflowDTO;
 import io.toflowai.common.enums.ExecutionStatus;
 import io.toflowai.common.service.ExecutionServiceInterface;
 import io.toflowai.common.service.WorkflowServiceInterface;
+import io.toflowai.ui.canvas.NodeHelpProvider.NodeHelp;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Dialog;
@@ -39,6 +42,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TitledPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
@@ -1033,11 +1037,36 @@ public class WorkflowCanvas extends BorderPane {
         // Create content
         VBox content = new VBox(10);
         content.setPadding(new Insets(20));
-        content.setPrefWidth(400);
+        content.setPrefWidth(450);
 
-        // Node name field
+        // Header with name and help button
+        HBox headerBox = new HBox(10);
+        headerBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
         Label nameLabel = new Label("Name:");
         TextField nameField = new TextField(node.name());
+        nameField.setPrefWidth(280);
+
+        // Help button
+        Button helpButton = new Button();
+        FontIcon helpIcon = FontIcon.of(MaterialDesignH.HELP_CIRCLE_OUTLINE, 18);
+        helpIcon.setIconColor(Color.web("#60a5fa"));
+        helpButton.setGraphic(helpIcon);
+        helpButton.setStyle("""
+                -fx-background-color: transparent;
+                -fx-padding: 5;
+                -fx-cursor: hand;
+                """);
+        Tooltip helpTooltip = new Tooltip("Show help & examples for this node");
+        helpTooltip.setShowDelay(javafx.util.Duration.millis(300));
+        Tooltip.install(helpButton, helpTooltip);
+        helpButton.setOnAction(e -> showNodeHelpDialog(node.type()));
+
+        // Spacer to push help button to right
+        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+        headerBox.getChildren().addAll(nameLabel, nameField, spacer, helpButton);
 
         // Node-specific parameters based on type
         Label paramsLabel = new Label("Parameters:");
@@ -1055,12 +1084,12 @@ public class WorkflowCanvas extends BorderPane {
             }
         }
 
-        // Add node type specific help
+        // Add node type specific help (short version)
         Label helpLabel = new Label(getNodeTypeHelp(node.type()));
         helpLabel.setStyle("-fx-text-fill: #8b949e; -fx-font-size: 11;");
         helpLabel.setWrapText(true);
 
-        content.getChildren().addAll(nameLabel, nameField, paramsLabel, paramsArea, helpLabel);
+        content.getChildren().addAll(headerBox, paramsLabel, paramsArea, helpLabel);
 
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -1101,8 +1130,58 @@ public class WorkflowCanvas extends BorderPane {
             case "sort" -> "Sort items by specified field.";
             case "llmChat" -> "Chat with LLM models. Set model, prompt, temperature.";
             case "textClassifier" -> "Classify text into categories using AI.";
+            case "embedding" -> "Generate vector embeddings for semantic search.";
+            case "rag" -> "Retrieval-Augmented Generation for document Q&A.";
             default -> "Configure this node's behavior.";
         };
+    }
+
+    /**
+     * Show detailed help dialog for a node type.
+     */
+    private void showNodeHelpDialog(String nodeType) {
+        NodeHelp help = NodeHelpProvider.getHelp(nodeType);
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Help: " + help.title());
+        dialog.setHeaderText(help.shortDescription());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        // Create content
+        VBox content = new VBox(15);
+        content.setPrefWidth(600);
+        content.setStyle("-fx-padding: 10;");
+
+        // Description section
+        Label descTitle = new Label("Description");
+        descTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        TextArea descArea = new TextArea(help.detailedDescription());
+        descArea.setWrapText(true);
+        descArea.setEditable(false);
+        descArea.setPrefRowCount(8);
+        descArea.setStyle("-fx-font-family: 'Segoe UI', sans-serif;");
+
+        // Sample code section
+        Label codeTitle = new Label("Sample Usage / Code");
+        codeTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        TextArea codeArea = new TextArea(help.sampleCode());
+        codeArea.setWrapText(true);
+        codeArea.setEditable(false);
+        codeArea.setPrefRowCount(12);
+        codeArea.setStyle("-fx-font-family: 'Consolas', 'Monaco', monospace; -fx-font-size: 12px;");
+
+        content.getChildren().addAll(descTitle, descArea, codeTitle, codeArea);
+
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(450);
+
+        dialog.getDialogPane().setContent(scrollPane);
+        dialog.getDialogPane().setPrefSize(650, 550);
+
+        dialog.showAndWait();
     }
 
     private void updateNodeName(String nodeId, String newName) {
