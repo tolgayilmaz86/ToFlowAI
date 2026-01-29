@@ -1,0 +1,169 @@
+{
+    "name": "Weather Alert Workflow",
+    "description": "Fetches weather data from an API, checks if temperature exceeds threshold, and sends an alert. Demonstrates: HTTP Request, Code, IF conditional, and data flow.",
+    "nodes": [
+        {
+            "id": "trigger_1",
+            "type": "manualTrigger",
+            "name": "Manual Start",
+            "position": {
+                "x": 100,
+                "y": 200
+            },
+            "parameters": {},
+            "disabled": false,
+            "notes": "Click Run to start the workflow"
+        },
+        {
+            "id": "http_1",
+            "type": "httpRequest",
+            "name": "Get Weather Data",
+            "position": {
+                "x": 300,
+                "y": 200
+            },
+            "parameters": {
+                "url": "https://api.openweathermap.org/data/2.5/weather?q=London&appid={{apiKey}}&units=metric",
+                "method": "GET",
+                "headers": {
+                    "Accept": "application/json"
+                },
+                "timeout": 30
+            },
+            "disabled": false,
+            "notes": "Fetches current weather for London. Replace 'London' with any city."
+        },
+        {
+            "id": "code_1",
+            "type": "code",
+            "name": "Extract Temperature",
+            "position": {
+                "x": 500,
+                "y": 200
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Extract temperature from weather API response\nconst weatherData = JSON.parse(input.body);\nconst temperature = weatherData.main.temp;\nconst city = weatherData.name;\nconst condition = weatherData.weather[0].description;\n\nreturn {\n  temperature: temperature,\n  city: city,\n  condition: condition,\n  timestamp: new Date().toISOString(),\n  threshold: 25\n};"
+            },
+            "disabled": false,
+            "notes": "Parses the JSON response and extracts relevant fields"
+        },
+        {
+            "id": "if_1",
+            "type": "if",
+            "name": "Temperature > 25°C?",
+            "position": {
+                "x": 700,
+                "y": 200
+            },
+            "parameters": {
+                "condition": "{{ temperature }} > {{ threshold }}"
+            },
+            "disabled": false,
+            "notes": "Checks if temperature exceeds the threshold"
+        },
+        {
+            "id": "code_hot",
+            "type": "code",
+            "name": "Format Hot Alert",
+            "position": {
+                "x": 900,
+                "y": 100
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Format alert message for hot weather\nreturn {\n  alertType: 'HOT_WEATHER',\n  message: `🔥 Hot Weather Alert!\\n\\nCity: ${input.city}\\nTemperature: ${input.temperature}°C\\nCondition: ${input.condition}\\n\\nStay hydrated and avoid direct sunlight!`,\n  severity: 'warning',\n  timestamp: input.timestamp\n};"
+            },
+            "disabled": false,
+            "notes": "Creates alert message for hot weather"
+        },
+        {
+            "id": "code_normal",
+            "type": "code",
+            "name": "Format Normal Status",
+            "position": {
+                "x": 900,
+                "y": 300
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Format status message for normal weather\nreturn {\n  alertType: 'NORMAL',\n  message: `✅ Weather Status\\n\\nCity: ${input.city}\\nTemperature: ${input.temperature}°C\\nCondition: ${input.condition}\\n\\nWeather is within normal range.`,\n  severity: 'info',\n  timestamp: input.timestamp\n};"
+            },
+            "disabled": false,
+            "notes": "Creates status message for normal weather"
+        },
+        {
+            "id": "set_1",
+            "type": "set",
+            "name": "Final Output",
+            "position": {
+                "x": 1100,
+                "y": 200
+            },
+            "parameters": {
+                "values": {
+                    "result": "{{ message }}",
+                    "alertType": "{{ alertType }}",
+                    "processedAt": "{{ timestamp }}"
+                }
+            },
+            "disabled": false,
+            "notes": "Consolidates the final output"
+        }
+    ],
+    "connections": [
+        {
+            "id": "conn_1",
+            "sourceNodeId": "trigger_1",
+            "targetNodeId": "http_1",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_2",
+            "sourceNodeId": "http_1",
+            "targetNodeId": "code_1",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_3",
+            "sourceNodeId": "code_1",
+            "targetNodeId": "if_1",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_4",
+            "sourceNodeId": "if_1",
+            "targetNodeId": "code_hot",
+            "sourceHandle": "true",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_5",
+            "sourceNodeId": "if_1",
+            "targetNodeId": "code_normal",
+            "sourceHandle": "false",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_6",
+            "sourceNodeId": "code_hot",
+            "targetNodeId": "set_1",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_7",
+            "sourceNodeId": "code_normal",
+            "targetNodeId": "set_1",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        }
+    ],
+    "settings": {
+        "apiKey": "YOUR_OPENWEATHERMAP_API_KEY"
+    },
+    "active": true
+}

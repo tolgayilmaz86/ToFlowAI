@@ -1,7 +1,7 @@
 # ToFlowAI Architecture Guide
 
 > **A Comprehensive Guide for Junior Developers**  
-> **Version:** 1.0  
+> **Version:** 1.2  
 > **Last Updated:** January 29, 2026
 
 ---
@@ -9,19 +9,23 @@
 ## Table of Contents
 
 1. [Introduction](#1-introduction)
-2. [What is Workflow Automation?](#2-what-is-workflow-automation)
-3. [Project Overview](#3-project-overview)
-4. [Technology Stack](#4-technology-stack)
-5. [Module Architecture](#5-module-architecture)
-6. [Core Concepts](#6-core-concepts)
-7. [UML Diagrams](#7-uml-diagrams)
-8. [Backend Architecture (Spring Boot)](#8-backend-architecture-spring-boot)
-9. [Frontend Architecture (JavaFX)](#9-frontend-architecture-javafx)
-10. [Data Flow](#10-data-flow)
-11. [Adding New Features](#11-adding-new-features)
-12. [Best Practices](#12-best-practices)
-13. [Troubleshooting](#13-troubleshooting)
-14. [Glossary](#14-glossary)
+2. [For .NET Developers](#2-for-net-developers)
+3. [What is Workflow Automation?](#3-what-is-workflow-automation)
+4. [Project Overview](#4-project-overview)
+5. [Technology Stack](#5-technology-stack)
+6. [Module Architecture](#6-module-architecture)
+7. [Core Concepts](#7-core-concepts)
+8. [UML Diagrams (Mermaid)](#8-uml-diagrams)
+9. [Backend Architecture (Spring Boot)](#9-backend-architecture-spring-boot)
+10. [Frontend Architecture (JavaFX)](#10-frontend-architecture-javafx)
+11. [Data Flow](#11-data-flow)
+12. [Sample Workflows](#12-sample-workflows)
+13. [Adding New Features](#13-adding-new-features)
+14. [Recent Changes & Integrations](#14-recent-changes--integrations)
+15. [Best Practices](#15-best-practices)
+16. [Troubleshooting](#16-troubleshooting)
+17. [Glossary](#17-glossary)
+18. [Quick Reference Card](#18-quick-reference-card)
 
 ---
 
@@ -37,33 +41,84 @@ ToFlowAI is a **visual workflow automation application** similar to n8n, Zapier,
 - Add new features and node types
 - Follow best practices
 
-**What You'll Learn:**
+---
+
+## 2. For .NET Developers
+
+If you're coming from C#/.NET, here's a quick translation guide:
+
+### Terminology Mapping
+
+| .NET / C# | Java / Spring | Notes |
+|-----------|---------------|-------|
+| `class MyService` | `@Service class MyService` | Spring annotation marks it as injectable |
+| `IMyService` (interface) | `MyServiceInterface` | Convention: `*Interface` suffix |
+| `[ApiController]` | `@RestController` | REST API controller |
+| `DbContext` | `JpaRepository<Entity, ID>` | Database access layer |
+| `appsettings.json` | `application.properties` | Configuration file |
+| `Program.cs` / `Startup.cs` | `@SpringBootApplication` | App entry point |
+| `IServiceCollection.AddScoped()` | `@Service` / `@Component` | DI registration |
+| `IConfiguration` | `@Value` / `Environment` | Config injection |
+| `async/await Task<T>` | `CompletableFuture<T>` | Async operations |
+| NuGet | Maven/Gradle | Package manager |
+| `.csproj` | `build.gradle` | Build configuration |
+| `record` (C# 9+) | `record` (Java 16+) | Immutable data class |
+| `var` | `var` (Java 10+) | Type inference |
+| LINQ `.Where().Select()` | Streams `.filter().map()` | Collection operations |
+
+### Code Comparison
+
+```csharp
+// C# / .NET
+public interface IWorkflowService {
+    Task<List<WorkflowDto>> GetAllAsync();
+    Task<WorkflowDto?> GetByIdAsync(long id);
+    Task<WorkflowDto> SaveAsync(WorkflowDto workflow);
+}
+
+[Service] // In .NET this would be registered in DI container
+public class WorkflowService : IWorkflowService {
+    private readonly IWorkflowRepository _repository;
+    
+    public WorkflowService(IWorkflowRepository repository) {
+        _repository = repository;
+    }
+}
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  📚 Workflow Automation Concepts                                │
-│  ├── What are nodes, connections, and workflows?                │
-│  ├── How data flows between nodes                               │
-│  └── Trigger types and execution patterns                       │
-│                                                                 │
-│  🏗️ Architecture Understanding                                  │
-│  ├── Multi-module Gradle project structure                      │
-│  ├── Spring Boot backend services                               │
-│  ├── JavaFX desktop UI                                          │
-│  └── Database persistence with H2                               │
-│                                                                 │
-│  🔧 Practical Skills                                            │
-│  ├── Adding new node types (executors)                          │
-│  ├── Creating UI components                                     │
-│  ├── Working with settings and credentials                      │
-│  └── Testing and debugging                                      │
-└─────────────────────────────────────────────────────────────────┘
+
+```java
+// Java / Spring (equivalent)
+public interface WorkflowServiceInterface {
+    List<WorkflowDTO> findAll();
+    Optional<WorkflowDTO> findById(Long id);
+    WorkflowDTO save(WorkflowDTO workflow);
+}
+
+@Service  // Automatically registered in Spring DI container
+public class WorkflowService implements WorkflowServiceInterface {
+    private final WorkflowRepository repository;
+    
+    public WorkflowService(WorkflowRepository repository) {  // Constructor injection
+        this.repository = repository;
+    }
+}
 ```
+
+### Key Differences to Remember
+
+| Aspect | .NET | Spring/Java |
+|--------|------|-------------|
+| **Null handling** | `nullable?`, `??` | `Optional<T>`, `.orElse()` |
+| **DI Lifetime** | `Scoped`, `Singleton`, `Transient` | Default is Singleton, use `@Scope` for others |
+| **Async** | `async/await` everywhere | Virtual threads (Java 21+) - blocking is OK! |
+| **Properties** | `get; set;` | Explicit getters/setters or `record` |
+| **Naming** | PascalCase methods | camelCase methods |
 
 ---
 
-## 2. What is Workflow Automation?
+## 3. What is Workflow Automation?
 
-### 2.1 The Big Picture
+### 3.1 The Big Picture
 
 Imagine you want to:
 1. Monitor a folder for new files
@@ -74,7 +129,7 @@ Imagine you want to:
 **Without automation:** You do this manually, every time.  
 **With ToFlowAI:** You build it once, it runs forever.
 
-### 2.2 Core Terminology
+### 3.2 Core Terminology
 
 | Term | Definition | Example |
 |------|------------|---------|
@@ -85,34 +140,22 @@ Imagine you want to:
 | **Executor** | Backend code that runs a node | `HttpRequestExecutor`, `CodeExecutor` |
 | **Execution** | One complete run of a workflow | Started at 10:30, took 5 seconds |
 
-### 2.3 Visual Example
+### 3.3 Sample Workflow (Mermaid)
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         SAMPLE WORKFLOW                                 │
-│                                                                         │
-│   ┌──────────────┐     ┌──────────────┐     ┌──────────────┐           │
-│   │   Webhook    │     │    HTTP      │     │     Code     │           │
-│   │   Trigger    │────▶│   Request    │────▶│   (Process)  │           │
-│   │              │     │              │     │              │           │
-│   │ "Start when  │     │ "Call AI API"│     │ "Format      │           │
-│   │  data arrives│     │              │     │  response"   │           │
-│   └──────────────┘     └──────────────┘     └──────────────┘           │
-│          │                                          │                   │
-│          │                                          ▼                   │
-│          │                                  ┌──────────────┐           │
-│          │                                  │     Email    │           │
-│          │                                  │     Node     │           │
-│          │                                  │              │           │
-│          │                                  │ "Send result │           │
-│          │                                  │  to team"    │           │
-│          │                                  └──────────────┘           │
-│          │                                                              │
-│   DATA FLOW: webhook_data → api_response → formatted_data → email_sent │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    A[🔔 Webhook Trigger] --> B[🌐 HTTP Request]
+    B --> C[💻 Code Node]
+    C --> D[📧 Email Node]
+    
+    subgraph "Data Flow"
+        A -- "webhook_data" --> B
+        B -- "api_response" --> C
+        C -- "formatted_data" --> D
+    end
 ```
 
-### 2.4 Comparison with Other Tools
+### 3.4 Comparison with Other Tools
 
 | Feature | n8n | Zapier | ToFlowAI |
 |---------|-----|--------|----------|
@@ -125,43 +168,42 @@ Imagine you want to:
 
 ---
 
-## 3. Project Overview
+## 4. Project Overview
 
-### 3.1 High-Level Architecture
+### 4.1 High-Level Architecture (Mermaid)
 
+```mermaid
+graph TB
+    subgraph UI["🖥️ UI Module (JavaFX)"]
+        Canvas[WorkflowCanvas]
+        Dialogs[Settings Dialog]
+        Editors[Property Editors]
+    end
+    
+    subgraph Common["📦 Common Module (Shared)"]
+        DTOs[DTOs]
+        Enums[Enums]
+        Interfaces[Service Interfaces]
+        Domain[Domain Objects]
+    end
+    
+    subgraph App["⚙️ App Module (Spring Boot)"]
+        Services[Services]
+        Executors[Node Executors]
+        Repos[Repositories]
+    end
+    
+    subgraph DB["💾 Database"]
+        H2[(H2 Database)]
+    end
+    
+    UI --> Common
+    App --> Common
+    UI -.->|"uses interfaces"| App
+    App --> DB
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         ToFlowAI Application                            │
-│                                                                         │
-│   ┌───────────────────────────────────────────────────────────────┐    │
-│   │                    UI MODULE (JavaFX)                         │    │
-│   │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐             │    │
-│   │  │   Canvas    │ │   Dialogs   │ │   Editors   │             │    │
-│   │  │  (Workflow) │ │ (Settings)  │ │ (Properties)│             │    │
-│   │  └─────────────┘ └─────────────┘ └─────────────┘             │    │
-│   └───────────────────────────────────────────────────────────────┘    │
-│                              │                                          │
-│                              ▼                                          │
-│   ┌───────────────────────────────────────────────────────────────┐    │
-│   │                   COMMON MODULE (Shared)                       │    │
-│   │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐         │    │
-│   │  │   DTOs   │ │  Enums   │ │ Interfaces│ │  Domain  │         │    │
-│   │  └──────────┘ └──────────┘ └──────────┘ └──────────┘         │    │
-│   └───────────────────────────────────────────────────────────────┘    │
-│                              │                                          │
-│                              ▼                                          │
-│   ┌───────────────────────────────────────────────────────────────┐    │
-│   │                    APP MODULE (Spring Boot)                    │    │
-│   │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐             │    │
-│   │  │  Services   │ │  Executors  │ │  Database   │             │    │
-│   │  │ (Business)  │ │   (Nodes)   │ │   (H2)      │             │    │
-│   │  └─────────────┘ └─────────────┘ └─────────────┘             │    │
-│   └───────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
 
-### 3.2 Directory Structure
+### 4.2 Directory Structure
 
 ```
 ToFlowAI/
@@ -181,6 +223,7 @@ ToFlowAI/
 │       └── 📁 service/              # Business logic services
 │           ├── ExecutionService.java
 │           ├── WorkflowService.java
+│           ├── SettingsService.java  # NEW: Settings management
 │           ├── NodeExecutor.java    # Interface
 │           └── NodeExecutorRegistry.java
 │
@@ -243,43 +286,47 @@ ToFlowAI/
 
 ---
 
-## 4. Technology Stack
+## 5. Technology Stack
 
-### 4.1 Overview
+### 5.1 Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         TECHNOLOGY STACK                                │
-│                                                                         │
-│   ┌───────────────────────────────────────────────────────────────┐    │
-│   │                        FRONTEND                                │    │
-│   │   JavaFX 21.0.5         │  Desktop GUI framework              │    │
-│   │   AtlantaFX (Nord Dark) │  Modern UI theme                    │    │
-│   │   Ikonli                │  Icon library (Material Design)     │    │
-│   │   FXWeaver              │  Spring + FXML integration          │    │
-│   └───────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-│   ┌───────────────────────────────────────────────────────────────┐    │
-│   │                        BACKEND                                 │    │
-│   │   Java 25               │  Latest LTS with virtual threads    │    │
-│   │   Spring Boot 3.5.0     │  Application framework              │    │
-│   │   Spring Data JPA       │  Database abstraction               │    │
-│   │   H2 Database           │  Embedded SQL database              │    │
-│   │   Flyway                │  Database migrations                │    │
-│   │   Jackson               │  JSON serialization                 │    │
-│   └───────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-│   ┌───────────────────────────────────────────────────────────────┐    │
-│   │                        BUILD & TOOLS                           │    │
-│   │   Gradle 9.2.0          │  Build automation                   │    │
-│   │   VS Code               │  Recommended IDE                    │    │
-│   │   Git                   │  Version control                    │    │
-│   └───────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Frontend
+        JFX[JavaFX 21.0.5]
+        AFX[AtlantaFX Nord Dark]
+        IKN[Ikonli Icons]
+    end
+    
+    subgraph Backend
+        J25[Java 25]
+        SB[Spring Boot 3.5.0]
+        JPA[Spring Data JPA]
+        H2[(H2 Database)]
+        FW[Flyway Migrations]
+    end
+    
+    subgraph Build
+        GR[Gradle 9.2.0]
+        VSC[VS Code]
+    end
+    
+    JFX --> SB
+    SB --> JPA --> H2
+    FW --> H2
 ```
 
-### 4.2 Why These Technologies?
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | JavaFX 21.0.5 | Desktop GUI framework |
+| **Theme** | AtlantaFX (Nord Dark) | Modern UI styling |
+| **Icons** | Ikonli (Material Design) | Icon library |
+| **Backend** | Java 25 + Spring Boot 3.5.0 | Application framework with virtual threads |
+| **Database** | H2 (embedded) | SQL database |
+| **Migrations** | Flyway | Schema version control |
+| **Build** | Gradle 9.2.0 | Build automation |
+
+### 5.2 Why These Technologies?
 
 #### Java 25 with Virtual Threads
 
@@ -347,41 +394,42 @@ $env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-25.0.0.36-hotspot"
 
 ---
 
-## 5. Module Architecture
+## 6. Module Architecture
 
-### 5.1 Module Dependency Diagram
+### 6.1 Module Dependency Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       MODULE DEPENDENCIES                               │
-│                                                                         │
-│                        ┌───────────────┐                               │
-│                        │      UI       │                               │
-│                        │   (JavaFX)    │                               │
-│                        └───────┬───────┘                               │
-│                                │                                        │
-│                                │ uses interfaces                        │
-│                                ▼                                        │
-│                        ┌───────────────┐                               │
-│                        │    COMMON     │◀─────────────────────┐        │
-│                        │  (Interfaces) │                      │        │
-│                        └───────┬───────┘                      │        │
-│                                │                               │        │
-│                                │ implements                    │ uses   │
-│                                ▼                               │        │
-│                        ┌───────────────┐                      │        │
-│                        │      APP      │──────────────────────┘        │
-│                        │(Spring Boot)  │                               │
-│                        └───────────────┘                               │
-│                                                                         │
-│  RULE: Lower modules don't know about higher modules                   │
-│  - common knows nothing about app or ui                                │
-│  - app knows nothing about ui                                          │
-│  - ui uses common interfaces, app provides implementations             │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "UI Module (JavaFX)"
+        UI[UI Components]
+    end
+    
+    subgraph "Common Module (Interfaces + DTOs)"
+        COMMON[Interfaces & DTOs]
+    end
+    
+    subgraph "App Module (Spring Boot)"
+        APP[Service Implementations]
+    end
+    
+    UI -->|uses interfaces| COMMON
+    APP -->|implements| COMMON
+    APP -.->|exports to| UI
+    
+    style UI fill:#86c7f3,stroke:#1565c0
+    style COMMON fill:#fff9c4,stroke:#f9a825
+    style APP fill:#c8e6c9,stroke:#2e7d32
 ```
 
-### 5.2 Interface Pattern
+**Module Dependency Rules:**
+| Rule | Description |
+|------|-------------|
+| **common** → nothing | Knows nothing about app or ui |
+| **app** → common | Implements interfaces defined in common |
+| **ui** → common | Uses interfaces, not implementations |
+| **ui** ⟷ **app** | Connected via Spring's dependency injection |
+
+### 6.2 Interface Pattern
 
 The `common` module defines interfaces. The `app` module implements them. The `ui` module uses them.
 
@@ -424,9 +472,9 @@ public class WorkflowCanvas {
 
 ---
 
-## 6. Core Concepts
+## 7. Core Concepts
 
-### 6.1 Node
+### 7.1 Node
 
 A **Node** is a single step in a workflow.
 
@@ -465,7 +513,7 @@ public record Node(
 }
 ```
 
-### 6.2 Connection
+### 7.2 Connection
 
 A **Connection** links two nodes together.
 
@@ -481,23 +529,33 @@ public record Connection(
 ```
 
 **Visual Representation:**
+```mermaid
+flowchart LR
+    subgraph IF["IF Node"]
+        TRUE[TRUE ●]
+        FALSE[FALSE ●]
+    end
+    
+    subgraph EMAIL["Email Node"]
+        MAIN[● main]
+    end
+    
+    TRUE --> MAIN
+    
+    style TRUE fill:#4caf50,stroke:#2e7d32
+    style FALSE fill:#f44336,stroke:#c62828
 ```
-┌──────────────┐         ┌──────────────┐
-│   IF Node    │         │  Email Node  │
-│              │         │              │
-│        TRUE ●─────────▶●              │
-│       FALSE ●          │              │
-└──────────────┘         └──────────────┘
 
-Connection: {
-    sourceNodeId: "if_node_1",
-    targetNodeId: "email_node_1", 
-    sourceHandle: "true",
-    targetHandle: "main"
+```json
+{
+    "sourceNodeId": "if_node_1",
+    "targetNodeId": "email_node_1", 
+    "sourceHandle": "true",
+    "targetHandle": "main"
 }
 ```
 
-### 6.3 Workflow
+### 7.3 Workflow
 
 A **Workflow** is a collection of nodes and connections.
 
@@ -523,7 +581,7 @@ public record WorkflowDTO(
 }
 ```
 
-### 6.4 Execution
+### 7.4 Execution
 
 An **Execution** is one run of a workflow.
 
@@ -538,7 +596,7 @@ public enum ExecutionStatus {
 }
 ```
 
-### 6.5 NodeExecutor
+### 7.5 NodeExecutor
 
 A **NodeExecutor** is the code that actually runs a node.
 
@@ -560,414 +618,382 @@ public interface NodeExecutor {
 
 ---
 
-## 7. UML Diagrams
+## 8. UML Diagrams
 
-### 7.1 Class Diagram - Core Domain
+### 8.1 Class Diagram - Core Domain
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           CORE DOMAIN CLASS DIAGRAM                             │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│    ┌────────────────────┐         ┌─────────────────────┐                      │
-│    │    WorkflowDTO     │         │    ExecutionDTO     │                      │
-│    ├────────────────────┤         ├─────────────────────┤                      │
-│    │ - id: Long         │         │ - id: Long          │                      │
-│    │ - name: String     │ 1    * │ - workflowId: Long  │                      │
-│    │ - description      │─────────│ - status: Status    │                      │
-│    │ - nodes: List<Node>│         │ - startedAt: Instant│                      │
-│    │ - connections: List│         │ - finishedAt: Inst. │                      │
-│    │ - active: boolean  │         │ - errorMessage: Str │                      │
-│    ├────────────────────┤         └─────────────────────┘                      │
-│    │ +getTriggerNodes() │                                                       │
-│    │ +getNodeById()     │                                                       │
-│    └────────────────────┘                                                       │
-│            │ contains                                                            │
-│            │                                                                     │
-│    ┌───────┴────────┐                                                           │
-│    │                │                                                            │
-│    ▼                ▼                                                            │
-│  ┌──────────────┐  ┌──────────────────┐                                        │
-│  │     Node     │  │   Connection     │                                        │
-│  ├──────────────┤  ├──────────────────┤                                        │
-│  │ - id: String │  │ - id: String     │                                        │
-│  │ - type: Str  │  │ - sourceNodeId   │                                        │
-│  │ - name: Str  │  │ - targetNodeId   │                                        │
-│  │ - position   │  │ - sourceHandle   │                                        │
-│  │ - parameters │  │ - targetHandle   │                                        │
-│  │ - disabled   │  └──────────────────┘                                        │
-│  ├──────────────┤                                                               │
-│  │ +withPos()   │                                                               │
-│  │ +withParams()│                                                               │
-│  └──────────────┘                                                               │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 7.2 Class Diagram - Node Executor Pattern
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        NODE EXECUTOR CLASS DIAGRAM                              │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│                       ┌────────────────────────┐                               │
-│                       │    <<interface>>       │                               │
-│                       │     NodeExecutor       │                               │
-│                       ├────────────────────────┤                               │
-│                       │ +execute(node, input,  │                               │
-│                       │   context): Map        │                               │
-│                       │ +getNodeType(): String │                               │
-│                       └───────────┬────────────┘                               │
-│                                   │                                             │
-│            ┌──────────────┬───────┴──────┬─────────────────┐                   │
-│            │              │              │                 │                    │
-│            ▼              ▼              ▼                 ▼                    │
-│   ┌────────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
-│   │HttpRequest     │ │ Code        │ │ If          │ │ LlmChat     │          │
-│   │Executor        │ │ Executor    │ │ Executor    │ │ Executor    │          │
-│   ├────────────────┤ ├─────────────┤ ├─────────────┤ ├─────────────┤          │
-│   │ - httpClient   │ │ - engine    │ │             │ │ - apiClient │          │
-│   ├────────────────┤ ├─────────────┤ ├─────────────┤ ├─────────────┤          │
-│   │ +execute()     │ │ +execute()  │ │ +execute()  │ │ +execute()  │          │
-│   │ +getNodeType() │ │ +getNode..()│ │ +getNode..()│ │ +getNode..()│          │
-│   │  ="httpRequest"│ │  ="code"    │ │  ="if"      │ │  ="llmChat" │          │
-│   └────────────────┘ └─────────────┘ └─────────────┘ └─────────────┘          │
-│                                                                                 │
-│            ...and 18+ more executor implementations...                          │
-│                                                                                 │
-│                                                                                 │
-│   ┌──────────────────────────────────────────────────────────────────┐        │
-│   │                    NodeExecutorRegistry                           │        │
-│   ├──────────────────────────────────────────────────────────────────┤        │
-│   │ - executors: Map<String, NodeExecutor>                           │        │
-│   ├──────────────────────────────────────────────────────────────────┤        │
-│   │ +register(executor): void      # Add executor to registry        │        │
-│   │ +getExecutor(type): NodeExecutor  # Find executor by node type   │        │
-│   │ +getSupportedTypes(): Set<String>  # List all node types         │        │
-│   └──────────────────────────────────────────────────────────────────┘        │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+classDiagram
+    class WorkflowDTO {
+        +Long id
+        +String name
+        +String description
+        +List~Node~ nodes
+        +List~Connection~ connections
+        +Map~String,Object~ settings
+        +boolean active
+        +Instant createdAt
+        +Instant updatedAt
+        +getTriggerNodes() List~Node~
+        +getNodeById(String) Optional~Node~
+    }
+    
+    class ExecutionDTO {
+        +Long id
+        +Long workflowId
+        +ExecutionStatus status
+        +Instant startedAt
+        +Instant finishedAt
+        +String errorMessage
+    }
+    
+    class Node {
+        +String id
+        +String type
+        +String name
+        +Position position
+        +Map~String,Object~ parameters
+        +Long credentialId
+        +boolean disabled
+        +String notes
+        +withPos(Position) Node
+        +withParams(Map) Node
+    }
+    
+    class Connection {
+        +String id
+        +String sourceNodeId
+        +String targetNodeId
+        +String sourceHandle
+        +String targetHandle
+    }
+    
+    class Position {
+        +double x
+        +double y
+    }
+    
+    WorkflowDTO "1" --> "*" Node : contains
+    WorkflowDTO "1" --> "*" Connection : contains
+    WorkflowDTO "1" --> "*" ExecutionDTO : has
+    Node --> Position : has
 ```
 
-### 7.3 Class Diagram - Service Layer
+### 8.2 Class Diagram - Node Executor Pattern
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         SERVICE LAYER CLASS DIAGRAM                             │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   ┌─────────────────────────────────┐    ┌────────────────────────────────┐   │
-│   │    <<interface>>                │    │    <<interface>>               │   │
-│   │  WorkflowServiceInterface       │    │  ExecutionServiceInterface     │   │
-│   ├─────────────────────────────────┤    ├────────────────────────────────┤   │
-│   │ +findAll(): List<WorkflowDTO>   │    │ +execute(id, input): Exec.DTO  │   │
-│   │ +findById(id): Optional<Wf>     │    │ +executeAsync(id): Future      │   │
-│   │ +save(workflow): WorkflowDTO    │    │ +cancel(id): void              │   │
-│   │ +delete(id): void               │    │ +findByWorkflowId(): List      │   │
-│   └─────────────────┬───────────────┘    └────────────────┬───────────────┘   │
-│                     │                                      │                    │
-│                     │ implements                           │ implements         │
-│                     ▼                                      ▼                    │
-│   ┌─────────────────────────────────┐    ┌────────────────────────────────┐   │
-│   │       WorkflowService           │    │       ExecutionService         │   │
-│   │        <<@Service>>             │    │        <<@Service>>            │   │
-│   ├─────────────────────────────────┤    ├────────────────────────────────┤   │
-│   │ - repository: WorkflowRepo      │    │ - workflowService              │   │
-│   │ - objectMapper: Jackson         │    │ - credentialService            │   │
-│   ├─────────────────────────────────┤    │ - nodeExecutorRegistry         │   │
-│   │ +findAll()                      │    │ - executionLogger              │   │
-│   │ +save()                         │    ├────────────────────────────────┤   │
-│   │ -toDTO()                        │    │ +execute()                     │   │
-│   │ -toEntity()                     │    │ -executeWorkflow()             │   │
-│   └─────────────────────────────────┘    │ -executeNode()                 │   │
-│                                          └────────────────────────────────┘   │
-│                                                                                 │
-│   ┌─────────────────────────────────┐    ┌────────────────────────────────┐   │
-│   │      CredentialService          │    │       SettingsService          │   │
-│   │        <<@Service>>             │    │        <<@Service>>            │   │
-│   ├─────────────────────────────────┤    ├────────────────────────────────┤   │
-│   │ - encryptionService             │    │ - cache: ConcurrentHashMap     │   │
-│   │ - repository                    │    │ - repository                   │   │
-│   ├─────────────────────────────────┤    ├────────────────────────────────┤   │
-│   │ +store(name, data): Credential  │    │ +getValue(key): String         │   │
-│   │ +retrieve(id): String           │    │ +setValue(key, value)          │   │
-│   │ +delete(id): void               │    │ +resetToDefault(key)           │   │
-│   └─────────────────────────────────┘    └────────────────────────────────┘   │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 7.4 Sequence Diagram - Workflow Execution
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    SEQUENCE DIAGRAM: WORKFLOW EXECUTION                         │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│    User          UI            ExecutionService   NodeRegistry   Executor       │
-│     │            │                    │               │             │           │
-│     │  click     │                    │               │             │           │
-│     │   Run      │                    │               │             │           │
-│     ├───────────▶│                    │               │             │           │
-│     │            │                    │               │             │           │
-│     │            │  execute(          │               │             │           │
-│     │            │    workflowId,     │               │             │           │
-│     │            │    inputData)      │               │             │           │
-│     │            ├───────────────────▶│               │             │           │
-│     │            │                    │               │             │           │
-│     │            │                    │  Load workflow from DB      │           │
-│     │            │                    ├──────────────────┐          │           │
-│     │            │                    │                  │          │           │
-│     │            │                    │◀─────────────────┘          │           │
-│     │            │                    │               │             │           │
-│     │            │                    │  Create ExecutionContext    │           │
-│     │            │                    ├──────────────────┐          │           │
-│     │            │                    │◀─────────────────┘          │           │
-│     │            │                    │               │             │           │
-│     │            │                    │  Find trigger │             │           │
-│     │            │                    │  nodes        │             │           │
-│     │            │                    ├──────────────────┐          │           │
-│     │            │                    │◀─────────────────┘          │           │
-│     │            │                    │               │             │           │
-│     │            │                    │  FOR EACH NODE:             │           │
-│     │            │                    │  ┌───────────────────────────────────┐  │
-│     │            │                    │  │                          │        │  │
-│     │            │                    │  │ getExecutor(node.type)   │        │  │
-│     │            │                    │  ├─────────────────────────▶│        │  │
-│     │            │                    │  │                          │        │  │
-│     │            │                    │  │     executor             │        │  │
-│     │            │                    │  │◀─────────────────────────┤        │  │
-│     │            │                    │  │                          │        │  │
-│     │            │                    │  │  execute(node, input, ctx)        │  │
-│     │            │                    │  ├───────────────────────────────────▶  │
-│     │            │                    │  │                          │        │  │
-│     │            │                    │  │     output               │        │  │
-│     │            │                    │  │◀───────────────────────────────────  │
-│     │            │                    │  │                          │        │  │
-│     │            │                    │  │ Find next nodes via connections   │  │
-│     │            │                    │  │ Pass output as input     │        │  │
-│     │            │                    │  └───────────────────────────────────┘  │
-│     │            │                    │               │             │           │
-│     │            │                    │  Save execution to DB       │           │
-│     │            │                    ├──────────────────┐          │           │
-│     │            │                    │◀─────────────────┘          │           │
-│     │            │                    │               │             │           │
-│     │            │   ExecutionDTO     │               │             │           │
-│     │            │◀───────────────────┤               │             │           │
-│     │            │                    │               │             │           │
-│     │  show      │                    │               │             │           │
-│     │  result    │                    │               │             │           │
-│     │◀───────────┤                    │               │             │           │
-│     │            │                    │               │             │           │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+classDiagram
+    class NodeExecutor {
+        <<interface>>
+        +execute(Node, Map, ExecutionContext) Map
+        +getNodeType() String
+    }
+    
+    class HttpRequestExecutor {
+        -HttpClient httpClient
+        -SettingsServiceInterface settings
+        +execute() Map
+        +getNodeType() String
+    }
+    
+    class CodeExecutor {
+        -ScriptEngine engine
+        +execute() Map
+        +getNodeType() String
+    }
+    
+    class IfExecutor {
+        +execute() Map
+        +getNodeType() String
+    }
+    
+    class LlmChatExecutor {
+        -SettingsServiceInterface settings
+        +execute() Map
+        +getNodeType() String
+    }
+    
+    class LoopExecutor {
+        +execute() Map
+        +getNodeType() String
+    }
+    
+    class NodeExecutorRegistry {
+        -Map~String,NodeExecutor~ executors
+        +register(NodeExecutor) void
+        +getExecutor(String) NodeExecutor
+        +getSupportedTypes() Set~String~
+    }
+    
+    NodeExecutor <|.. HttpRequestExecutor
+    NodeExecutor <|.. CodeExecutor
+    NodeExecutor <|.. IfExecutor
+    NodeExecutor <|.. LlmChatExecutor
+    NodeExecutor <|.. LoopExecutor
+    NodeExecutorRegistry o-- NodeExecutor : manages
 ```
 
-### 7.5 Sequence Diagram - Node Execution Detail
+### 8.3 Class Diagram - Service Layer
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    SEQUENCE DIAGRAM: NODE EXECUTION                             │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│  ExecutionService     Logger      Executor       HttpClient   Credential        │
-│        │                │            │               │           │              │
-│        │  Log node      │            │               │           │              │
-│        │  start         │            │               │           │              │
-│        ├───────────────▶│            │               │           │              │
-│        │                │            │               │           │              │
-│        │  Get parameters from node   │               │           │              │
-│        ├────────────────────────────┐│               │           │              │
-│        │◀───────────────────────────┘│               │           │              │
-│        │                │            │               │           │              │
-│        │  Check if credential needed │               │           │              │
-│        ├────────────────────────────────────────────────────────▶│              │
-│        │                │            │               │           │              │
-│        │  Decrypted API key          │               │           │              │
-│        │◀────────────────────────────────────────────────────────┤              │
-│        │                │            │               │           │              │
-│        │  execute(node, │            │               │           │              │
-│        │    input,      │            │               │           │              │
-│        │    context)    │            │               │           │              │
-│        ├────────────────────────────▶│               │           │              │
-│        │                │            │               │           │              │
-│        │                │            │  Interpolate  │           │              │
-│        │                │            │  {{ vars }}   │           │              │
-│        │                │            ├─────┐         │           │              │
-│        │                │            │◀────┘         │           │              │
-│        │                │            │               │           │              │
-│        │                │            │  HTTP Request │           │              │
-│        │                │            ├──────────────▶│           │              │
-│        │                │            │               │           │              │
-│        │                │            │  Response     │           │              │
-│        │                │            │◀──────────────┤           │              │
-│        │                │            │               │           │              │
-│        │                │            │  Build output │           │              │
-│        │                │            │  map          │           │              │
-│        │                │            ├─────┐         │           │              │
-│        │                │            │◀────┘         │           │              │
-│        │                │            │               │           │              │
-│        │  output map    │            │               │           │              │
-│        │◀────────────────────────────┤               │           │              │
-│        │                │            │               │           │              │
-│        │  Log node      │            │               │           │              │
-│        │  complete      │            │               │           │              │
-│        ├───────────────▶│            │               │           │              │
-│        │                │            │               │           │              │
-│        │  Pass output   │            │               │           │              │
-│        │  to next node  │            │               │           │              │
-│        ├─────────────────────────────────────────────────────────────────┐     │
-│        │                │            │               │           │       │     │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 7.6 Use Case Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           USE CASE DIAGRAM                                      │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│                    ┌─────────────────────────────────────────────┐             │
-│                    │              ToFlowAI System                 │             │
-│                    │                                              │             │
-│                    │   ┌─────────────────────────────────────┐   │             │
-│                    │   │      WORKFLOW MANAGEMENT            │   │             │
-│     ┌──────┐       │   │                                     │   │             │
-│     │      │       │   │  ○ Create New Workflow              │   │             │
-│     │ User │───────┼──▶│  ○ Open Existing Workflow           │   │             │
-│     │      │       │   │  ○ Save Workflow                    │   │             │
-│     └──────┘       │   │  ○ Delete Workflow                  │   │             │
-│        │           │   │  ○ Import/Export Workflow           │   │             │
-│        │           │   │                                     │   │             │
-│        │           │   └─────────────────────────────────────┘   │             │
-│        │           │                                              │             │
-│        │           │   ┌─────────────────────────────────────┐   │             │
-│        │           │   │      WORKFLOW EDITING               │   │             │
-│        │           │   │                                     │   │             │
-│        └───────────┼──▶│  ○ Add Node to Canvas               │   │             │
-│                    │   │  ○ Remove Node                      │   │             │
-│                    │   │  ○ Connect Nodes                    │   │             │
-│                    │   │  ○ Configure Node Properties        │   │             │
-│                    │   │  ○ Pan/Zoom Canvas                  │   │             │
-│                    │   │                                     │   │             │
-│                    │   └─────────────────────────────────────┘   │             │
-│                    │                                              │             │
-│                    │   ┌─────────────────────────────────────┐   │             │
-│                    │   │      WORKFLOW EXECUTION             │   │             │
-│                    │   │                                     │   │             │
-│     ┌──────┐       │   │  ○ Run Workflow Manually            │   │             │
-│     │      │───────┼──▶│  ○ Stop Running Workflow            │   │             │
-│     │ User │       │   │  ○ View Execution Console           │   │             │
-│     │      │       │   │  ○ View Execution History           │   │             │
-│     └──────┘       │   │                                     │   │             │
-│                    │   └─────────────────────────────────────┘   │             │
-│                    │                                              │             │
-│                    │   ┌─────────────────────────────────────┐   │             │
-│     ┌──────┐       │   │      SETTINGS & CREDENTIALS         │   │             │
-│     │      │       │   │                                     │   │             │
-│     │ User │───────┼──▶│  ○ Manage API Credentials           │   │             │
-│     │      │       │   │  ○ Configure App Settings           │   │             │
-│     └──────┘       │   │  ○ Configure AI Providers           │   │             │
-│                    │   │                                     │   │             │
-│                    │   └─────────────────────────────────────┘   │             │
-│                    │                                              │             │
-│                    │   ┌─────────────────────────────────────┐   │             │
-│     ┌──────────┐   │   │      AUTOMATED TRIGGERS             │   │             │
-│     │          │   │   │                                     │   │             │
-│     │ Schedule │───┼──▶│  ○ Execute on Schedule (Cron)       │   │             │
-│     │ Service  │   │   │                                     │   │             │
-│     └──────────┘   │   └─────────────────────────────────────┘   │             │
-│                    │                                              │             │
-│     ┌──────────┐   │   ┌─────────────────────────────────────┐   │             │
-│     │          │   │   │      WEBHOOK HANDLING               │   │             │
-│     │ External │───┼──▶│                                     │   │             │
-│     │ Service  │   │   │  ○ Receive Webhook                  │   │             │
-│     └──────────┘   │   │  ○ Trigger Workflow                 │   │             │
-│                    │   │                                     │   │             │
-│                    │   └─────────────────────────────────────┘   │             │
-│                    │                                              │             │
-│                    └──────────────────────────────────────────────┘             │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+classDiagram
+    class WorkflowServiceInterface {
+        <<interface>>
+        +findAll() List~WorkflowDTO~
+        +findById(Long) Optional~WorkflowDTO~
+        +save(WorkflowDTO) WorkflowDTO
+        +delete(Long) void
+    }
+    
+    class ExecutionServiceInterface {
+        <<interface>>
+        +execute(Long, Map) ExecutionDTO
+        +executeAsync(Long) Future
+        +cancel(Long) void
+        +findByWorkflowId(Long) List
+    }
+    
+    class SettingsServiceInterface {
+        <<interface>>
+        +getValue(String) String
+        +getInt(String) Integer
+        +setValue(String, String) void
+        +resetToDefault(String) void
+    }
+    
+    class WorkflowService {
+        -WorkflowRepository repository
+        -ObjectMapper objectMapper
+        +findAll()
+        +save()
+        -toDTO()
+        -toEntity()
+    }
+    
+    class ExecutionService {
+        -WorkflowService workflowService
+        -CredentialService credentialService
+        -NodeExecutorRegistry nodeExecutorRegistry
+        -SettingsServiceInterface settings
+        +execute()
+        -executeWorkflow()
+        -executeNode()
+    }
+    
+    class SettingsService {
+        -ConcurrentHashMap cache
+        -SettingRepository repository
+        +getValue()
+        +setValue()
+        +resetToDefault()
+    }
+    
+    class CredentialService {
+        -EncryptionService encryptionService
+        -CredentialRepository repository
+        +store(String, String) Credential
+        +retrieve(Long) String
+        +delete(Long) void
+    }
+    
+    WorkflowServiceInterface <|.. WorkflowService
+    ExecutionServiceInterface <|.. ExecutionService
+    SettingsServiceInterface <|.. SettingsService
+    ExecutionService --> WorkflowService
+    ExecutionService --> CredentialService
+    ExecutionService --> SettingsService
 ```
 
-### 7.7 Component Diagram
+### 8.4 Sequence Diagram - Workflow Execution
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as WorkflowCanvas
+    participant ES as ExecutionService
+    participant REG as NodeExecutorRegistry
+    participant EX as NodeExecutor
+    participant DB as Database
+    
+    User->>UI: Click "Run"
+    UI->>ES: execute(workflowId, inputData)
+    
+    ES->>DB: Load workflow
+    DB-->>ES: WorkflowDTO
+    
+    ES->>ES: Create ExecutionContext
+    ES->>ES: Find trigger nodes
+    
+    loop For each node (BFS)
+        ES->>REG: getExecutor(node.type)
+        REG-->>ES: executor
+        ES->>EX: execute(node, input, context)
+        EX-->>ES: output
+        ES->>ES: Find next nodes via connections
+        Note over ES: Pass output as input to next
+    end
+    
+    ES->>DB: Save execution result
+    ES-->>UI: ExecutionDTO
+    UI-->>User: Show result
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                          COMPONENT DIAGRAM                                      │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│    ┌────────────────────────────────────────────────────────────────────────┐  │
-│    │                         UI COMPONENTS                                   │  │
-│    │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │  │
-│    │  │ Workflow     │  │ Settings     │  │ Execution    │                 │  │
-│    │  │ Canvas       │  │ Dialog       │  │ Console      │                 │  │
-│    │  │              │  │              │  │              │                 │  │
-│    │  │ - NodeView   │  │ - Category   │  │ - Log        │                 │  │
-│    │  │ - Connection │  │   List       │  │   Entries    │                 │  │
-│    │  │ - Palette    │  │ - Controls   │  │ - Filters    │                 │  │
-│    │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                 │  │
-│    │         │                 │                 │                          │  │
-│    └─────────┼─────────────────┼─────────────────┼──────────────────────────┘  │
-│              │                 │                 │                              │
-│              │      Service Interfaces           │                              │
-│              ▼                 ▼                 ▼                              │
-│    ┌─────────────────────────────────────────────────────────────────────────┐ │
-│    │                     SERVICE INTERFACES (common)                         │ │
-│    │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐      │ │
-│    │  │WorkflowService   │  │SettingsService   │  │ExecutionService  │      │ │
-│    │  │Interface         │  │Interface         │  │Interface         │      │ │
-│    │  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘      │ │
-│    └───────────┼────────────────────┼────────────────────┼───────────────────┘ │
-│                │                    │                    │                      │
-│                │  implements        │  implements        │  implements          │
-│                ▼                    ▼                    ▼                      │
-│    ┌─────────────────────────────────────────────────────────────────────────┐ │
-│    │                      SERVICE LAYER (app)                                │ │
-│    │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐      │ │
-│    │  │ WorkflowService  │  │ SettingsService  │  │ ExecutionService │      │ │
-│    │  │ <<@Service>>     │  │ <<@Service>>     │  │ <<@Service>>     │      │ │
-│    │  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘      │ │
-│    │           │                     │                     │                 │ │
-│    │           ▼                     ▼                     ▼                 │ │
-│    │  ┌──────────────────────────────────────────────────────────────┐      │ │
-│    │  │                   NODE EXECUTOR REGISTRY                     │      │ │
-│    │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐│      │ │
-│    │  │  │HTTP Req │ │  Code   │ │   If    │ │LLM Chat │ │  Loop   ││      │ │
-│    │  │  │Executor │ │Executor │ │Executor │ │Executor │ │Executor ││      │ │
-│    │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘│      │ │
-│    │  └──────────────────────────────────────────────────────────────┘      │ │
-│    └─────────────────────────────────────────────────────────────────────────┘ │
-│                                          │                                      │
-│                                          ▼                                      │
-│    ┌─────────────────────────────────────────────────────────────────────────┐ │
-│    │                      DATA LAYER (app)                                   │ │
-│    │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐      │ │
-│    │  │WorkflowRepository│  │SettingRepository │  │ExecutionRepository│     │ │
-│    │  │  <<JpaRepo>>     │  │  <<JpaRepo>>     │  │  <<JpaRepo>>     │      │ │
-│    │  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘      │ │
-│    │           │                     │                     │                 │ │
-│    │           └─────────────────────┼─────────────────────┘                 │ │
-│    │                                 │                                       │ │
-│    │                                 ▼                                       │ │
-│    │                        ┌──────────────────┐                            │ │
-│    │                        │   H2 Database    │                            │ │
-│    │                        │   (Embedded)     │                            │ │
-│    │                        └──────────────────┘                            │ │
-│    └─────────────────────────────────────────────────────────────────────────┘ │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+
+### 8.5 Sequence Diagram - Node Execution Detail
+
+```mermaid
+sequenceDiagram
+    participant ES as ExecutionService
+    participant LOG as Logger
+    participant EX as HttpRequestExecutor
+    participant HTTP as HttpClient
+    participant CRED as CredentialService
+    participant SET as SettingsService
+    
+    ES->>LOG: Log node start
+    ES->>ES: Get parameters from node
+    
+    ES->>CRED: Get credential if needed
+    CRED-->>ES: Decrypted API key
+    
+    ES->>SET: Get timeout settings
+    SET-->>ES: HTTP_CONNECT_TIMEOUT, HTTP_READ_TIMEOUT
+    
+    ES->>EX: execute(node, input, context)
+    EX->>EX: Interpolate {{ variables }}
+    EX->>HTTP: HTTP Request
+    HTTP-->>EX: Response
+    EX->>EX: Build output map
+    EX-->>ES: output map
+    
+    ES->>LOG: Log node complete
+    Note over ES: Pass output to next node
+```
+
+### 8.6 Use Case Diagram
+
+```mermaid
+graph TB
+    subgraph Users
+        USER((User))
+        SCHED((Scheduler))
+        EXT((External Service))
+    end
+    
+    subgraph "ToFlowAI System"
+        subgraph "Workflow Management"
+            UC1[Create New Workflow]
+            UC2[Open Existing Workflow]
+            UC3[Save Workflow]
+            UC4[Delete Workflow]
+            UC5[Import/Export Workflow]
+        end
+        
+        subgraph "Workflow Editing"
+            UC6[Add Node to Canvas]
+            UC7[Remove Node]
+            UC8[Connect Nodes]
+            UC9[Configure Node Properties]
+            UC10[Pan/Zoom Canvas]
+        end
+        
+        subgraph "Workflow Execution"
+            UC11[Run Workflow Manually]
+            UC12[Stop Running Workflow]
+            UC13[View Execution Console]
+            UC14[View Execution History]
+        end
+        
+        subgraph "Settings & Credentials"
+            UC15[Manage API Credentials]
+            UC16[Configure App Settings]
+            UC17[Configure AI Providers]
+            UC18[Import/Export Settings]
+        end
+        
+        subgraph "Automated Triggers"
+            UC19[Execute on Schedule]
+            UC20[Receive Webhook]
+        end
+    end
+    
+    USER --> UC1
+    USER --> UC2
+    USER --> UC6
+    USER --> UC11
+    USER --> UC15
+    USER --> UC18
+    SCHED --> UC19
+    EXT --> UC20
+```
+
+### 8.7 Component Diagram
+
+```mermaid
+graph TB
+    subgraph UI["UI Components (JavaFX)"]
+        WC[WorkflowCanvas]
+        SD[SettingsDialog]
+        EC[ExecutionConsole]
+    end
+    
+    subgraph Common["Service Interfaces (common)"]
+        WSI[WorkflowServiceInterface]
+        ESI[ExecutionServiceInterface]
+        SSI[SettingsServiceInterface]
+    end
+    
+    subgraph Services["Service Layer (app)"]
+        WS[WorkflowService]
+        ES[ExecutionService]
+        SS[SettingsService]
+        CS[CredentialService]
+    end
+    
+    subgraph Executors["Node Executor Registry"]
+        HTTP[HttpRequestExecutor]
+        CODE[CodeExecutor]
+        IF[IfExecutor]
+        LLM[LlmChatExecutor]
+        LOOP[LoopExecutor]
+    end
+    
+    subgraph Data["Data Layer"]
+        WR[(WorkflowRepository)]
+        SR[(SettingRepository)]
+        ER[(ExecutionRepository)]
+        H2[(H2 Database)]
+    end
+    
+    WC --> WSI
+    SD --> SSI
+    EC --> ESI
+    
+    WSI -.-> WS
+    ESI -.-> ES
+    SSI -.-> SS
+    
+    ES --> Executors
+    
+    WS --> WR
+    SS --> SR
+    ES --> ER
+    
+    WR --> H2
+    SR --> H2
+    ER --> H2
+    
+    style UI fill:#86c7f3,stroke:#1565c0
+    style Common fill:#fff9c4,stroke:#f9a825
+    style Services fill:#c8e6c9,stroke:#2e7d32
+    style Executors fill:#e1bee7,stroke:#7b1fa2
+    style Data fill:#ffccbc,stroke:#e64a19
 ```
 
 ---
 
-## 8. Backend Architecture (Spring Boot)
+## 9. Backend Architecture (Spring Boot)
 
-### 8.1 Spring Boot Basics for Beginners
+### 9.1 Spring Boot Basics for Beginners
 
 #### What is Spring Boot?
 
@@ -1021,7 +1047,7 @@ public class ExecutionService {
 }
 ```
 
-### 8.2 Service Layer Deep Dive
+### 9.2 Service Layer Deep Dive
 
 #### ExecutionService - The Heart of Workflow Execution
 
@@ -1102,7 +1128,7 @@ public class NodeExecutorRegistry {
 }
 ```
 
-### 8.3 Database Layer
+### 9.3 Database Layer
 
 #### Entity Example
 
@@ -1181,9 +1207,9 @@ CREATE TABLE variables (
 
 ---
 
-## 9. Frontend Architecture (JavaFX)
+## 10. Frontend Architecture (JavaFX)
 
-### 9.1 JavaFX Basics for Beginners
+### 10.1 JavaFX Basics for Beginners
 
 #### What is JavaFX?
 
@@ -1228,7 +1254,7 @@ VBox (Vertical):     HBox (Horizontal):     StackPane:
 └───────────┘
 ```
 
-### 9.2 FXML and Controllers
+### 10.2 FXML and Controllers
 
 #### Main.fxml (Simplified)
 
@@ -1312,7 +1338,7 @@ public class MainController implements Initializable {
 }
 ```
 
-### 9.3 WorkflowCanvas - The Visual Editor
+### 10.3 WorkflowCanvas - The Visual Editor
 
 The `WorkflowCanvas` is the heart of the UI - it's where users build workflows.
 
@@ -1362,7 +1388,7 @@ public class WorkflowCanvas extends BorderPane {
 }
 ```
 
-### 9.4 NodeView - Visual Node Representation
+### 10.4 NodeView - Visual Node Representation
 
 ```java
 public class NodeView extends VBox {
@@ -1414,146 +1440,173 @@ public class NodeView extends VBox {
 
 ---
 
-## 10. Data Flow
+## 11. Data Flow
 
-### 10.1 Complete Data Flow Diagram
+### 11.1 Complete Data Flow Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                      COMPLETE DATA FLOW                                         │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│  1️⃣ USER INTERACTION                                                            │
-│     ┌─────────────┐                                                             │
-│     │   User      │  Clicks "Run Workflow"                                     │
-│     │   Action    │                                                             │
-│     └──────┬──────┘                                                             │
-│            │                                                                     │
-│            ▼                                                                     │
-│  2️⃣ UI LAYER                                                                    │
-│     ┌─────────────────────────────────────────────────────┐                    │
-│     │  WorkflowCanvas.runWorkflow()                       │                    │
-│     │                                                     │                    │
-│     │  - Serialize current workflow state                 │                    │
-│     │  - Call executionService.execute(workflowId, {})    │                    │
-│     │  - Update node visual states                        │                    │
-│     └──────┬──────────────────────────────────────────────┘                    │
-│            │                                                                     │
-│            ▼                                                                     │
-│  3️⃣ SERVICE LAYER                                                               │
-│     ┌─────────────────────────────────────────────────────┐                    │
-│     │  ExecutionService.execute(workflowId, input)        │                    │
-│     │                                                     │                    │
-│     │  - Load workflow from DB                            │                    │
-│     │  - Create ExecutionEntity (status: RUNNING)         │                    │
-│     │  - Build ExecutionContext                           │                    │
-│     │  - Find trigger nodes                               │                    │
-│     └──────┬──────────────────────────────────────────────┘                    │
-│            │                                                                     │
-│            ▼                                                                     │
-│  4️⃣ NODE EXECUTION LOOP                                                         │
-│     ┌─────────────────────────────────────────────────────┐                    │
-│     │  FOR EACH NODE (BFS traversal):                     │                    │
-│     │  ┌─────────────────────────────────────────────┐   │                    │
-│     │  │ 1. Get executor: registry.getExecutor(type) │   │                    │
-│     │  │ 2. Execute: executor.execute(node, input)   │   │                    │
-│     │  │ 3. Log result: logger.logNodeComplete()     │   │                    │
-│     │  │ 4. Find next: getConnectedNodes(nodeId)     │   │                    │
-│     │  │ 5. Pass output as input to next nodes       │   │                    │
-│     │  └─────────────────────────────────────────────┘   │                    │
-│     └──────┬──────────────────────────────────────────────┘                    │
-│            │                                                                     │
-│            ▼                                                                     │
-│  5️⃣ INDIVIDUAL EXECUTOR                                                         │
-│     ┌─────────────────────────────────────────────────────┐                    │
-│     │  HttpRequestExecutor.execute(node, input, context)  │                    │
-│     │                                                     │                    │
-│     │  - Extract parameters (url, method, headers)        │                    │
-│     │  - Interpolate {{ variables }}                      │                    │
-│     │  - Get credential if needed                         │                    │
-│     │  - Make HTTP request                                │                    │
-│     │  - Build output map { statusCode, body, json }      │                    │
-│     └──────┬──────────────────────────────────────────────┘                    │
-│            │                                                                     │
-│            ▼                                                                     │
-│  6️⃣ DATA PERSISTENCE                                                            │
-│     ┌─────────────────────────────────────────────────────┐                    │
-│     │  ExecutionRepository.save(execution)                │                    │
-│     │                                                     │                    │
-│     │  - Save execution status (SUCCESS/FAILED)           │                    │
-│     │  - Save output data as JSON                         │                    │
-│     │  - Save execution log                               │                    │
-│     └──────┬──────────────────────────────────────────────┘                    │
-│            │                                                                     │
-│            ▼                                                                     │
-│  7️⃣ UI UPDATE                                                                   │
-│     ┌─────────────────────────────────────────────────────┐                    │
-│     │  ExecutionConsole & NodeView updates                │                    │
-│     │                                                     │                    │
-│     │  - Show logs in execution console                   │                    │
-│     │  - Update node colors (green=success, red=error)    │                    │
-│     │  - Display execution result                         │                    │
-│     └─────────────────────────────────────────────────────┘                    │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Step1["1️⃣ USER INTERACTION"]
+        USER[User clicks 'Run Workflow']
+    end
+    
+    subgraph Step2["2️⃣ UI LAYER"]
+        WC[WorkflowCanvas.runWorkflow]
+        WC --> |"Serialize workflow state"| CALL
+        CALL["executionService.execute(workflowId, {})"]
+    end
+    
+    subgraph Step3["3️⃣ SERVICE LAYER"]
+        ES[ExecutionService.execute]
+        ES --> LOAD["Load workflow from DB"]
+        ES --> CREATE["Create ExecutionEntity (RUNNING)"]
+        ES --> CTX["Build ExecutionContext"]
+        ES --> FIND["Find trigger nodes"]
+    end
+    
+    subgraph Step4["4️⃣ NODE EXECUTION LOOP"]
+        direction LR
+        LOOP["FOR EACH NODE (BFS)"]
+        GET["registry.getExecutor(type)"]
+        EXEC["executor.execute(node, input)"]
+        LOG["logger.logNodeComplete()"]
+        NEXT["Find next nodes via connections"]
+        
+        LOOP --> GET --> EXEC --> LOG --> NEXT
+        NEXT -.-> LOOP
+    end
+    
+    subgraph Step5["5️⃣ INDIVIDUAL EXECUTOR"]
+        HTTP[HttpRequestExecutor.execute]
+        HTTP --> PARAMS["Extract parameters"]
+        HTTP --> INTERP["Interpolate {{ variables }}"]
+        HTTP --> CRED["Get credential if needed"]
+        HTTP --> REQ["Make HTTP request"]
+        HTTP --> OUT["Build output map"]
+    end
+    
+    subgraph Step6["6️⃣ DATA PERSISTENCE"]
+        SAVE["Save execution to DB"]
+        SAVE --> STATUS["Save status (SUCCESS/FAILED)"]
+        SAVE --> DATA["Save output data as JSON"]
+    end
+    
+    subgraph Step7["7️⃣ UI UPDATE"]
+        UPDATE[Update UI]
+        UPDATE --> LOGS["Show logs in console"]
+        UPDATE --> COLORS["Update node colors"]
+        UPDATE --> RESULT["Display execution result"]
+    end
+    
+    USER --> WC
+    CALL --> ES
+    FIND --> LOOP
+    EXEC --> HTTP
+    OUT --> SAVE
+    SAVE --> UPDATE
+    
+    style Step1 fill:#e3f2fd,stroke:#1565c0
+    style Step2 fill:#e8f5e9,stroke:#2e7d32
+    style Step3 fill:#fff3e0,stroke:#ef6c00
+    style Step4 fill:#f3e5f5,stroke:#7b1fa2
+    style Step5 fill:#fce4ec,stroke:#c2185b
+    style Step6 fill:#e0f2f1,stroke:#00695c
+    style Step7 fill:#fff8e1,stroke:#f9a825
 ```
 
-### 10.2 Data Flow Between Nodes
+### 11.2 Data Flow Between Nodes
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    DATA FLOW BETWEEN NODES                                      │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                    DATA FLOW BETWEEN NODES                                     │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
 │  ┌──────────────────────────────────────────────────────────────────────────┐  │
-│  │                           TRIGGER NODE                                    │  │
+│  │                           TRIGGER NODE                                   │  │
 │  │  ManualTrigger                                                           │  │
 │  │                                                                          │  │
 │  │  Input: {}  (empty for manual trigger)                                   │  │
-│  │  Output: { "timestamp": "2026-01-29T10:30:00Z", "trigger": "manual" }   │  │
+│  │  Output: { "timestamp": "2026-01-29T10:30:00Z", "trigger": "manual" }    │  │
 │  └────────────────────────────────┬─────────────────────────────────────────┘  │
-│                                   │                                             │
-│                                   │  output becomes input                       │
-│                                   ▼                                             │
+│                                   │                                            │
+│                                   │  output becomes input                      │
+│                                   ▼                                            │
 │  ┌──────────────────────────────────────────────────────────────────────────┐  │
-│  │                          HTTP REQUEST NODE                                │  │
+│  │                          HTTP REQUEST NODE                               │  │
 │  │  Call Weather API                                                        │  │
 │  │                                                                          │  │
-│  │  Parameters:                                                              │  │
-│  │    url: "https://api.weather.com/v1/forecast?ts={{timestamp}}"          │  │
+│  │  Parameters:                                                             │  │
+│  │    url: "https://api.weather.com/v1/forecast?ts={{timestamp}}"           │  │
 │  │                                                                          │  │
-│  │  Input: { "timestamp": "2026-01-29T10:30:00Z", "trigger": "manual" }    │  │
+│  │  Input: { "timestamp": "2026-01-29T10:30:00Z", "trigger": "manual" }     │  │
 │  │  Output: {                                                               │  │
 │  │    "statusCode": 200,                                                    │  │
-│  │    "body": "{\"temp\": 22, \"condition\": \"sunny\"}",                  │  │
-│  │    "json": { "temp": 22, "condition": "sunny" }                         │  │
+│  │    "body": "{\"temp\": 22, \"condition\": \"sunny\"}",                   │  │
+│  │    "json": { "temp": 22, "condition": "sunny" }                          │  │
 │  │  }                                                                       │  │
 │  └────────────────────────────────┬─────────────────────────────────────────┘  │
-│                                   │                                             │
-│                                   │  output becomes input                       │
-│                                   ▼                                             │
+│                                   │                                            │
+│                                   │  output becomes input                      │
+│                                   ▼                                            │
 │  ┌──────────────────────────────────────────────────────────────────────────┐  │
-│  │                             IF NODE                                       │  │
+│  │                             IF NODE                                      │  │
 │  │  Check if hot                                                            │  │
 │  │                                                                          │  │
-│  │  Parameters:                                                              │  │
-│  │    condition: "{{ json.temp }} > 25"                                    │  │
+│  │  Parameters:                                                             │  │
+│  │    condition: "{{ json.temp }} > 25"                                     │  │
 │  │                                                                          │  │
-│  │  Input: { "statusCode": 200, "json": { "temp": 22 } }                   │  │
+│  │  Input: { "statusCode": 200, "json": { "temp": 22 } }                    │  │
 │  │  Evaluation: 22 > 25 = FALSE                                             │  │
 │  │                                                                          │  │
-│  │  Output (on FALSE branch): { "condition": false, "json": {...} }        │  │
+│  │  Output (on FALSE branch): { "condition": false, "json": {...} }         │  │
 │  └─────────────────────────────────┬────────────────────────────────────────┘  │
-│                          TRUE │    │ FALSE                                      │
-│                               ▼    ▼                                            │
+│                          TRUE │    │ FALSE                                     │
+│                               ▼    ▼                                           │
 │                         ┌─────────────────┐                                    │
 │                         │  Next nodes...  │                                    │
 │                         └─────────────────┘                                    │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 10.3 Expression Interpolation
+```mermaid
+flowchart LR
+    subgraph TRIGGER["🔵 TRIGGER NODE"]
+        T[ManualTrigger]
+        T_IN["Input: {}"]
+        T_OUT["Output: {timestamp, trigger}"]
+    end
+    
+    subgraph HTTP["🟢 HTTP REQUEST NODE"]
+        H[Call Weather API]
+        H_PARAM["url: api.weather.com?ts={{timestamp}}"]
+        H_OUT["Output: {statusCode, body, json}"]
+    end
+    
+    subgraph IF["🟡 IF NODE"]
+        I[Check if hot]
+        I_COND["condition: {{ json.temp }} > 25"]
+        I_EVAL["Evaluation: 22 > 25 = FALSE"]
+    end
+    
+    subgraph NEXT["🔴 NEXT NODES"]
+        TRUE[True branch]
+        FALSE[False branch]
+    end
+    
+    T_OUT -->|"output becomes input"| H
+    H_OUT -->|"output becomes input"| I
+    I_EVAL -->|TRUE| TRUE
+    I_EVAL -->|FALSE| FALSE
+    
+    style TRIGGER fill:#e3f2fd,stroke:#1565c0
+    style HTTP fill:#e8f5e9,stroke:#2e7d32
+    style IF fill:#fff3e0,stroke:#ef6c00
+    style TRUE fill:#c8e6c9,stroke:#2e7d32
+    style FALSE fill:#ffcdd2,stroke:#c62828
+```
+
+### 11.3 Expression Interpolation
 
 The `{{ }}` syntax is used to reference data from previous nodes:
 
@@ -1581,9 +1634,217 @@ private String interpolate(String template, Map<String, Object> data) {
 
 ---
 
-## 11. Adding New Features
+## 12. Sample Workflows
 
-### 11.1 Adding a New Node Type (Step-by-Step)
+ToFlowAI includes sample workflows in the `samples/` directory that demonstrate various features. These can be imported for testing and as reference for building your own workflows.
+
+### 12.1 Available Samples
+
+| Sample | Description | Features |
+|--------|-------------|----------|
+| **Weather Alert** | Monitors weather and sends conditional alerts | HTTP, Code, IF |
+| **AI Content Generator** | Creates content using chained LLM calls | LLM Chat, Validation |
+| **Data Processing Pipeline** | Batch processes items with filtering | Loop, Merge, Aggregation |
+| **Multi-API Integration** | Combines multiple APIs with AI | HTTP Chain, LLM |
+| **Error Handling Demo** | Demonstrates retry and fallback patterns | Error Handling |
+
+### 12.2 Use Case: Weather Alert System
+
+This detailed walkthrough shows how the Weather Alert workflow works end-to-end.
+
+#### Workflow Diagram
+
+```mermaid
+flowchart LR
+    A[🔔 Manual Trigger] --> B[🌐 Get Weather]
+    B --> C[💻 Parse Data]
+    C --> D{🔀 Temp > 25°C?}
+    D -->|Yes| E[🔥 Hot Alert]
+    D -->|No| F[✅ Normal Status]
+    E --> G[📋 Final Output]
+    F --> G
+    
+    style A fill:#e3f2fd,stroke:#1565c0
+    style B fill:#fff3e0,stroke:#ef6c00
+    style C fill:#f3e5f5,stroke:#7b1fa2
+    style D fill:#fff9c4,stroke:#f9a825
+    style E fill:#ffcdd2,stroke:#c62828
+    style F fill:#c8e6c9,stroke:#2e7d32
+    style G fill:#e0f2f1,stroke:#00695c
+```
+
+#### Step-by-Step Execution
+
+**Step 1: Manual Trigger**
+```json
+// Input: (none - user clicks "Run")
+// Output:
+{
+  "timestamp": "2026-01-29T10:30:00Z",
+  "trigger": "manual"
+}
+```
+
+**Step 2: HTTP Request - Get Weather**
+```json
+// Node Configuration:
+{
+  "url": "https://api.openweathermap.org/data/2.5/weather?q=London&appid={{apiKey}}&units=metric",
+  "method": "GET"
+}
+
+// Output:
+{
+  "statusCode": 200,
+  "body": "{\"main\":{\"temp\":28.5},\"name\":\"London\",\"weather\":[{\"description\":\"clear sky\"}]}",
+  "json": { "main": { "temp": 28.5 }, "name": "London", "weather": [{ "description": "clear sky" }] }
+}
+```
+
+**Step 3: Code Node - Extract Temperature**
+```javascript
+// Code:
+const weatherData = JSON.parse(input.body);
+return {
+  temperature: weatherData.main.temp,  // 28.5
+  city: weatherData.name,               // "London"
+  condition: weatherData.weather[0].description,  // "clear sky"
+  threshold: 25
+};
+```
+
+**Step 4: IF Node - Temperature Check**
+```json
+// Condition: {{ temperature }} > {{ threshold }}
+// Evaluation: 28.5 > 25 = TRUE
+// Takes the TRUE branch
+```
+
+**Step 5: Hot Alert Branch**
+```javascript
+// Formats alert message:
+return {
+  alertType: 'HOT_WEATHER',
+  message: '🔥 Hot Weather Alert!\n\nCity: London\nTemperature: 28.5°C\nCondition: clear sky\n\nStay hydrated!',
+  severity: 'warning'
+};
+```
+
+**Step 6: Final Output**
+```json
+{
+  "result": "🔥 Hot Weather Alert!...",
+  "alertType": "HOT_WEATHER",
+  "processedAt": "2026-01-29T10:30:05Z"
+}
+```
+
+#### Configuration Required
+
+| Setting | Where to Configure | Example Value |
+|---------|-------------------|---------------|
+| OpenWeatherMap API Key | Workflow Settings or Set node | `abc123def456` |
+| Temperature Threshold | Code node `threshold` variable | `25` |
+| City | HTTP URL parameter | `London` |
+
+### 12.3 Use Case: AI Content Generator
+
+This workflow demonstrates chained LLM calls for content creation.
+
+#### Workflow Diagram
+
+```mermaid
+flowchart LR
+    A[🔔 Start] --> B[📝 Set Topic]
+    B --> C[🤖 Generate Outline]
+    C --> D[🤖 Write Content]
+    D --> E[✅ Validate]
+    E --> F{Valid?}
+    F -->|Yes| G[📄 Output]
+    F -->|No| H[❌ Error]
+    
+    style C fill:#e8f5e9,stroke:#2e7d32
+    style D fill:#e8f5e9,stroke:#2e7d32
+```
+
+#### How It Works
+
+1. **Set Topic**: Configure what content to generate
+   ```json
+   {
+     "topic": "Benefits of workflow automation",
+     "style": "professional",
+     "maxWords": 200
+   }
+   ```
+
+2. **First LLM Call (Outline)**:
+   - System: "You are a content strategist"
+   - User: "Create an outline for: {{ topic }}"
+   - Output: Numbered list of main points
+
+3. **Second LLM Call (Content)**:
+   - System: "You are a content writer"
+   - User: "Write an article following this outline: {{ response }}"
+   - Output: Full article text
+
+4. **Validation**: Check word count, structure, etc.
+
+5. **Output**: Final formatted content with metadata
+
+### 12.4 Importing Sample Workflows
+
+1. **Open ToFlowAI**
+2. **File** → **Import Workflow** (or `Ctrl+I`)
+3. **Navigate** to `samples/` directory
+4. **Select** a `.json` file
+5. **Run** and observe execution in console
+
+### 12.5 Common Patterns from Samples
+
+#### Pattern: API → Parse → Process
+
+```mermaid
+flowchart LR
+    A[HTTP Request] --> B[Code: Parse JSON]
+    B --> C[Process/Transform]
+```
+
+```javascript
+// Parse pattern in Code node:
+const data = JSON.parse(input.body);
+return {
+  field1: data.nested.field,
+  field2: data.array[0].value
+};
+```
+
+#### Pattern: Conditional Branching
+
+```mermaid
+flowchart LR
+    A[Data] --> B{IF Condition}
+    B -->|True| C[Path A]
+    B -->|False| D[Path B]
+    C --> E[Merge]
+    D --> E
+```
+
+#### Pattern: Loop with Aggregation
+
+```mermaid
+flowchart LR
+    A[Array Data] --> B[Loop]
+    B -->|Each Item| C[Process]
+    C --> D[Collect]
+    B -->|Done| E[Aggregate]
+```
+
+---
+
+## 13. Adding New Features
+
+### 13.1 Adding a New Node Type (Step-by-Step)
 
 Let's add a **Slack Message** node as an example.
 
@@ -1795,7 +2056,7 @@ private void buildPropertiesForm(Node node) {
 5. Connect to other nodes
 6. Run workflow
 
-### 11.2 Adding a New Setting
+### 12.2 Adding a New Setting
 
 #### Step 1: Define in SettingsDefaults
 
@@ -1840,7 +2101,7 @@ public Map<String, Object> execute(...) {
 }
 ```
 
-### 11.3 Adding a New Dialog
+### 12.3 Adding a New Dialog
 
 ```java
 // File: ui/src/main/java/io/toflowai/ui/dialog/MyCustomDialog.java
@@ -1894,9 +2155,195 @@ result.ifPresent(text -> System.out.println("User entered: " + text));
 
 ---
 
-## 12. Best Practices
+## 14. Recent Changes & Integrations
 
-### 12.1 Code Organization
+This section documents recent significant changes to the architecture.
+
+### 14.1 Settings Integration (Phase 7)
+
+Settings are now fully wired to backend services. The following components read configuration from `SettingsService`:
+
+```mermaid
+graph LR
+    subgraph SettingsService
+        SS[SettingsService]
+        CACHE[(In-Memory Cache)]
+        DB[(H2 Database)]
+    end
+    
+    subgraph Consumers["Settings Consumers"]
+        LLM[LlmChatExecutor]
+        HTTP[HttpRequestExecutor]
+        EXEC[ExecutionService]
+        UI[SettingsDialog]
+    end
+    
+    SS --> CACHE
+    CACHE --> DB
+    
+    LLM -->|"AI_OPENAI_API_KEY<br/>AI_OPENAI_DEFAULT_MODEL<br/>AI_OPENAI_BASE_URL"| SS
+    HTTP -->|"HTTP_CONNECT_TIMEOUT<br/>HTTP_READ_TIMEOUT"| SS
+    EXEC -->|"EXECUTION_DEFAULT_TIMEOUT<br/>EXECUTION_MAX_PARALLEL<br/>EXECUTION_RETRY_ATTEMPTS"| SS
+    UI -->|"All settings categories"| SS
+    
+    style SettingsService fill:#e8f5e9,stroke:#2e7d32
+    style Consumers fill:#e3f2fd,stroke:#1565c0
+```
+
+#### LlmChatExecutor Settings Integration
+
+```java
+// LlmChatExecutor now reads API keys, models, and base URLs from settings
+@Component
+public class LlmChatExecutor implements NodeExecutor {
+    private final SettingsServiceInterface settingsService;
+    
+    // Reads: AI_OPENAI_API_KEY, AI_ANTHROPIC_API_KEY, AI_AZURE_API_KEY
+    private String getApiKeyFromSettings(String provider) {
+        return switch (provider.toLowerCase()) {
+            case "openai" -> settingsService.getValue(
+                SettingsDefaults.AI_OPENAI_API_KEY, null);
+            case "anthropic" -> settingsService.getValue(
+                SettingsDefaults.AI_ANTHROPIC_API_KEY, null);
+            // ...
+        };
+    }
+    
+    // Reads: AI_OPENAI_DEFAULT_MODEL, AI_ANTHROPIC_DEFAULT_MODEL
+    private String getDefaultModel(String provider) {
+        return switch (provider.toLowerCase()) {
+            case "openai" -> settingsService.getValue(
+                SettingsDefaults.AI_OPENAI_DEFAULT_MODEL, "gpt-4");
+            // ...
+        };
+    }
+}
+```
+
+#### HttpRequestExecutor Settings Integration
+
+```java
+// HttpRequestExecutor now reads timeout settings
+@Component
+public class HttpRequestExecutor implements NodeExecutor {
+    private final int connectTimeout;
+    private final int readTimeout;
+    
+    public HttpRequestExecutor(SettingsServiceInterface settingsService) {
+        // Read timeouts from settings (in seconds)
+        this.connectTimeout = settingsService.getInt(
+            SettingsDefaults.HTTP_CONNECT_TIMEOUT, 30);
+        this.readTimeout = settingsService.getInt(
+            SettingsDefaults.HTTP_READ_TIMEOUT, 60);
+        
+        // Build HTTP client with configured timeouts
+        this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(connectTimeout))
+            .build();
+    }
+}
+```
+
+#### ExecutionService Settings Integration
+
+```java
+// ExecutionService now reads execution configuration
+@Service
+public class ExecutionService implements ExecutionServiceInterface {
+    private final long executionTimeout;
+    private final int maxParallel;
+    private final int retryAttempts;
+    private final long retryDelay;
+    
+    public ExecutionService(SettingsServiceInterface settingsService, ...) {
+        this.executionTimeout = settingsService.getLong(
+            SettingsDefaults.EXECUTION_DEFAULT_TIMEOUT, 300L);
+        this.maxParallel = settingsService.getInt(
+            SettingsDefaults.EXECUTION_MAX_PARALLEL, 5);
+        this.retryAttempts = settingsService.getInt(
+            SettingsDefaults.EXECUTION_RETRY_ATTEMPTS, 3);
+        this.retryDelay = settingsService.getLong(
+            SettingsDefaults.EXECUTION_RETRY_DELAY, 1000L);
+    }
+}
+```
+
+### 14.2 Settings Import/Export
+
+The `SettingsDialog` now supports importing and exporting settings as JSON:
+
+```mermaid
+flowchart LR
+    subgraph Export["Export Flow"]
+        BTN1[Export Button]
+        FC1[FileChooser]
+        JSON1[settings.json]
+        BTN1 --> FC1 --> JSON1
+    end
+    
+    subgraph Import["Import Flow"]
+        BTN2[Import Button]
+        FC2[FileChooser]
+        JSON2[settings.json]
+        CONFIRM[Confirmation Dialog]
+        APPLY[Apply Settings]
+        BTN2 --> FC2 --> JSON2 --> CONFIRM --> APPLY
+    end
+    
+    style Export fill:#e3f2fd,stroke:#1565c0
+    style Import fill:#e8f5e9,stroke:#2e7d32
+```
+
+```java
+// Export settings to JSON file
+private void exportSettings() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Export Settings");
+    fileChooser.getExtensionFilters().add(
+        new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+    fileChooser.setInitialFileName("toflowai-settings.json");
+    
+    File file = fileChooser.showSaveDialog(getScene().getWindow());
+    if (file != null) {
+        String json = settingsService.exportToJson();
+        Files.writeString(file.toPath(), json);
+    }
+}
+
+// Import settings from JSON file
+private void importSettings() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Import Settings");
+    // ... show confirmation dialog before applying
+    settingsService.importFromJson(json);
+}
+```
+
+### 14.3 Database Migration Notes
+
+The settings schema uses two migrations:
+
+| Migration | Purpose |
+|-----------|---------|
+| **V001** | Creates basic `settings` table with (key, value) |
+| **V003** | Extends table with category, type, label, description, etc. |
+
+⚠️ **Important**: If upgrading from an older version, ensure V001 exists before V003 runs. V003 uses `ALTER TABLE` with `IF NOT EXISTS` for safe column additions.
+
+```sql
+-- V003__Settings_Table.sql (excerpt)
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS category VARCHAR(50);
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS setting_type VARCHAR(20);
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS label VARCHAR(255);
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS description TEXT;
+-- ...
+```
+
+---
+
+## 15. Best Practices
+
+### 15.1 Code Organization
 
 ```
 ✅ DO:
@@ -1912,7 +2359,7 @@ result.ifPresent(text -> System.out.println("User entered: " + text));
 - Mix UI logic with business logic
 ```
 
-### 12.2 Java Records
+### 15.2 Java Records
 
 Use records for immutable data carriers:
 
@@ -1932,7 +2379,7 @@ public record Position(double x, double y) {
 }
 ```
 
-### 12.3 Error Handling
+### 15.3 Error Handling
 
 ```java
 // ✅ Good: Specific error handling
@@ -1956,7 +2403,7 @@ try {
 }
 ```
 
-### 12.4 Null Safety
+### 15.4 Null Safety
 
 ```java
 // ✅ Good: Use Optional
@@ -1973,7 +2420,7 @@ public WorkflowDTO findById(Long id) {
 }
 ```
 
-### 12.5 Logging
+### 15.5 Logging
 
 ```java
 // ✅ Good: Structured logging
@@ -1984,7 +2431,7 @@ log.error("Failed to execute node {}: {}", node.id(), e.getMessage(), e);
 log.info("Executing node " + node.id() + " of type " + node.type());
 ```
 
-### 12.6 Testing
+### 15.6 Testing
 
 ```java
 // Unit test example
@@ -2013,9 +2460,9 @@ void httpRequestExecutor_shouldReturnSuccessForValidUrl() {
 
 ---
 
-## 13. Troubleshooting
+## 16. Troubleshooting
 
-### 13.1 Common Issues
+### 16.1 Common Issues
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
@@ -2025,7 +2472,7 @@ void httpRequestExecutor_shouldReturnSuccessForValidUrl() {
 | UI not updating | Not on FX thread | Use `Platform.runLater()` |
 | Settings not saved | Missing `@Transactional` | Add annotation to service method |
 
-### 13.2 Debugging Tips
+### 16.2 Debugging Tips
 
 ```java
 // Print debug info
@@ -2039,7 +2486,7 @@ log.debug("Current context: workflowId={}, input={}",
 node.setStyle("-fx-border-color: red; -fx-border-width: 2;");
 ```
 
-### 13.3 VS Code Tips
+### 16.3 VS Code Tips
 
 1. **Clean Java Workspace**: `Ctrl+Shift+P` → "Java: Clean Java Language Server Workspace"
 2. **Reload Window**: `Ctrl+Shift+P` → "Developer: Reload Window"
@@ -2047,7 +2494,7 @@ node.setStyle("-fx-border-color: red; -fx-border-width: 2;");
 
 ---
 
-## 14. Glossary
+## 17. Glossary
 
 | Term | Definition |
 |------|------------|
@@ -2067,53 +2514,73 @@ node.setStyle("-fx-border-color: red; -fx-border-width: 2;");
 
 ---
 
-## 15. Quick Reference Card
+## 18. Quick Reference Card
 
+### Build & Run Commands
+
+| Command | Purpose |
+|---------|---------|
+| `.\gradlew.bat clean build -x test` | Build the project |
+| `.\gradlew.bat :app:bootRun` | Run the application |
+| `.\gradlew.bat test` | Run all tests |
+
+### Key Directories
+
+| Directory | Contents |
+|-----------|----------|
+| `app/src/main/java/io/toflowai/app/executor/` | Node executors |
+| `app/src/main/java/io/toflowai/app/service/` | Business services |
+| `ui/src/main/java/io/toflowai/ui/` | JavaFX UI components |
+| `common/src/main/java/io/toflowai/common/` | Shared interfaces & DTOs |
+
+### Add New Node Type (5 Steps)
+
+```mermaid
+flowchart LR
+    A["1. Create executor<br/>MyNodeExecutor.java"] --> B["2. Add @Component"]
+    B --> C["3. Implement<br/>NodeExecutor interface"]
+    C --> D["4. Add to UI palette<br/>WorkflowCanvas"]
+    D --> E["5. Add icon<br/>NodeView.getIconForNodeType()"]
+    
+    style A fill:#e3f2fd,stroke:#1565c0
+    style B fill:#e8f5e9,stroke:#2e7d32
+    style C fill:#fff3e0,stroke:#ef6c00
+    style D fill:#f3e5f5,stroke:#7b1fa2
+    style E fill:#fce4ec,stroke:#c2185b
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         TOFLOWAI QUICK REFERENCE                                │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│  BUILD & RUN                                                                    │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│  Build:     .\gradlew.bat clean build -x test                                  │
-│  Run:       .\gradlew.bat :app:bootRun                                         │
-│  Test:      .\gradlew.bat test                                                 │
-│                                                                                 │
-│  KEY DIRECTORIES                                                                │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│  Executors: app/src/main/java/io/toflowai/app/executor/                        │
-│  Services:  app/src/main/java/io/toflowai/app/service/                         │
-│  UI:        ui/src/main/java/io/toflowai/ui/                                   │
-│  Common:    common/src/main/java/io/toflowai/common/                           │
-│                                                                                 │
-│  ADD NEW NODE TYPE                                                              │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│  1. Create executor: executor/MyNodeExecutor.java                              │
-│  2. Annotate: @Component                                                       │
-│  3. Implement: NodeExecutor interface                                          │
-│  4. Add to UI palette: WorkflowCanvas.createNodePalette()                      │
-│  5. Add icon: NodeView.getIconForNodeType()                                    │
-│                                                                                 │
-│  COMMON ANNOTATIONS                                                             │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│  @Service      - Business logic service                                        │
-│  @Component    - Generic Spring bean                                           │
-│  @Repository   - Database access                                               │
-│  @Transactional- Database transaction                                          │
-│  @FXML         - JavaFX injection                                              │
-│                                                                                 │
-│  DATA FLOW                                                                      │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│  UI → ExecutionService → NodeExecutorRegistry → Executor → DB                  │
-│                                                                                 │
-│  INTERPOLATION                                                                  │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│  Use {{ variableName }} in node parameters                                     │
-│  Nested: {{ response.data.name }}                                              │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+
+### Common Annotations
+
+| Java (Spring) | C# (.NET) | Purpose |
+|--------------|-----------|---------|
+| `@Service` | `[Service]` | Business logic service |
+| `@Component` | `[Injectable]` | Generic Spring bean |
+| `@Repository` | Repository pattern | Database access |
+| `@Transactional` | `TransactionScope` | Database transaction |
+| `@FXML` | N/A (code-behind) | JavaFX injection |
+
+### Data Flow
+
+```mermaid
+flowchart LR
+    UI[UI] --> ES[ExecutionService]
+    ES --> REG[NodeExecutorRegistry]
+    REG --> EX[Executor]
+    EX --> DB[(Database)]
+    
+    style UI fill:#86c7f3,stroke:#1565c0
+    style ES fill:#c8e6c9,stroke:#2e7d32
+    style REG fill:#fff9c4,stroke:#f9a825
+    style EX fill:#e1bee7,stroke:#7b1fa2
+    style DB fill:#ffccbc,stroke:#e64a19
 ```
+
+### Interpolation Syntax
+
+| Pattern | Example | Result |
+|---------|---------|--------|
+| `{{ variableName }}` | `{{ statusCode }}` | `200` |
+| `{{ nested.path }}` | `{{ response.data.name }}` | `"John"` |
 
 ---
 

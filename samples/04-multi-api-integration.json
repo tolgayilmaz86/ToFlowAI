@@ -1,0 +1,166 @@
+{
+    "name": "Multi-API Integration",
+    "description": "Integrates multiple APIs: fetches a random user, gets their location weather, and enriches with AI-generated greeting. Demonstrates: Multiple HTTP requests, data chaining, LLM integration.",
+    "nodes": [
+        {
+            "id": "trigger_1",
+            "type": "manualTrigger",
+            "name": "Start",
+            "position": {
+                "x": 100,
+                "y": 200
+            },
+            "parameters": {},
+            "disabled": false,
+            "notes": "Starts the multi-API integration workflow"
+        },
+        {
+            "id": "http_user",
+            "type": "httpRequest",
+            "name": "Get Random User",
+            "position": {
+                "x": 300,
+                "y": 200
+            },
+            "parameters": {
+                "url": "https://randomuser.me/api/",
+                "method": "GET",
+                "headers": {
+                    "Accept": "application/json"
+                }
+            },
+            "disabled": false,
+            "notes": "Fetches a random user profile from RandomUser API"
+        },
+        {
+            "id": "code_parse_user",
+            "type": "code",
+            "name": "Parse User Data",
+            "position": {
+                "x": 500,
+                "y": 200
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Parse user data from API response\nconst data = JSON.parse(input.body);\nconst user = data.results[0];\n\nreturn {\n  user: {\n    firstName: user.name.first,\n    lastName: user.name.last,\n    email: user.email,\n    country: user.location.country,\n    city: user.location.city,\n    timezone: user.location.timezone.description,\n    picture: user.picture.large\n  },\n  location: {\n    city: user.location.city,\n    country: user.location.country,\n    lat: user.location.coordinates.latitude,\n    lon: user.location.coordinates.longitude\n  }\n};"
+            },
+            "disabled": false,
+            "notes": "Extracts relevant user information"
+        },
+        {
+            "id": "http_weather",
+            "type": "httpRequest",
+            "name": "Get Location Weather",
+            "position": {
+                "x": 700,
+                "y": 200
+            },
+            "parameters": {
+                "url": "https://api.openweathermap.org/data/2.5/weather?lat={{ location.lat }}&lon={{ location.lon }}&appid={{apiKey}}&units=metric",
+                "method": "GET",
+                "headers": {
+                    "Accept": "application/json"
+                }
+            },
+            "disabled": false,
+            "notes": "Fetches weather for user's location"
+        },
+        {
+            "id": "code_parse_weather",
+            "type": "code",
+            "name": "Parse Weather",
+            "position": {
+                "x": 900,
+                "y": 200
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Parse weather data and combine with user info\nconst weather = JSON.parse(input.body);\n\nreturn {\n  user: input.user,\n  location: input.location,\n  weather: {\n    temperature: Math.round(weather.main.temp),\n    feelsLike: Math.round(weather.main.feels_like),\n    humidity: weather.main.humidity,\n    condition: weather.weather[0].main,\n    description: weather.weather[0].description,\n    icon: weather.weather[0].icon\n  }\n};"
+            },
+            "disabled": false,
+            "notes": "Combines user and weather data"
+        },
+        {
+            "id": "llm_greeting",
+            "type": "llmChat",
+            "name": "Generate Greeting",
+            "position": {
+                "x": 1100,
+                "y": 200
+            },
+            "parameters": {
+                "provider": "openai",
+                "model": "gpt-3.5-turbo",
+                "systemPrompt": "You are a friendly assistant. Generate a brief, personalized greeting message.",
+                "userPrompt": "Generate a friendly, personalized greeting for {{ user.firstName }} {{ user.lastName }} who lives in {{ location.city }}, {{ location.country }}.\n\nCurrent weather: {{ weather.temperature }}°C, {{ weather.description }}\n\nMake the greeting weather-appropriate and cultural (consider their country). Keep it to 2-3 sentences.",
+                "temperature": 0.8,
+                "maxTokens": 150
+            },
+            "disabled": false,
+            "notes": "Generates a personalized, weather-aware greeting"
+        },
+        {
+            "id": "code_final",
+            "type": "code",
+            "name": "Build Final Profile",
+            "position": {
+                "x": 1300,
+                "y": 200
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Build the final enriched profile\nreturn {\n  profile: {\n    name: `${input.user.firstName} ${input.user.lastName}`,\n    email: input.user.email,\n    location: `${input.location.city}, ${input.location.country}`,\n    picture: input.user.picture\n  },\n  weather: {\n    summary: `${input.weather.temperature}°C - ${input.weather.description}`,\n    details: input.weather\n  },\n  personalizedGreeting: input.response,\n  generatedAt: new Date().toISOString(),\n  apisCalled: ['randomuser.me', 'openweathermap.org', 'openai.com']\n};"
+            },
+            "disabled": false,
+            "notes": "Assembles the final enriched profile"
+        }
+    ],
+    "connections": [
+        {
+            "id": "conn_1",
+            "sourceNodeId": "trigger_1",
+            "targetNodeId": "http_user",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_2",
+            "sourceNodeId": "http_user",
+            "targetNodeId": "code_parse_user",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_3",
+            "sourceNodeId": "code_parse_user",
+            "targetNodeId": "http_weather",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_4",
+            "sourceNodeId": "http_weather",
+            "targetNodeId": "code_parse_weather",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_5",
+            "sourceNodeId": "code_parse_weather",
+            "targetNodeId": "llm_greeting",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_6",
+            "sourceNodeId": "llm_greeting",
+            "targetNodeId": "code_final",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        }
+    ],
+    "settings": {
+        "apiKey": "YOUR_OPENWEATHERMAP_API_KEY"
+    },
+    "active": true
+}

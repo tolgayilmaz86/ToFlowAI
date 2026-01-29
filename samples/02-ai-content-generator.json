@@ -1,0 +1,186 @@
+{
+    "name": "AI Content Generator",
+    "description": "Uses LLM to generate content based on a topic, then formats and validates the output. Demonstrates: LLM Chat, Code execution, data transformation.",
+    "nodes": [
+        {
+            "id": "trigger_1",
+            "type": "manualTrigger",
+            "name": "Start Generation",
+            "position": {
+                "x": 100,
+                "y": 200
+            },
+            "parameters": {},
+            "disabled": false,
+            "notes": "Starts the content generation workflow"
+        },
+        {
+            "id": "set_input",
+            "type": "set",
+            "name": "Set Topic",
+            "position": {
+                "x": 300,
+                "y": 200
+            },
+            "parameters": {
+                "values": {
+                    "topic": "Benefits of workflow automation for small businesses",
+                    "style": "professional",
+                    "maxWords": 200
+                }
+            },
+            "disabled": false,
+            "notes": "Configure the topic and generation parameters here"
+        },
+        {
+            "id": "llm_outline",
+            "type": "llmChat",
+            "name": "Generate Outline",
+            "position": {
+                "x": 500,
+                "y": 200
+            },
+            "parameters": {
+                "provider": "openai",
+                "model": "gpt-4",
+                "systemPrompt": "You are a professional content strategist. Create concise, well-structured outlines.",
+                "userPrompt": "Create a brief outline (3-5 main points) for an article about: {{ topic }}\n\nStyle: {{ style }}\nTarget length: {{ maxWords }} words\n\nReturn only the outline as a numbered list.",
+                "temperature": 0.7,
+                "maxTokens": 500
+            },
+            "disabled": false,
+            "notes": "First LLM call to create the content outline"
+        },
+        {
+            "id": "llm_content",
+            "type": "llmChat",
+            "name": "Write Content",
+            "position": {
+                "x": 700,
+                "y": 200
+            },
+            "parameters": {
+                "provider": "openai",
+                "model": "gpt-4",
+                "systemPrompt": "You are a skilled content writer. Write engaging, informative content following the provided outline.",
+                "userPrompt": "Write a {{ style }} article about \"{{ topic }}\" following this outline:\n\n{{ response }}\n\nKeep it under {{ maxWords }} words. Include a compelling introduction and conclusion.",
+                "temperature": 0.8,
+                "maxTokens": 1000
+            },
+            "disabled": false,
+            "notes": "Second LLM call to write the full content based on outline"
+        },
+        {
+            "id": "code_format",
+            "type": "code",
+            "name": "Format & Validate",
+            "position": {
+                "x": 900,
+                "y": 200
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Format and validate the generated content\nconst content = input.response;\nconst wordCount = content.split(/\\s+/).length;\nconst readingTime = Math.ceil(wordCount / 200); // 200 words per minute\n\n// Basic content validation\nconst hasIntro = content.length > 100;\nconst hasParagraphs = content.includes('\\n\\n') || content.includes('. ');\n\nreturn {\n  title: input.topic,\n  content: content,\n  metadata: {\n    wordCount: wordCount,\n    readingTimeMinutes: readingTime,\n    style: input.style,\n    generatedAt: new Date().toISOString()\n  },\n  validation: {\n    isValid: hasIntro && hasParagraphs,\n    hasIntro: hasIntro,\n    hasParagraphs: hasParagraphs\n  }\n};"
+            },
+            "disabled": false,
+            "notes": "Formats the content and adds metadata"
+        },
+        {
+            "id": "if_valid",
+            "type": "if",
+            "name": "Content Valid?",
+            "position": {
+                "x": 1100,
+                "y": 200
+            },
+            "parameters": {
+                "condition": "{{ validation.isValid }} == true"
+            },
+            "disabled": false,
+            "notes": "Checks if the generated content passes validation"
+        },
+        {
+            "id": "code_success",
+            "type": "code",
+            "name": "Prepare Output",
+            "position": {
+                "x": 1300,
+                "y": 100
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Prepare final output with success status\nreturn {\n  status: 'SUCCESS',\n  article: {\n    title: input.title,\n    content: input.content,\n    wordCount: input.metadata.wordCount,\n    readingTime: `${input.metadata.readingTimeMinutes} min read`\n  },\n  message: `✅ Article generated successfully!\\n\\nWord count: ${input.metadata.wordCount}\\nReading time: ${input.metadata.readingTimeMinutes} min`\n};"
+            },
+            "disabled": false,
+            "notes": "Prepares successful output"
+        },
+        {
+            "id": "code_error",
+            "type": "code",
+            "name": "Handle Error",
+            "position": {
+                "x": 1300,
+                "y": 300
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Handle validation failure\nreturn {\n  status: 'VALIDATION_FAILED',\n  error: 'Generated content did not pass validation checks',\n  details: input.validation,\n  suggestion: 'Try regenerating with different parameters'\n};"
+            },
+            "disabled": false,
+            "notes": "Handles validation failure"
+        }
+    ],
+    "connections": [
+        {
+            "id": "conn_1",
+            "sourceNodeId": "trigger_1",
+            "targetNodeId": "set_input",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_2",
+            "sourceNodeId": "set_input",
+            "targetNodeId": "llm_outline",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_3",
+            "sourceNodeId": "llm_outline",
+            "targetNodeId": "llm_content",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_4",
+            "sourceNodeId": "llm_content",
+            "targetNodeId": "code_format",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_5",
+            "sourceNodeId": "code_format",
+            "targetNodeId": "if_valid",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_6",
+            "sourceNodeId": "if_valid",
+            "targetNodeId": "code_success",
+            "sourceHandle": "true",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_7",
+            "sourceNodeId": "if_valid",
+            "targetNodeId": "code_error",
+            "sourceHandle": "false",
+            "targetHandle": "main"
+        }
+    ],
+    "settings": {},
+    "active": true
+}

@@ -1,0 +1,258 @@
+{
+    "name": "Error Handling Demo",
+    "description": "Demonstrates error handling with try-catch patterns, retry logic, and fallback mechanisms. Shows how to build robust workflows.",
+    "nodes": [
+        {
+            "id": "trigger_1",
+            "type": "manualTrigger",
+            "name": "Start",
+            "position": {
+                "x": 100,
+                "y": 250
+            },
+            "parameters": {},
+            "disabled": false,
+            "notes": "Demonstrates error handling patterns"
+        },
+        {
+            "id": "set_config",
+            "type": "set",
+            "name": "Configuration",
+            "position": {
+                "x": 300,
+                "y": 250
+            },
+            "parameters": {
+                "values": {
+                    "primaryApiUrl": "https://api.example.com/data",
+                    "fallbackApiUrl": "https://api.backup.com/data",
+                    "maxRetries": 3,
+                    "retryDelay": 1000,
+                    "simulateError": true
+                }
+            },
+            "disabled": false,
+            "notes": "Set simulateError to true/false to test different paths"
+        },
+        {
+            "id": "code_attempt",
+            "type": "code",
+            "name": "Attempt Primary API",
+            "position": {
+                "x": 500,
+                "y": 250
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Simulate API call with potential failure\nconst simulateError = input.simulateError;\n\nif (simulateError) {\n  // Simulate an error\n  return {\n    success: false,\n    error: {\n      code: 'API_ERROR',\n      message: 'Primary API is unavailable',\n      timestamp: new Date().toISOString()\n    },\n    attempt: 1,\n    config: input\n  };\n} else {\n  // Simulate success\n  return {\n    success: true,\n    data: {\n      id: 12345,\n      message: 'Data retrieved successfully from primary API',\n      source: 'primary'\n    },\n    config: input\n  };\n}"
+            },
+            "disabled": false,
+            "notes": "Simulates primary API call (toggle simulateError to test)"
+        },
+        {
+            "id": "if_success",
+            "type": "if",
+            "name": "API Successful?",
+            "position": {
+                "x": 700,
+                "y": 250
+            },
+            "parameters": {
+                "condition": "{{ success }} == true"
+            },
+            "disabled": false,
+            "notes": "Checks if the API call succeeded"
+        },
+        {
+            "id": "code_retry_check",
+            "type": "code",
+            "name": "Check Retry Count",
+            "position": {
+                "x": 900,
+                "y": 350
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Check if we should retry or use fallback\nconst attempt = input.attempt || 1;\nconst maxRetries = input.config.maxRetries;\n\nreturn {\n  ...input,\n  attempt: attempt,\n  shouldRetry: attempt < maxRetries,\n  shouldUseFallback: attempt >= maxRetries\n};"
+            },
+            "disabled": false,
+            "notes": "Determines if retry or fallback should be used"
+        },
+        {
+            "id": "if_retry",
+            "type": "if",
+            "name": "Retry Available?",
+            "position": {
+                "x": 1100,
+                "y": 350
+            },
+            "parameters": {
+                "condition": "{{ shouldRetry }} == true"
+            },
+            "disabled": false,
+            "notes": "Checks if retries are still available"
+        },
+        {
+            "id": "code_wait",
+            "type": "code",
+            "name": "Wait & Increment",
+            "position": {
+                "x": 1300,
+                "y": 250
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Increment attempt counter (in real scenario, would also wait)\nreturn {\n  ...input.config,\n  attempt: input.attempt + 1,\n  retryReason: input.error.message,\n  simulateError: input.attempt < 2 // Succeed on 3rd attempt\n};"
+            },
+            "disabled": false,
+            "notes": "Increments retry counter"
+        },
+        {
+            "id": "code_fallback",
+            "type": "code",
+            "name": "Use Fallback API",
+            "position": {
+                "x": 1300,
+                "y": 450
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Use fallback API\nreturn {\n  success: true,\n  data: {\n    id: 99999,\n    message: 'Data retrieved from FALLBACK API',\n    source: 'fallback',\n    note: 'Primary API failed after ' + input.config.maxRetries + ' attempts'\n  },\n  usedFallback: true,\n  originalError: input.error\n};"
+            },
+            "disabled": false,
+            "notes": "Simulates fallback API success"
+        },
+        {
+            "id": "code_success",
+            "type": "code",
+            "name": "Process Success",
+            "position": {
+                "x": 900,
+                "y": 150
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Process successful response\nreturn {\n  status: 'SUCCESS',\n  result: input.data,\n  metadata: {\n    source: input.data.source,\n    usedFallback: input.usedFallback || false,\n    completedAt: new Date().toISOString()\n  }\n};"
+            },
+            "disabled": false,
+            "notes": "Handles successful API response"
+        },
+        {
+            "id": "merge_results",
+            "type": "merge",
+            "name": "Merge Results",
+            "position": {
+                "x": 1500,
+                "y": 250
+            },
+            "parameters": {
+                "mode": "passthrough"
+            },
+            "disabled": false,
+            "notes": "Collects results from different paths"
+        },
+        {
+            "id": "code_report",
+            "type": "code",
+            "name": "Generate Report",
+            "position": {
+                "x": 1700,
+                "y": 250
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Generate execution report\nconst result = input;\n\nreturn {\n  report: {\n    status: result.status || 'COMPLETED',\n    dataRetrieved: result.result ? true : false,\n    source: result.metadata?.source || 'unknown',\n    usedFallback: result.metadata?.usedFallback || false,\n    message: result.result?.message || 'No data',\n    completedAt: new Date().toISOString()\n  },\n  rawResult: result\n};"
+            },
+            "disabled": false,
+            "notes": "Generates final execution report"
+        }
+    ],
+    "connections": [
+        {
+            "id": "conn_1",
+            "sourceNodeId": "trigger_1",
+            "targetNodeId": "set_config",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_2",
+            "sourceNodeId": "set_config",
+            "targetNodeId": "code_attempt",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_3",
+            "sourceNodeId": "code_attempt",
+            "targetNodeId": "if_success",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_4",
+            "sourceNodeId": "if_success",
+            "targetNodeId": "code_success",
+            "sourceHandle": "true",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_5",
+            "sourceNodeId": "if_success",
+            "targetNodeId": "code_retry_check",
+            "sourceHandle": "false",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_6",
+            "sourceNodeId": "code_retry_check",
+            "targetNodeId": "if_retry",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_7",
+            "sourceNodeId": "if_retry",
+            "targetNodeId": "code_wait",
+            "sourceHandle": "true",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_8",
+            "sourceNodeId": "if_retry",
+            "targetNodeId": "code_fallback",
+            "sourceHandle": "false",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_9",
+            "sourceNodeId": "code_wait",
+            "targetNodeId": "code_attempt",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_10",
+            "sourceNodeId": "code_fallback",
+            "targetNodeId": "code_success",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_11",
+            "sourceNodeId": "code_success",
+            "targetNodeId": "merge_results",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        },
+        {
+            "id": "conn_12",
+            "sourceNodeId": "merge_results",
+            "targetNodeId": "code_report",
+            "sourceHandle": "main",
+            "targetHandle": "main"
+        }
+    ],
+    "settings": {},
+    "active": true
+}
