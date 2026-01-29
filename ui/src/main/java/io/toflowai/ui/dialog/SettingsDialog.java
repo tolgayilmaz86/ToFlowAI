@@ -83,6 +83,8 @@ public class SettingsDialog extends Dialog<Void> {
         HBox mainLayout = new HBox(0);
         mainLayout.setPrefSize(900, 650);
         mainLayout.setStyle("-fx-background-color: #2e3440;");
+        HBox.setHgrow(mainLayout, Priority.ALWAYS);
+        VBox.setVgrow(mainLayout, Priority.ALWAYS);
 
         // Category sidebar
         categoryList = createCategorySidebar();
@@ -90,13 +92,35 @@ public class SettingsDialog extends Dialog<Void> {
         // Content area
         contentPane = new StackPane();
         contentPane.setStyle("-fx-background-color: #3b4252;");
+        contentPane.setMinWidth(400); // Ensure minimum width to prevent collapse
         HBox.setHgrow(contentPane, Priority.ALWAYS);
 
         mainLayout.getChildren().addAll(categoryList, contentPane);
 
-        getDialogPane().setContent(mainLayout);
+        // Wrap mainLayout in a container that fills the entire dialog
+        StackPane dialogContainer = new StackPane();
+        dialogContainer.setStyle("-fx-background-color: #2e3440;");
+        dialogContainer.getChildren().add(mainLayout);
+        StackPane.setAlignment(mainLayout, Pos.TOP_LEFT); // Align to top-left to fill entire area
+        StackPane.setMargin(mainLayout, new Insets(0));
+
+        getDialogPane().setContent(dialogContainer);
         getDialogPane().getButtonTypes().addAll(ButtonType.APPLY, ButtonType.CANCEL);
-        getDialogPane().setStyle("-fx-background-color: #2e3440; -fx-padding: 0;");
+        getDialogPane().setStyle(
+                "-fx-background-color: #2e3440; -fx-padding: 0; -fx-border-width: 0; -fx-background-insets: 0;");
+
+        // Ensure the dialog pane fills the entire dialog
+        getDialogPane().setPrefSize(900, 650);
+        getDialogPane().setMinSize(800, 500);
+
+        // Override any default dialog styling
+        setOnShowing(e -> {
+            Stage stage = (Stage) getDialogPane().getScene().getWindow();
+            if (stage.getScene() != null) {
+                stage.getScene().setFill(Color.web("#2e3440"));
+                stage.getScene().getRoot().setStyle("-fx-background-color: #2e3440;");
+            }
+        });
 
         // Style buttons
         Button applyBtn = (Button) getDialogPane().lookupButton(ButtonType.APPLY);
@@ -109,7 +133,10 @@ public class SettingsDialog extends Dialog<Void> {
 
         // Select first category
         if (!categoryList.getItems().isEmpty()) {
+            CategoryItem firstItem = categoryList.getItems().get(0);
             categoryList.getSelectionModel().selectFirst();
+            // Force content load immediately to prevent blank display
+            showCategoryContent(firstItem);
         }
 
         // Set dialog size
