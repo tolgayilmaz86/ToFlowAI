@@ -1,5 +1,14 @@
 package io.toflowai.ui.controller;
 
+import java.net.URL;
+import java.util.ResourceBundle;
+
+import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
+import org.springframework.stereotype.Component;
+
 import io.toflowai.ui.canvas.WorkflowCanvas;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -8,15 +17,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import net.rgielen.fxweaver.core.FxmlView;
-import org.kordamp.ikonli.javafx.FontIcon;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignH;
-import org.springframework.stereotype.Component;
-
-import java.net.URL;
-import java.util.ResourceBundle;
 
 /**
  * Main application controller.
@@ -78,11 +78,11 @@ public class MainController implements Initializable {
     private void showWorkflowsView() {
         clearActiveButton();
         btnWorkflows.getStyleClass().add("active");
-        
+
         // Create workflow editor view
         workflowCanvas = new WorkflowCanvas();
         contentArea.getChildren().setAll(workflowCanvas);
-        
+
         updateStatus("Workflows");
     }
 
@@ -90,12 +90,12 @@ public class MainController implements Initializable {
     private void showExecutionsView() {
         clearActiveButton();
         btnExecutions.getStyleClass().add("active");
-        
+
         // Placeholder for executions view
         Label placeholder = new Label("Executions View");
         placeholder.setStyle("-fx-font-size: 24px;");
         contentArea.getChildren().setAll(placeholder);
-        
+
         updateStatus("Executions");
     }
 
@@ -103,12 +103,12 @@ public class MainController implements Initializable {
     private void showCredentialsView() {
         clearActiveButton();
         btnCredentials.getStyleClass().add("active");
-        
+
         // Placeholder for credentials view
         Label placeholder = new Label("Credentials View");
         placeholder.setStyle("-fx-font-size: 24px;");
         contentArea.getChildren().setAll(placeholder);
-        
+
         updateStatus("Credentials");
     }
 
@@ -116,12 +116,12 @@ public class MainController implements Initializable {
     private void showSettingsView() {
         clearActiveButton();
         btnSettings.getStyleClass().add("active");
-        
+
         // Placeholder for settings view
         Label placeholder = new Label("Settings View");
         placeholder.setStyle("-fx-font-size: 24px;");
         contentArea.getChildren().setAll(placeholder);
-        
+
         updateStatus("Settings");
     }
 
@@ -163,5 +163,10 @@ public class MainController implements Initializable {
         if (workflowCanvas != null) {
             workflowCanvas.runWorkflow();
         }
+    }
+
+    @FXML
+    private void onExit() {
+        javafx.application.Platform.exit();
     }
 }

@@ -153,109 +153,33 @@
     -fx-background: -fx-bg-dark;
 }
 
-/* ===== Node View ===== */
+/* ===== Node View (n8n style) ===== */
 .node-view {
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
 
-.node-view:hover .node-content {
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 16, 0, 0, 6);
+.node-box {
+    -fx-cursor: hand;
 }
 
-.node-view.selected .node-content {
-    -fx-border-color: -fx-primary;
-    -fx-effect: dropshadow(gaussian, -fx-primary, 16, 0.4, 0, 0);
-}
-
-.node-header {
-    -fx-background-color: derive(-fx-bg-card, -15%);
-    -fx-background-radius: 10 10 0 0;
-    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.1) transparent;
-    -fx-border-width: 0 0 1 0;
-}
-
-.node-title {
-    -fx-text-fill: -fx-text;
+/* Node name and subtitle labels */
+.node-name-label {
+    -fx-text-fill: #e5e5e5;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-font-size: 12;
+    -fx-padding: 2 0 0 0;
 }
 
-.node-icon {
-    -fx-icon-color: -fx-text;
+.node-subtitle-label {
+    -fx-text-fill: #737373;
+    -fx-font-size: 10px;
 }
 
-.node-body {
-    -fx-background-color: transparent;
-    -fx-padding: 8 10 10 10;
-    -fx-background-radius: 0 0 10 10;
-}
-
-.node-type-label {
-    -fx-text-fill: -fx-text-muted;
-    -fx-font-size: 10;
-}
-
-/* Node type styles */
-.node-trigger .node-content {
-    -fx-border-color: #40c057;
-}
-
-.node-trigger .node-header {
-    -fx-background-color: derive(#40c057, -40%);
-}
-
-.node-action .node-content {
-    -fx-border-color: #4a9eff;
-}
-
-.node-action .node-header {
-    -fx-background-color: derive(#4a9eff, -40%);
-}
-
-.node-flow .node-content {
-    -fx-border-color: #fcc419;
-}
-
-.node-flow .node-header {
-    -fx-background-color: derive(#fcc419, -40%);
-}
-
-.node-data .node-content {
-    -fx-border-color: #fa5252;
-}
-
-.node-data .node-header {
-    -fx-background-color: derive(#fa5252, -40%);
-}
-
-.node-ai .node-content {
-    -fx-border-color: #9775fa;
-}
-
-.node-ai .node-header {
-    -fx-background-color: derive(#9775fa, -40%);
-}
-
-/* Connection handles */
-.input-handle {
-    -fx-fill: #40c057;
-    /* Green for input */
-    -fx-stroke: white;
-    -fx-stroke-width: 2;
-    -fx-cursor: crosshair;
-}
-
+/* Connection handles - subtle gray */
+.input-handle,
 .output-handle {
-    -fx-fill: #4a9eff;
-    /* Blue for output */
-    -fx-stroke: white;
-    -fx-stroke-width: 2;
     -fx-cursor: crosshair;
-}
-
-.input-handle:hover {
-    -fx-fill: #ffd43b;
 }
 
 .output-handle:hover {

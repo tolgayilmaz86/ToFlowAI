@@ -621,7 +621,7 @@ public class WorkflowCanvas extends BorderPane {
         // Check if we're hovering over a valid target
         if (hoveredTarget != null && connectionSource != null && connectionSource.canConnectTo(hoveredTarget)) {
             System.out.println("End drag with hovered target: " + hoveredTarget.getNode().name());
-            // Don't call completeConnection here to avoid recursion - do it inline
+            // Create the connection
             String connectionId = UUID.randomUUID().toString();
             Connection connection = Connection.simple(connectionId,
                     connectionSource.getNode().id(),
@@ -630,6 +630,20 @@ public class WorkflowCanvas extends BorderPane {
             createConnectionLine(connection);
             System.out.println("Created connection: " + connectionSource.getNode().name() +
                     " -> " + hoveredTarget.getNode().name());
+        } else if (connectionSource != null && tempConnectionLine != null) {
+            // Try to find target under the mouse cursor
+            NodeView target = findTargetNodeAtPoint(tempConnectionLine.getEndX(), tempConnectionLine.getEndY());
+            if (target != null && connectionSource.canConnectTo(target)) {
+                System.out.println("Found target at release point: " + target.getNode().name());
+                String connectionId = UUID.randomUUID().toString();
+                Connection connection = Connection.simple(connectionId,
+                        connectionSource.getNode().id(),
+                        target.getNode().id());
+                workflow = workflow.withAddedConnection(connection);
+                createConnectionLine(connection);
+                System.out.println("Created connection: " + connectionSource.getNode().name() +
+                        " -> " + target.getNode().name());
+            }
         }
 
         // Clean up
@@ -645,6 +659,31 @@ public class WorkflowCanvas extends BorderPane {
         isConnectionDragging = false;
         connectionSource = null;
         hoveredTarget = null;
+    }
+
+    /**
+     * Find a node at the given canvas coordinates that can be a connection target.
+     */
+    private NodeView findTargetNodeAtPoint(double x, double y) {
+        for (NodeView nodeView : nodeViews.values()) {
+            if (nodeView == connectionSource)
+                continue;
+            if (!nodeView.canBeConnectionTarget())
+                continue;
+
+            // Check if point is within the input handle area (left side of node)
+            double nodeX = nodeView.getLayoutX();
+            double nodeY = nodeView.getLayoutY();
+            double inputCenterX = nodeView.getInputX();
+            double inputCenterY = nodeView.getInputY();
+
+            // Generous hit area around input handle (25 pixel radius)
+            double distance = Math.sqrt(Math.pow(x - inputCenterX, 2) + Math.pow(y - inputCenterY, 2));
+            if (distance <= 25) {
+                return nodeView;
+            }
+        }
+        return null;
     }
 
     /**

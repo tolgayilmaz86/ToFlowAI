@@ -24,7 +24,7 @@
                     <MenuItem text="Import..." />
                     <MenuItem text="Export..." />
                     <SeparatorMenuItem/>
-                    <MenuItem text="Exit" accelerator="Alt+F4"/>
+                    <MenuItem text="Exit" onAction="#onExit" accelerator="Alt+F4"/>
                 </Menu>
                 <Menu text="Edit">
                     <MenuItem text="Undo" accelerator="Ctrl+Z"/>
