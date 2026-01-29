@@ -1,0 +1,27 @@
+name: "Gradle dependencies"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Dependency Submission API
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # A tag is needed for git version generation to work
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 25.0.1
+          distribution: 'graalvm'
+
+      - name: Generate and submit dependency graph
+        uses: gradle/actions/dependency-submission@v5

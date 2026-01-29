@@ -1,0 +1,66 @@
+name: "Analysis"
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # CodeQL
+      contents: read # CodeQL
+      security-events: write # CodeQL
+      pull-requests: read # Sonarqube
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Disable shallow clone for sonarqube analysis
+
+      - name: Check gradle wrapper
+        uses: gradle/actions/wrapper-validation@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 25.0.1
+          distribution: 'graalvm'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java
+          queries: security-and-quality
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build, test and generate reports
+        run: ./gradlew build test jacocoTestReport --no-build-cache --info # Disabling the build cache is needed for CodeQL (otherwise compilation output might not be generated)
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+
+      - name: Perform Sonarqube Analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: ./gradlew sonar --no-parallel --no-configuration-cache # The 2 flags make sonar work with Gradle 9. Go figure...

@@ -1,0 +1,277 @@
+# This is the installer builder.
+#
+# It's triggered automatically when a version tag is pushed.
+#
+# For manual builds, add automatic_release_tag: "Nightly", otherwise the release creation will fail.
+# The previous steps will work though so this can be used to check that it builds the installers.
+# fetch-depth has been set to 0 so that manual builds will work, otherwise it might not find the version tag
+# as it only fetches the latest commit history by default.
+#
+# When setting the java version, always use x.y.z even if there's more numbers, otherwise @setup-java will fail.
+#
+
+name: Installer build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+env:
+  JAVA_VERSION: '25.0.1'
+  JAVA_DISTRIBUTION: 'graalvm'
+
+jobs:
+  build-windows-installer-msi:
+    name: Build windows installer
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Gradle
+        uses: gradle/actions/wrapper-validation@v5
+
+      - name: Setup JDK
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build
+        run: .\gradlew.bat jpackage
+
+      - name: Sign
+        uses: dlemstra/code-sign-action@v1
+        with:
+          certificate: '${{ secrets.CERTIFICATE }}'
+          files: |
+            ./app/build/distributions/ToFlowAI-*.msi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          path: ./app/build/distributions/ToFlowAI-*.msi
+          name: windows-installer-msi
+          retention-days: 1
+
+  build-windows-installer-portable:
+    name: Build windows portable installer
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Gradle
+        uses: gradle/actions/wrapper-validation@v5
+
+      - name: Setup JDK
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build
+        run: .\gradlew.bat jpackage -P"jpackage.portable=true"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          path: ./app/build/distributions/ToFlowAI-*.zip
+          name: windows-installer-portable
+          retention-days: 1
+
+  build-macos-installer:
+    name: Build ${{ matrix.macos-version }} installer
+    runs-on: ${{ matrix.macos-version }}
+    strategy:
+      matrix:
+        macos-version: [ macos-15-intel, macos-15 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Gradle
+        uses: gradle/actions/wrapper-validation@v5
+
+      - name: Setup JDK
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build
+        run: ./gradlew jpackage
+
+      - name: Rename .dmg file
+        run: |
+          # Extract filename
+          DMG_FILE=$(find ./app/build/distributions -name "*.dmg" -type f | head -n 1)
+          FILENAME=$(basename "$DMG_FILE" .dmg)
+
+          # Split into components
+          NAME_PART=$(echo "$FILENAME" | cut -d'-' -f1)        # ToFlowAI
+          VERSION_PART=$(echo "$FILENAME" | cut -d'-' -f2)     # x.y.z
+
+          # Create new filename
+          NEW_FILENAME="${NAME_PART}-${VERSION_PART}-${{ matrix.macos-version }}.dmg"
+
+          # Rename the file
+          mv "./app/build/distributions/${FILENAME}.dmg" "./app/build/distributions/${NEW_FILENAME}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          path: ./app/build/distributions/ToFlowAI-*.dmg
+          name: macos-installer-${{ matrix.macos-version }}
+          retention-days: 1
+
+  build-ubuntu-installer-deb:
+    name: Build ${{ matrix.ubuntu-version }} installer
+    runs-on: ${{ matrix.ubuntu-version }}
+    strategy:
+      matrix:
+        ubuntu-version: [ ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Gradle
+        uses: gradle/actions/wrapper-validation@v5
+
+      - name: Setup JDK
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build
+        run: ./gradlew jpackage
+
+      - name: Rename .deb file
+        run: |
+          # Extract filename
+          DEB_FILE=$(find ./app/build/distributions -name "*.deb" -type f | head -n 1)
+          FILENAME=$(basename "$DEB_FILE" .deb)
+
+          # Split into components
+          NAME_PART=$(echo "$FILENAME" | cut -d'_' -f1)        # toflowai
+          VERSION_PART=$(echo "$FILENAME" | cut -d'_' -f2)     # x.y.z
+          ARCH_PART=$(echo "$FILENAME" | cut -d'_' -f3-)       # amd64
+
+          # Make sure we don't include the '-arm' ending as it's redundant
+          UBUNTU_VERSION=$(echo "${{ matrix.ubuntu-version }}" | sed 's/-arm$//')
+
+          # Create new filename
+          NEW_FILENAME="${NAME_PART}_${VERSION_PART}_${UBUNTU_VERSION}_${ARCH_PART}.deb"
+
+          # Rename the file
+          mv "./app/build/distributions/${FILENAME}.deb" "./app/build/distributions/${NEW_FILENAME}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          path: ./app/build/distributions/toflowai_*.deb
+          name: ubuntu-installer-deb-${{ matrix.ubuntu-version }}
+          retention-days: 1
+
+  create-release:
+    name: Create release
+    runs-on: ubuntu-latest
+    needs: [ build-windows-installer-msi,
+             build-windows-installer-portable,
+             build-ubuntu-installer-deb,
+             build-macos-installer ]
+    steps:
+      - name: Download windows installer
+        uses: actions/download-artifact@v7
+        with:
+          name: windows-installer-msi
+
+      - name: Download windows portable installer
+        uses: actions/download-artifact@v7
+        with:
+          name: windows-installer-portable
+
+      - name: Download ubuntu-22.04 installer
+        uses: actions/download-artifact@v7
+        with:
+          name: ubuntu-installer-deb-ubuntu-22.04
+
+      - name: Download ubuntu-24.04 installer
+        uses: actions/download-artifact@v7
+        with:
+          name: ubuntu-installer-deb-ubuntu-24.04
+
+      - name: Download ubuntu-22.04-arm installer
+        uses: actions/download-artifact@v7
+        with:
+          name: ubuntu-installer-deb-ubuntu-22.04-arm
+
+      - name: Download ubuntu-24.04-arm installer
+        uses: actions/download-artifact@v7
+        with:
+          name: ubuntu-installer-deb-ubuntu-24.04-arm
+
+      # Intel
+      - name: Download macos-15-intel installer
+        uses: actions/download-artifact@v7
+        with:
+          name: macos-installer-macos-15-intel
+
+      # ARM
+      - name: Download macos-15 installer
+        uses: actions/download-artifact@v7
+        with:
+          name: macos-installer-macos-15
+
+      - name: Generate checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          patterns: |
+            *.exe
+            *.msi
+            *.deb
+            *.rpm
+            *.dmg
+            *.zip
+
+      - name: Create Github release
+        uses: marvinpinto/action-automatic-releases@v1.2.1
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          draft: true
+          files: |
+            checksum.txt
+            *.exe
+            *.msi
+            *.deb
+            *.rpm
+            *.dmg
+            *.zip

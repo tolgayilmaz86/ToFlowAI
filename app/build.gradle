@@ -6,7 +6,7 @@ plugins {
     id 'org.panteleyev.jpackageplugin'
     id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'checkstyle'
-    id 'pmd'
+    // id 'pmd'  // Temporarily disabled - PMD doesn't support Java 25 yet
     // id 'com.github.spotbugs' version '6.0.4'
 }
 
@@ -82,8 +82,8 @@ jpackage {
     vendor = "ToFlowAI"
     copyright = "Copyright 2024 ToFlowAI. All Rights Reserved"
     appDescription = "AI-Native Workflow Automation Platform"
-    input = layout.buildDirectory.dir("libs").get().asFile.absolutePath
-    destination = layout.buildDirectory.dir("distributions").get().asFile.absolutePath
+    input = layout.buildDirectory.dir("libs")
+    destination = layout.buildDirectory.dir("distributions")
     mainJar = tasks.bootJar.archiveFileName.get()
     
     // Embedded GraalVM runtime configuration
@@ -238,10 +238,10 @@ checkstyle {
 }
 
 // PMD configuration
-pmd {
-    toolVersion = '7.0.0'
-    ruleSets = [rootProject.file('config/pmd/pmd.xml').toString()]
-}
+// pmd {
+//     toolVersion = '7.2.0'
+//     ruleSets = [rootProject.file('config/pmd/pmd.xml').toString()]
+// }
 
 // SpotBugs configuration
 // spotbugs {
