@@ -110,7 +110,6 @@
 
 .palette-scroll {
     -fx-background-color: -fx-bg-card;
-    -fx-background: -fx-bg-card;
 }
 
 .palette-scroll .viewport {
@@ -164,7 +163,6 @@
 }
 
 .canvas-scroll {
-    -fx-background-color: transparent;
     -fx-background: -fx-bg-dark;
 }
 

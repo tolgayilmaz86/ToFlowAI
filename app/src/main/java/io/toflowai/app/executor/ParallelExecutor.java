@@ -90,12 +90,29 @@ public class ParallelExecutor implements NodeExecutor {
             this.validationError = validationError;
         }
 
-        public List<Map<String, Object>> getBranches() { return branches; }
-        public long getTimeout() { return timeout; }
-        public boolean isFailFast() { return failFast; }
-        public String getCombineResults() { return combineResults; }
-        public boolean hasValidationError() { return validationError != null; }
-        public String getValidationError() { return validationError; }
+        public List<Map<String, Object>> getBranches() {
+            return branches;
+        }
+
+        public long getTimeout() {
+            return timeout;
+        }
+
+        public boolean isFailFast() {
+            return failFast;
+        }
+
+        public String getCombineResults() {
+            return combineResults;
+        }
+
+        public boolean hasValidationError() {
+            return validationError != null;
+        }
+
+        public String getValidationError() {
+            return validationError;
+        }
     }
 
     /**
@@ -113,9 +130,17 @@ public class ParallelExecutor implements NodeExecutor {
             this.completedBranches = completedBranches;
         }
 
-        public Map<String, Object> getResults() { return results; }
-        public Map<String, String> getErrors() { return errors; }
-        public List<String> getCompletedBranches() { return completedBranches; }
+        public Map<String, Object> getResults() {
+            return results;
+        }
+
+        public Map<String, String> getErrors() {
+            return errors;
+        }
+
+        public List<String> getCompletedBranches() {
+            return completedBranches;
+        }
     }
 
     /**
@@ -145,7 +170,8 @@ public class ParallelExecutor implements NodeExecutor {
         List<String> completedBranches = new CopyOnWriteArrayList<>();
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<Future<?>> futures = submitBranchTasks(config, input, context, results, errors, completedBranches, executor);
+            List<Future<?>> futures = submitBranchTasks(config, input, context, results, errors, completedBranches,
+                    executor);
 
             waitForCompletionWithTimeout(futures, config.getTimeout(), config.isFailFast(), errors);
 
@@ -169,8 +195,8 @@ public class ParallelExecutor implements NodeExecutor {
             Map<String, Object> branch = config.getBranches().get(i);
             String branchName = (String) branch.getOrDefault("name", "branch_" + i);
 
-            futures.add(executor.submit(() ->
-                executeSingleBranch(branch, branchName, input, context, results, errors, completedBranches, config.isFailFast())));
+            futures.add(executor.submit(() -> executeSingleBranch(branch, branchName, input, context, results, errors,
+                    completedBranches, config.isFailFast())));
         }
 
         return futures;
