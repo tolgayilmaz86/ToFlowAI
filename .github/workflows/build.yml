@@ -56,12 +56,25 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     
     steps:
+      - name: Check SonarQube secrets
+        id: check-secrets
+        run: |
+          if [ -z "${{ secrets.SONAR_TOKEN }}" ] || [ -z "${{ secrets.SONAR_HOST_URL }}" ]; then
+            echo "SonarQube secrets not configured, skipping analysis"
+            echo "skip_sonar=true" >> $GITHUB_OUTPUT
+          else
+            echo "SonarQube secrets configured, proceeding with analysis"
+            echo "skip_sonar=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Checkout repository
+        if: steps.check-secrets.outputs.skip_sonar != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
       - name: Set up JDK 25
+        if: steps.check-secrets.outputs.skip_sonar != 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '25'
@@ -69,15 +82,18 @@ jobs:
           cache: 'gradle'
       
       - name: Grant execute permission for gradlew
+        if: steps.check-secrets.outputs.skip_sonar != 'true'
         run: chmod +x gradlew
       
       - name: Download coverage reports
+        if: steps.check-secrets.outputs.skip_sonar != 'true'
         uses: actions/download-artifact@v4
         with:
           name: coverage-reports
           path: build/reports/jacoco/
       
       - name: Cache SonarQube packages
+        if: steps.check-secrets.outputs.skip_sonar != 'true'
         uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
@@ -85,6 +101,7 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar
       
       - name: SonarQube Scan
+        if: steps.check-secrets.outputs.skip_sonar != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
