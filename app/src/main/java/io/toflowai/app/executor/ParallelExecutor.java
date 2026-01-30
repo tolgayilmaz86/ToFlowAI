@@ -58,100 +58,228 @@ public class ParallelExecutor implements NodeExecutor {
             ExecutionService.ExecutionContext context) {
         Map<String, Object> config = node.parameters();
 
+        // Validate and parse configuration
+        ExecutionConfig execConfig = parseExecutionConfig(config);
+        if (execConfig.hasValidationError()) {
+            return Map.of("error", execConfig.getValidationError(), "input", input);
+        }
+
+        // Execute branches in parallel
+        ExecutionResult execResult = executeBranchesInParallel(execConfig, input, context);
+
+        // Combine and return results
+        return buildFinalOutput(execConfig, execResult, input);
+    }
+
+    /**
+     * Configuration holder for parallel execution.
+     */
+    private static class ExecutionConfig {
+        private final List<Map<String, Object>> branches;
+        private final long timeout;
+        private final boolean failFast;
+        private final String combineResults;
+        private final String validationError;
+
+        public ExecutionConfig(List<Map<String, Object>> branches, long timeout,
+                boolean failFast, String combineResults, String validationError) {
+            this.branches = branches;
+            this.timeout = timeout;
+            this.failFast = failFast;
+            this.combineResults = combineResults;
+            this.validationError = validationError;
+        }
+
+        public List<Map<String, Object>> getBranches() { return branches; }
+        public long getTimeout() { return timeout; }
+        public boolean isFailFast() { return failFast; }
+        public String getCombineResults() { return combineResults; }
+        public boolean hasValidationError() { return validationError != null; }
+        public String getValidationError() { return validationError; }
+    }
+
+    /**
+     * Result holder for parallel execution.
+     */
+    private static class ExecutionResult {
+        private final Map<String, Object> results;
+        private final Map<String, String> errors;
+        private final List<String> completedBranches;
+
+        public ExecutionResult(Map<String, Object> results, Map<String, String> errors,
+                List<String> completedBranches) {
+            this.results = results;
+            this.errors = errors;
+            this.completedBranches = completedBranches;
+        }
+
+        public Map<String, Object> getResults() { return results; }
+        public Map<String, String> getErrors() { return errors; }
+        public List<String> getCompletedBranches() { return completedBranches; }
+    }
+
+    /**
+     * Parses and validates execution configuration.
+     */
+    private ExecutionConfig parseExecutionConfig(Map<String, Object> config) {
         List<Map<String, Object>> branches = (List<Map<String, Object>>) config.get("branches");
         if (branches == null || branches.isEmpty()) {
-            return Map.of("error", "No branches configured", "input", input);
+            return new ExecutionConfig(null, 0, false, null, "No branches configured");
         }
 
         long timeout = getLongConfig(config, "timeout", 60000L);
         boolean failFast = getBooleanConfig(config, "failFast", false);
         String combineResults = getStringConfig(config, "combineResults", "merge");
 
+        return new ExecutionConfig(branches, timeout, failFast, combineResults, null);
+    }
+
+    /**
+     * Executes all branches in parallel using virtual threads.
+     */
+    private ExecutionResult executeBranchesInParallel(ExecutionConfig config,
+            Map<String, Object> input, ExecutionService.ExecutionContext context) {
+
         Map<String, Object> results = new ConcurrentHashMap<>();
         Map<String, String> errors = new ConcurrentHashMap<>();
         List<String> completedBranches = new CopyOnWriteArrayList<>();
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<Future<?>> futures = new ArrayList<>();
+            List<Future<?>> futures = submitBranchTasks(config, input, context, results, errors, completedBranches, executor);
 
-            for (Map<String, Object> branch : branches) {
-                String branchName = (String) branch.getOrDefault("name", "branch_" + futures.size());
+            waitForCompletionWithTimeout(futures, config.getTimeout(), config.isFailFast(), errors);
 
-                futures.add(executor.submit(() -> {
-                    try {
-                        Map<String, Object> branchResult = executeBranch(branch, input, context);
-                        results.put(branchName, branchResult);
-                        completedBranches.add(branchName);
-                    } catch (Exception e) {
-                        errors.put(branchName, e.getMessage());
-                        if (failFast) {
-                            throw new RuntimeException("Branch failed: " + branchName, e);
-                        }
-                    }
-                }));
-            }
-
-            // Wait for all branches to complete
-            try {
-                for (Future<?> future : futures) {
-                    future.get(timeout, TimeUnit.MILLISECONDS);
-                }
-            } catch (TimeoutException e) {
-                // Cancel remaining tasks
-                for (Future<?> future : futures) {
-                    future.cancel(true);
-                }
-                errors.put("_timeout", "Execution timed out after " + timeout + "ms");
-            } catch (ExecutionException e) {
-                if (failFast) {
-                    // Cancel remaining tasks
-                    for (Future<?> future : futures) {
-                        future.cancel(true);
-                    }
-                }
-            }
         } catch (Exception e) {
             errors.put("_executor", e.getMessage());
         }
 
-        // Combine results based on strategy
-        Map<String, Object> output = new HashMap<>();
-        output.put("completedBranches", completedBranches);
-        output.put("branchCount", branches.size());
-        output.put("successCount", completedBranches.size());
-        output.put("hasErrors", !errors.isEmpty());
+        return new ExecutionResult(results, errors, completedBranches);
+    }
 
-        if (!errors.isEmpty()) {
-            output.put("errors", errors);
+    /**
+     * Submits branch execution tasks to the executor.
+     */
+    private List<Future<?>> submitBranchTasks(ExecutionConfig config, Map<String, Object> input,
+            ExecutionService.ExecutionContext context, Map<String, Object> results,
+            Map<String, String> errors, List<String> completedBranches, ExecutorService executor) {
+
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int i = 0; i < config.getBranches().size(); i++) {
+            Map<String, Object> branch = config.getBranches().get(i);
+            String branchName = (String) branch.getOrDefault("name", "branch_" + i);
+
+            futures.add(executor.submit(() ->
+                executeSingleBranch(branch, branchName, input, context, results, errors, completedBranches, config.isFailFast())));
         }
 
-        switch (combineResults) {
-            case "merge" -> {
-                // Merge all branch results into a single map
-                Map<String, Object> merged = new HashMap<>(input);
-                for (Map.Entry<String, Object> entry : results.entrySet()) {
-                    if (entry.getValue() instanceof Map<?, ?> m) {
-                        merged.putAll((Map<String, Object>) m);
-                    } else {
-                        merged.put(entry.getKey(), entry.getValue());
-                    }
-                }
-                output.put("result", merged);
+        return futures;
+    }
+
+    /**
+     * Executes a single branch and handles errors.
+     */
+    private void executeSingleBranch(Map<String, Object> branch, String branchName,
+            Map<String, Object> input, ExecutionService.ExecutionContext context,
+            Map<String, Object> results, Map<String, String> errors,
+            List<String> completedBranches, boolean failFast) {
+
+        try {
+            Map<String, Object> branchResult = executeBranch(branch, input, context);
+            results.put(branchName, branchResult);
+            completedBranches.add(branchName);
+        } catch (Exception e) {
+            errors.put(branchName, e.getMessage());
+            if (failFast) {
+                throw new RuntimeException("Branch failed: " + branchName, e);
             }
-            case "array" -> {
-                // Return results as an array
-                output.put("result", new ArrayList<>(results.values()));
+        }
+    }
+
+    /**
+     * Waits for all futures to complete with timeout handling.
+     */
+    private void waitForCompletionWithTimeout(List<Future<?>> futures, long timeout,
+            boolean failFast, Map<String, String> errors) {
+
+        try {
+            for (Future<?> future : futures) {
+                future.get(timeout, TimeUnit.MILLISECONDS);
             }
+        } catch (TimeoutException e) {
+            cancelAllFutures(futures);
+            errors.put("_timeout", "Execution timed out after " + timeout + "ms");
+        } catch (ExecutionException e) {
+            if (failFast) {
+                cancelAllFutures(futures);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            cancelAllFutures(futures);
+        }
+    }
+
+    /**
+     * Cancels all pending futures.
+     */
+    private void cancelAllFutures(List<Future<?>> futures) {
+        for (Future<?> future : futures) {
+            future.cancel(true);
+        }
+    }
+
+    /**
+     * Builds the final output based on execution results.
+     */
+    private Map<String, Object> buildFinalOutput(ExecutionConfig config,
+            ExecutionResult result, Map<String, Object> input) {
+
+        Map<String, Object> output = new HashMap<>();
+        output.put("completedBranches", result.getCompletedBranches());
+        output.put("branchCount", config.getBranches().size());
+        output.put("successCount", result.getCompletedBranches().size());
+        output.put("hasErrors", !result.getErrors().isEmpty());
+
+        if (!result.getErrors().isEmpty()) {
+            output.put("errors", result.getErrors());
+        }
+
+        combineResultsBasedOnStrategy(config.getCombineResults(), result.getResults(), input, output);
+
+        return output;
+    }
+
+    /**
+     * Combines results based on the specified strategy.
+     */
+    private void combineResultsBasedOnStrategy(String strategy, Map<String, Object> results,
+            Map<String, Object> input, Map<String, Object> output) {
+
+        switch (strategy) {
+            case "merge" -> output.put("result", mergeResults(results, input));
+            case "array" -> output.put("result", new ArrayList<>(results.values()));
             case "first" -> {
-                // Return first completed result
                 if (!results.isEmpty()) {
                     output.put("result", results.values().iterator().next());
                 }
             }
             default -> output.put("branches", results);
         }
+    }
 
-        return output;
+    /**
+     * Merges all branch results into a single map.
+     */
+    private Map<String, Object> mergeResults(Map<String, Object> results, Map<String, Object> input) {
+        Map<String, Object> merged = new HashMap<>(input);
+        for (Map.Entry<String, Object> entry : results.entrySet()) {
+            if (entry.getValue() instanceof Map<?, ?> map) {
+                merged.putAll((Map<String, Object>) map);
+            } else {
+                merged.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return merged;
     }
 
     @SuppressWarnings("unchecked")
