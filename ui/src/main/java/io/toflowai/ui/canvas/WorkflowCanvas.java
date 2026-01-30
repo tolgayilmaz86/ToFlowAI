@@ -109,6 +109,9 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     // Clipboard
     private final java.util.List<Node> clipboardNodes = new java.util.ArrayList<>();
 
+    // Context menu state
+    private ContextMenu currentContextMenu = null;
+
     // File chooser state
     private java.io.File lastImportDirectory = null;
     private java.io.File lastExportDirectory = null;
@@ -346,6 +349,11 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                     e.getTarget() == connectionLayer || e.getTarget() == gridLayer) {
                 if (e.getButton() == MouseButton.PRIMARY) {
                     deselectAll();
+                    // Hide context menu when clicking elsewhere
+                    if (currentContextMenu != null) {
+                        currentContextMenu.hide();
+                        currentContextMenu = null;
+                    }
                 } else if (e.getButton() == MouseButton.SECONDARY) {
                     showCanvasContextMenu(e.getScreenX(), e.getScreenY(), e.getX(), e.getY());
                 }
@@ -357,7 +365,13 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
      * Show context menu for canvas (empty space).
      */
     private void showCanvasContextMenu(double screenX, double screenY, double canvasX, double canvasY) {
+        // Hide any existing context menu
+        if (currentContextMenu != null) {
+            currentContextMenu.hide();
+        }
+
         ContextMenu contextMenu = new ContextMenu();
+        currentContextMenu = contextMenu;
 
         // Add Node submenu
         Menu addNodeMenu = new Menu("Add Node");
@@ -544,7 +558,14 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
             } else {
                 switch (e.getCode()) {
                     case DELETE, BACK_SPACE -> deleteSelected();
-                    case ESCAPE -> deselectAll();
+                    case ESCAPE -> {
+                        deselectAll();
+                        // Hide context menu on escape
+                        if (currentContextMenu != null) {
+                            currentContextMenu.hide();
+                            currentContextMenu = null;
+                        }
+                    }
                     default -> {
                     }
                 }

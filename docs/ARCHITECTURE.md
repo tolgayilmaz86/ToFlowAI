@@ -142,7 +142,7 @@ Imagine you want to:
 | **Executor** | Backend code that runs a node | `HttpRequestExecutor`, `CodeExecutor` |
 | **Execution** | One complete run of a workflow | Started at 10:30, took 5 seconds |
 
-### 3.3 Sample Workflow (Mermaid)
+### 3.3 Sample Workflow
 
 ```mermaid
 flowchart LR
@@ -157,22 +157,11 @@ flowchart LR
     end
 ```
 
-### 3.4 Comparison with Other Tools
-
-| Feature | n8n | Zapier | ToFlowAI |
-|---------|-----|--------|----------|
-| Visual Editor | ✅ | ✅ | ✅ |
-| Self-Hosted | ✅ | ❌ | ✅ |
-| Open Source | ✅ | ❌ | ✅ |
-| Desktop App | ❌ | ❌ | ✅ |
-| AI Nodes | ✅ | ✅ | ✅ |
-| Code Nodes | ✅ | Limited | ✅ |
-
 ---
 
 ## 4. Project Overview
 
-### 4.1 High-Level Architecture (Mermaid)
+### 4.1 High-Level Architecture
 
 ```mermaid
 graph TB
@@ -272,7 +261,7 @@ ToFlowAI/
 └── 📄 gradlew.bat                   # Gradle wrapper (Windows)
 ```
 
-### 3.3 Why This Structure?
+### 4.3 Why This Structure?
 
 | Module | Responsibility | Depends On |
 |--------|----------------|------------|
@@ -296,16 +285,16 @@ ToFlowAI/
 graph LR
     subgraph Frontend
         JFX[JavaFX 21.0.5]
-        AFX[AtlantaFX Nord Dark]
-        IKN[Ikonli Icons]
+        AFX[AtlantaFX 2.0.1]
+        IKN[Ikonli 12.3.1]
     end
     
     subgraph Backend
         J25[Java 25]
-        SB[Spring Boot 3.5.0]
+        SB[Spring Boot 4.0.1]
         JPA[Spring Data JPA]
         H2[(H2 Database)]
-        FW[Flyway Migrations]
+        FW[Flyway 11.7.2]
     end
     
     subgraph Build
@@ -318,15 +307,34 @@ graph LR
     FW --> H2
 ```
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | JavaFX 21.0.5 | Desktop GUI framework |
-| **Theme** | AtlantaFX (Nord Dark) | Modern UI styling |
-| **Icons** | Ikonli (Material Design) | Icon library |
-| **Backend** | Java 25 + Spring Boot 3.5.0 | Application framework with virtual threads |
-| **Database** | H2 (embedded) | SQL database |
-| **Migrations** | Flyway | Schema version control |
-| **Build** | Gradle 9.2.0 | Build automation |
+| Layer | Technology | Version | Purpose |
+|-------|------------|---------|---------|
+| **Language** | Java | 25 | Core programming language with virtual threads |
+| **Frontend** | JavaFX | 21.0.5 | Desktop GUI framework for rich user interfaces |
+| **Theme** | AtlantaFX | 2.0.1 | Modern dark theme (Nord Dark) for JavaFX applications |
+| **Icons** | Ikonli | 12.3.1 | Icon library providing Material Design and other icon packs |
+| **Backend** | Spring Boot | 4.0.1 | Application framework with dependency injection and embedded server |
+| **Database** | Spring Data JPA | - | Object-relational mapping and database access layer |
+| **Database** | H2 | - | Embedded SQL database for local data storage |
+| **Migrations** | Flyway | 11.7.2 | Database schema version control and migrations |
+| **Security** | Spring Security | - | Authentication and authorization framework |
+| **Web** | Spring Web | - | REST API and web request handling |
+| **WebFlux** | Spring WebFlux | - | Reactive web framework for non-blocking operations |
+| **WebSocket** | Spring WebSocket | - | Real-time bidirectional communication |
+| **Validation** | Bean Validation | - | Input validation and constraint checking |
+| **Scripting** | GraalVM Polyglot | 25.0.1 | Multi-language scripting engine (JavaScript, Python, etc.) |
+| **Scripting** | GraalVM JS | 25.0.1 | JavaScript engine for workflow code execution |
+| **Encryption** | BouncyCastle | 1.83 | Cryptographic operations and secure credential storage |
+| **Utilities** | Apache Commons Lang3 | 3.20.0 | String manipulation, validation, and utility functions |
+| **Collections** | Apache Commons Collections4 | 4.5.0 | Enhanced collection data structures and utilities |
+| **JSON** | Jackson | 2.19.0 | JSON serialization/deserialization for data transfer |
+| **Native Access** | JNA | 5.18.1 | Java Native Access for platform-specific operations |
+| **Documentation** | SpringDoc OpenAPI | 2.8.0 | Automatic API documentation generation |
+| **Build** | Gradle | 9.2.0 | Build automation and dependency management |
+| **Packaging** | jpackage | 1.7.6 | Native application packaging and installer creation |
+| **Testing** | JUnit | 6.0.1 | Unit testing framework |
+| **Architecture Tests** | ArchUnit | 1.4.1 | Architecture and code structure validation |
+| **UI Testing** | TestFX | 4.0.18 | JavaFX UI testing framework |
 
 ### 5.2 Why These Technologies?
 
@@ -346,7 +354,7 @@ ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 - Blocking I/O doesn't block other work
 - Perfect for workflow automation (many concurrent operations)
 
-#### Spring Boot 3.5.0
+#### Spring Boot 4.0.1
 
 Spring Boot provides:
 - **Dependency Injection** - Components are wired automatically
@@ -368,7 +376,128 @@ public class ExecutionService {
 }
 ```
 
-#### JavaFX with AtlantaFX
+#### GraalVM Polyglot & JavaScript Engine
+
+GraalVM enables multi-language scripting within the JVM:
+
+```java
+// Execute JavaScript code in workflows
+try (Context context = Context.newBuilder("js")
+        .allowAllAccess(true)
+        .build()) {
+    
+    // Bind workflow variables
+    context.getBindings("js").putMember("inputData", nodeInput);
+    
+    // Execute user code
+    Value result = context.eval("js", userScript);
+    
+    return result.asString();
+}
+```
+
+**Why GraalVM?**
+- **Multi-language support** - JavaScript, Python, Ruby, R, etc.
+- **High performance** - JIT compilation for fast execution
+- **Security** - Sandboxed execution environment
+- **Workflow flexibility** - Users can write custom code nodes
+
+#### BouncyCastle Cryptography
+
+Provides enterprise-grade cryptographic operations:
+
+```java
+// Encrypt sensitive credential data
+public String encrypt(String plaintext) {
+    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
+    // ... encryption logic
+}
+```
+
+**Why BouncyCastle?**
+- **Strong encryption** - AES, RSA, ECC algorithms
+- **Credential security** - Secure storage of API keys and passwords
+- **Compliance** - FIPS 140-2 compliant cryptography
+
+#### Apache Commons Libraries
+
+Utility libraries that extend Java's standard library:
+
+```java
+// String utilities
+StringUtils.isNotBlank(input);  // Better than manual null checks
+StringUtils.capitalize(name);   // Consistent capitalization
+
+// Collection utilities
+CollectionUtils.isNotEmpty(list);  // Null-safe collection checks
+MapUtils.getString(map, "key", "default");  // Safe map access
+```
+
+**Why Apache Commons?**
+- **Reliability** - Battle-tested utility functions
+- **Consistency** - Standardized approaches to common problems
+- **Performance** - Optimized implementations
+
+#### Jackson JSON Processing
+
+Industry-standard JSON serialization/deserialization:
+
+```java
+// Convert objects to/from JSON
+ObjectMapper mapper = new ObjectMapper();
+String json = mapper.writeValueAsString(workflowDTO);
+WorkflowDTO restored = mapper.readValue(json, WorkflowDTO.class);
+```
+
+**Why Jackson?**
+- **Performance** - Fastest JSON library for Java
+- **Flexibility** - Extensive customization options
+- **Integration** - Built into Spring Boot
+
+#### JNA (Java Native Access)
+
+Access native platform libraries from Java:
+
+```java
+// Access Windows/macOS/Linux native functions
+Native.load("user32", User32.class);  // Windows API
+// ... call native functions directly
+```
+
+**Why JNA?**
+- **Platform integration** - Access OS-specific features
+- **No JNI complexity** - Pure Java interface to native code
+- **Cross-platform** - Same API works on all platforms
+
+#### Testing Stack
+
+Comprehensive testing with modern frameworks:
+
+```java
+// Unit tests with JUnit 6
+@Test
+void shouldExecuteWorkflow() {
+    // Given
+    var workflow = createTestWorkflow();
+    
+    // When
+    var result = executionService.execute(workflow);
+    
+    // Then
+    assertThat(result.getStatus()).isEqualTo(COMPLETED);
+}
+
+// Architecture tests with ArchUnit
+@ArchTest
+static final ArchRule services_should_be_package_private =
+    classes().that().haveSimpleNameEndingWith("Service")
+        .should().bePackagePrivate();
+```
+
+**Why This Testing Stack?**
+- **JUnit 6** - Modern, powerful testing framework
+- **ArchUnit** - Enforces architectural rules and patterns
+- **TestFX** - Specialized testing for JavaFX UI components
 
 ```java
 // Modern dark theme UI
@@ -384,7 +513,7 @@ Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
 ### 4.3 Running the Application
 
 ```bash
-# Set Java 25
+# Set Java 25 (Not needed if it is already your default JDK)
 $env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-25.0.0.36-hotspot"
 
 # Build the project

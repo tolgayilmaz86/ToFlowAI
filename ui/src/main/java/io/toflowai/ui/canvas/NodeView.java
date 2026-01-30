@@ -71,6 +71,9 @@ public class NodeView extends StackPane {
     private ExecutionState executionState = ExecutionState.IDLE;
     private String errorMessage = null;
 
+    // Context menu state
+    private ContextMenu currentContextMenu = null;
+
     /** Execution states for visual feedback */
     public enum ExecutionState {
         IDLE, // Normal state
@@ -369,6 +372,11 @@ public class NodeView extends StackPane {
         nodeBox.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
                 canvas.selectNode(this, e.isControlDown());
+                // Hide context menu when clicking on node
+                if (currentContextMenu != null) {
+                    currentContextMenu.hide();
+                    currentContextMenu = null;
+                }
                 if (e.getClickCount() == 2) {
                     canvas.openNodeEditor(this);
                 }
@@ -381,7 +389,13 @@ public class NodeView extends StackPane {
     }
 
     private void showContextMenu(double screenX, double screenY) {
+        // Hide any existing context menu
+        if (currentContextMenu != null) {
+            currentContextMenu.hide();
+        }
+
         ContextMenu contextMenu = new ContextMenu();
+        currentContextMenu = contextMenu;
 
         MenuItem editItem = new MenuItem("Open Editor");
         editItem.setGraphic(FontIcon.of(MaterialDesignP.PENCIL, 14));
