@@ -81,6 +81,12 @@ public class ExpressionEditor extends VBox {
             "toString(value)",
             "toBoolean(value)");
 
+    private final List<String> validFunctionNames = List.of(
+            "if", "and", "or", "not", "eq", "ne", "gt", "lt", "gte", "lte",
+            "contains", "startsWith", "endsWith", "length", "trim", "upper", "lower",
+            "concat", "substring", "replace", "split", "join", "now", "format", "parse",
+            "toNumber", "toString", "toBoolean");
+
     private Consumer<String> onExpressionChange;
 
     public ExpressionEditor() {
@@ -325,6 +331,16 @@ public class ExpressionEditor extends VBox {
             String varName = varMatcher.group(1).trim();
             if (!availableVariables.contains(varName)) {
                 setValid(false, "Unknown variable: " + varName);
+                return;
+            }
+        }
+
+        // Check for undefined functions
+        Matcher funcMatcher = FUNCTION_PATTERN.matcher(expression);
+        while (funcMatcher.find()) {
+            String funcName = funcMatcher.group(1);
+            if (!validFunctionNames.contains(funcName)) {
+                setValid(false, "Unknown function: " + funcName);
                 return;
             }
         }

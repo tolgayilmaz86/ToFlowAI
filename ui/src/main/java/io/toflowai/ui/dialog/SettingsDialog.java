@@ -23,7 +23,6 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignW;
 
 import io.toflowai.common.dto.SettingDTO;
 import io.toflowai.common.enums.SettingCategory;
-import io.toflowai.common.service.CredentialServiceInterface;
 import io.toflowai.common.service.SettingsServiceInterface;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -61,7 +60,6 @@ import javafx.stage.StageStyle;
 public class SettingsDialog extends Dialog<Void> {
 
     private final SettingsServiceInterface settingsService;
-    private final CredentialServiceInterface credentialService;
     private final ListView<CategoryItem> categoryList;
     private final StackPane contentPane;
     private final Map<String, Node> controlMap = new HashMap<>();
@@ -69,9 +67,8 @@ public class SettingsDialog extends Dialog<Void> {
 
     private CategoryItem selectedCategory;
 
-    public SettingsDialog(SettingsServiceInterface settingsService, CredentialServiceInterface credentialService) {
+    public SettingsDialog(SettingsServiceInterface settingsService) {
         this.settingsService = settingsService;
-        this.credentialService = credentialService;
 
         setTitle("Settings");
         initModality(Modality.APPLICATION_MODAL);

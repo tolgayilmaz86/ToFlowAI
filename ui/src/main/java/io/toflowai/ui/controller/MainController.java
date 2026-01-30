@@ -208,6 +208,7 @@ public class MainController implements Initializable {
         return container;
     }
 
+    @SuppressWarnings("unchecked")
     private TableView<ExecutionDTO> createExecutionsTable() {
         TableView<ExecutionDTO> table = new TableView<>();
         table.setStyle("-fx-background-color: #2d2d2d; -fx-border-color: #404040;");
@@ -268,11 +269,12 @@ public class MainController implements Initializable {
         triggerCol.setPrefWidth(80);
 
         table.getColumns().addAll(workflowCol, statusCol, startedCol, durationCol, triggerCol);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         return table;
     }
 
+    @SuppressWarnings("unchecked")
     private void refreshExecutions(VBox container) {
         try {
             List<ExecutionDTO> executions = executionService.findAll();
@@ -502,7 +504,7 @@ public class MainController implements Initializable {
         btnSettings.getStyleClass().add("active");
 
         // Show settings dialog
-        SettingsDialog dialog = new SettingsDialog(settingsService, credentialService);
+        SettingsDialog dialog = new SettingsDialog(settingsService);
         dialog.showAndWait();
 
         // Return to workflows view after closing dialog

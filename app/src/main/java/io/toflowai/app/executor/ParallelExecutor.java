@@ -53,7 +53,6 @@ public class ParallelExecutor implements NodeExecutor {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> execute(Node node, Map<String, Object> input,
             ExecutionService.ExecutionContext context) {
         Map<String, Object> config = node.parameters();
@@ -146,6 +145,7 @@ public class ParallelExecutor implements NodeExecutor {
     /**
      * Parses and validates execution configuration.
      */
+    @SuppressWarnings("unchecked")
     private ExecutionConfig parseExecutionConfig(Map<String, Object> config) {
         List<Map<String, Object>> branches = (List<Map<String, Object>>) config.get("branches");
         if (branches == null || branches.isEmpty()) {
@@ -296,6 +296,7 @@ public class ParallelExecutor implements NodeExecutor {
     /**
      * Merges all branch results into a single map.
      */
+    @SuppressWarnings("unchecked")
     private Map<String, Object> mergeResults(Map<String, Object> results, Map<String, Object> input) {
         Map<String, Object> merged = new HashMap<>(input);
         for (Map.Entry<String, Object> entry : results.entrySet()) {

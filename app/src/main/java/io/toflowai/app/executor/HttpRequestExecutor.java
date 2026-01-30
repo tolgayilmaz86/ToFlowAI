@@ -25,11 +25,9 @@ import io.toflowai.common.service.SettingsServiceInterface;
 public class HttpRequestExecutor implements NodeExecutor {
 
     private final HttpClient httpClient;
-    private final SettingsServiceInterface settingsService;
     private final int defaultTimeout;
 
     public HttpRequestExecutor(SettingsServiceInterface settingsService) {
-        this.settingsService = settingsService;
         int connectTimeout = settingsService.getInt(SettingsDefaults.HTTP_CONNECT_TIMEOUT, 30);
         this.defaultTimeout = settingsService.getInt(SettingsDefaults.HTTP_READ_TIMEOUT, 30);
 

@@ -558,6 +558,10 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
                         selectAll();
                         e.consume();
                     }
+                    case E -> {
+                        exportWorkflow();
+                        e.consume();
+                    }
                 }
             } else {
                 switch (e.getCode()) {

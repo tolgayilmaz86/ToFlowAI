@@ -162,7 +162,9 @@ public class RagExecutor implements NodeExecutor {
                 List<Map<String, Object>> sources = new ArrayList<>();
                 for (Map<String, Object> doc : retrievedDocs) {
                     if (doc.containsKey("metadata")) {
-                        sources.add((Map<String, Object>) doc.get("metadata"));
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> metadata = (Map<String, Object>) doc.get("metadata");
+                        sources.add(metadata);
                     }
                 }
                 if (!sources.isEmpty()) {
@@ -284,7 +286,6 @@ public class RagExecutor implements NodeExecutor {
         return embedding;
     }
 
-    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> ensureEmbeddings(List<Map<String, Object>> documents,
             String provider, String baseUrl,
             String apiKey, String model,

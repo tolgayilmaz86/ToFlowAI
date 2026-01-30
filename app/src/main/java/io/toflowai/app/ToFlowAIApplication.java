@@ -22,11 +22,11 @@ public class ToFlowAIApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ToFlowAIApplication.class);
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         log.info("🚀 ToFlowAI Application Starting...");
 
         // First bootstrap Spring Boot
-        ConfigurableApplicationContext context = SpringApplication.run(ToFlowAIApplication.class, args);
+        final ConfigurableApplicationContext context = SpringApplication.run(ToFlowAIApplication.class, args);
 
         log.info("✅ Spring Boot initialized successfully");
 

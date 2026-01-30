@@ -267,9 +267,9 @@ public class DataPreviewPanel extends VBox {
 
         if (node.isObject()) {
             item = new TreeItem<>(key + " {" + node.size() + "}");
-            node.fields().forEachRemaining(field -> {
+            for (var field : node.properties()) {
                 item.getChildren().add(buildTreeItem(field.getKey(), field.getValue()));
-            });
+            }
         } else if (node.isArray()) {
             item = new TreeItem<>(key + " [" + node.size() + "]");
             for (int i = 0; i < node.size(); i++) {
@@ -294,7 +294,6 @@ public class DataPreviewPanel extends VBox {
         return item;
     }
 
-    @SuppressWarnings("unchecked")
     private void updateTableView() {
         tableView.getItems().clear();
 
@@ -308,11 +307,11 @@ public class DataPreviewPanel extends VBox {
             } else {
                 JsonNode node = OBJECT_MAPPER.valueToTree(currentData);
                 if (node.isObject()) {
-                    node.fields().forEachRemaining(field -> {
+                    for (var field : node.properties()) {
                         String valueStr = formatJsonValue(field.getValue());
                         String typeStr = getJsonTypeName(field.getValue());
                         tableView.getItems().add(new DataEntry(field.getKey(), valueStr, typeStr));
-                    });
+                    }
                 }
             }
         } catch (Exception e) {

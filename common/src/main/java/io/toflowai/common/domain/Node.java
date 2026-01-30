@@ -1,6 +1,5 @@
 package io.toflowai.common.domain;
 
-import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -24,8 +23,7 @@ public record Node(
         Map<String, Object> parameters,
         Long credentialId,
         boolean disabled,
-        String notes
-) {
+        String notes) {
     /**
      * Canvas position record.
      */

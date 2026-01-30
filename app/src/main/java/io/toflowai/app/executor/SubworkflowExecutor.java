@@ -56,7 +56,6 @@ public class SubworkflowExecutor implements NodeExecutor {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> execute(Node node, Map<String, Object> input,
             ExecutionService.ExecutionContext context) {
         Map<String, Object> config = node.parameters();
@@ -84,7 +83,6 @@ public class SubworkflowExecutor implements NodeExecutor {
 
         // Check if we should wait for completion
         boolean waitForCompletion = getBooleanConfig(config, "waitForCompletion", true);
-        long timeout = getLongConfig(config, "timeout", 300000L); // 5 minutes default
 
         Map<String, Object> result = new HashMap<>();
 
@@ -111,14 +109,13 @@ public class SubworkflowExecutor implements NodeExecutor {
             result.put("durationMs", execution.durationMs());
         } else {
             // Execute asynchronously
-            var future = getExecutionService().executeAsync(workflowId, subworkflowInput);
+            getExecutionService().executeAsync(workflowId, subworkflowInput);
 
             result.put("async", true);
             result.put("message", "Subworkflow started asynchronously");
             result.put("workflowId", workflowId);
             result.put("workflowName", subworkflow.get().name());
 
-            // We don't wait for the result, but we store a reference
             // The caller can check execution history later
         }
 
@@ -210,7 +207,6 @@ public class SubworkflowExecutor implements NodeExecutor {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     private Object getNestedValue(Map<String, Object> map, String path) {
         if (map == null || path == null || path.isEmpty()) {
             return null;
@@ -238,22 +234,6 @@ public class SubworkflowExecutor implements NodeExecutor {
             return b;
         if (value instanceof String s)
             return Boolean.parseBoolean(s);
-        return defaultValue;
-    }
-
-    private long getLongConfig(Map<String, Object> config, String key, long defaultValue) {
-        Object value = config.get(key);
-        if (value == null)
-            return defaultValue;
-        if (value instanceof Number n)
-            return n.longValue();
-        if (value instanceof String s) {
-            try {
-                return Long.parseLong(s);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
         return defaultValue;
     }
 }

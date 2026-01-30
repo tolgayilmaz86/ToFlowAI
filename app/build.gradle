@@ -6,7 +6,7 @@ plugins {
     id 'org.panteleyev.jpackageplugin'
     id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'checkstyle'
-    // id 'pmd'  // Temporarily disabled - PMD doesn't support Java 25 yet
+    id 'pmd'
     // id 'com.github.spotbugs' version '6.0.4'
 }
 
@@ -238,10 +238,10 @@ checkstyle {
 }
 
 // PMD configuration
-// pmd {
-//     toolVersion = '7.2.0'
-//     ruleSets = [rootProject.file('config/pmd/pmd.xml').toString()]
-// }
+pmd {
+    toolVersion = '7.21.0'
+    ruleSets = [rootProject.file('config/pmd/pmd.xml').toString()]
+}
 
 // SpotBugs configuration
 // spotbugs {

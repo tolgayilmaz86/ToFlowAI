@@ -39,10 +39,17 @@ public class ToFlowAIUI extends Application {
         if (springContext == null) {
             throw new IllegalStateException("Spring context must be set before launching UI");
         }
+        if (applicationClass == null) {
+            System.out.println("⚠️  Warning: Application class not set, using default behavior");
+        }
     }
 
     @Override
     public void start(Stage primaryStage) {
+        // Log application startup with class info
+        System.out.println(
+                "🚀 Starting " + (applicationClass != null ? applicationClass.getSimpleName() : "JavaFX") + " UI");
+
         // Apply AtlantaFX theme
         Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
 
@@ -55,7 +62,9 @@ public class ToFlowAIUI extends Application {
                 1400, 900);
 
         // Configure stage
-        primaryStage.setTitle("ToFlowAI - Workflow Automation");
+        String appName = applicationClass != null ? applicationClass.getSimpleName().replace("Application", "")
+                : "ToFlowAI";
+        primaryStage.setTitle(appName + " - Workflow Automation");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(1200);
         primaryStage.setMinHeight(700);

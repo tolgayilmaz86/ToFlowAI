@@ -50,6 +50,7 @@ public class VariableManagerDialog extends Dialog<Void> {
     private final ComboBox<VariableScope> scopeFilter;
     private final Long workflowId;
 
+    @SuppressWarnings("unchecked")
     public VariableManagerDialog(VariableServiceInterface variableService, Long workflowId) {
         this.variableService = variableService;
         this.workflowId = workflowId;

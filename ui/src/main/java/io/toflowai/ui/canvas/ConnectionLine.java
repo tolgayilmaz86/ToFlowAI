@@ -1,7 +1,6 @@
 package io.toflowai.ui.canvas;
 
 import io.toflowai.common.domain.Connection;
-import javafx.beans.binding.Bindings;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.CubicCurve;
@@ -20,7 +19,7 @@ public class ConnectionLine extends Group {
     private final Connection connection;
     private final NodeView sourceNode;
     private final NodeView targetNode;
-    
+
     private final CubicCurve curve;
     private final Polygon arrow;
 
@@ -47,7 +46,7 @@ public class ConnectionLine extends Group {
 
         // Bind positions
         setupBindings();
-        
+
         // Initial position
         updatePosition();
     }
@@ -106,8 +105,7 @@ public class ConnectionLine extends Group {
         arrow.getPoints().setAll(
                 toX, toY,
                 x1, y1,
-                x2, y2
-        );
+                x2, y2);
     }
 
     public void setSelected(boolean selected) {
@@ -126,7 +124,7 @@ public class ConnectionLine extends Group {
     }
 
     public boolean involvesNode(String nodeId) {
-        return connection.sourceNodeId().equals(nodeId) || 
-               connection.targetNodeId().equals(nodeId);
+        return connection.sourceNodeId().equals(nodeId) ||
+                connection.targetNodeId().equals(nodeId);
     }
 }

@@ -4,11 +4,65 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.net/ruleset_2_0_0.xsd">
 
-    <description>ToFlowAI PMD Rules</description>
+    <description>ToFlowAI PMD Rules - Focused on critical issues</description>
 
-    <!-- Basic rules that exist in PMD 7.0.0 -->
-    <rule ref="category/java/bestpractices.xml"/>
-    <rule ref="category/java/codestyle.xml"/>
+    <!-- Error Prone - Critical bugs and potential runtime issues -->
     <rule ref="category/java/errorprone.xml"/>
+
+    <!-- Best Practices - Important design and maintainability issues -->
+    <rule ref="category/java/bestpractices.xml"/>
+
+    <!-- Performance - Actual performance issues -->
     <rule ref="category/java/performance.xml"/>
+
+    <!-- Code Style - Only the most important style issues -->
+    <rule ref="category/java/codestyle.xml">
+        <!-- Exclude overly pedantic rules -->
+        <exclude name="AbstractNaming"/>
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="AvoidInlineConditionals"/>
+        <exclude name="BooleanGetMethodName"/>
+        <exclude name="CallSuperInConstructor"/>
+        <exclude name="ClassNamingConventions"/>
+        <exclude name="CommentDefaultAccessModifier"/>
+        <exclude name="ConfusingTernary"/>
+        <exclude name="ControlStatementBraces"/>
+        <exclude name="ExtendsObject"/>
+        <exclude name="FieldNamingConventions"/>
+        <exclude name="FinalFieldCouldBeStatic"/>
+        <exclude name="ForLoopShouldBeWhileLoop"/>
+        <exclude name="FormalParameterNamingConventions"/>
+        <exclude name="GenericsNaming"/>
+        <exclude name="IdenticalCatchBranches"/>
+        <exclude name="LinguisticNaming"/>
+        <exclude name="LocalHomeNamingConvention"/>
+        <exclude name="LocalInterfaceSessionNamingConvention"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="LocalVariableNamingConventions"/>
+        <exclude name="LongVariable"/>
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="MethodNamingConventions"/>
+        <exclude name="NoPackage"/>
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="PackageCase"/>
+        <exclude name="PrematureDeclaration"/>
+        <exclude name="RemoteInterfaceNamingConvention"/>
+        <exclude name="RemoteSessionInterfaceNamingConvention"/>
+        <exclude name="ShortClassName"/>
+        <exclude name="ShortMethodName"/>
+        <exclude name="ShortVariable"/>
+        <exclude name="TooManyStaticImports"/>
+        <exclude name="UnnecessaryAnnotationValueElement"/>
+        <exclude name="UnnecessaryCast"/>
+        <exclude name="UnnecessaryConstructor"/>
+        <exclude name="UnnecessaryFullyQualifiedName"/>
+        <exclude name="UnnecessaryLocalBeforeReturn"/>
+        <exclude name="UnnecessaryModifier"/>
+        <exclude name="UnnecessaryReturn"/>
+        <exclude name="UseDiamondOperator"/>
+        <exclude name="UseShortArrayInitializer"/>
+        <exclude name="UseUnderscoresInNumericLiterals"/>
+        <exclude name="UselessParentheses"/>
+        <exclude name="VariableNamingConventions"/>
+    </rule>
 </ruleset>
