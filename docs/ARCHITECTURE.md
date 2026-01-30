@@ -811,6 +811,7 @@ classDiagram
 ```
 
 ### 8.2 Class Diagram - Node Executor Pattern
+Here design pattern for node executors is illustrated. We have used the strategy pattern to allow for different node types to be executed by their respective executors. NodeExecutorRegistry manages the mapping between node types and their executors. And the execution is handled by the ExecutionService which utilizes the registry to find the appropriate executor for each node during workflow execution.
 
 ```mermaid
 classDiagram

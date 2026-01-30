@@ -564,6 +564,38 @@ public class MainController implements Initializable {
     }
 
     @FXML
+    private void onZoomIn() {
+        if (workflowCanvas != null) {
+            workflowCanvas.zoomIn();
+            updateStatus("Zoom: " + workflowCanvas.getZoomPercentage() + "%");
+        }
+    }
+
+    @FXML
+    private void onZoomOut() {
+        if (workflowCanvas != null) {
+            workflowCanvas.zoomOut();
+            updateStatus("Zoom: " + workflowCanvas.getZoomPercentage() + "%");
+        }
+    }
+
+    @FXML
+    private void onResetZoom() {
+        if (workflowCanvas != null) {
+            workflowCanvas.resetZoom();
+            updateStatus("Zoom: " + workflowCanvas.getZoomPercentage() + "%");
+        }
+    }
+
+    @FXML
+    private void onFitToWindow() {
+        if (workflowCanvas != null) {
+            workflowCanvas.fitToView();
+            updateStatus("Zoom: " + workflowCanvas.getZoomPercentage() + "%");
+        }
+    }
+
+    @FXML
     private void onExit() {
         javafx.application.Platform.exit();
     }

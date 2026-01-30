@@ -1788,6 +1788,45 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         updateCanvasTransform();
     }
 
+    /**
+     * Zoom in by one zoom factor step.
+     */
+    public void zoomIn() {
+        double newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale + ZOOM_FACTOR));
+        if (newScale != scale) {
+            scale = newScale;
+            updateCanvasTransform();
+        }
+    }
+
+    /**
+     * Zoom out by one zoom factor step.
+     */
+    public void zoomOut() {
+        double newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale - ZOOM_FACTOR));
+        if (newScale != scale) {
+            scale = newScale;
+            updateCanvasTransform();
+        }
+    }
+
+    /**
+     * Reset zoom to 100% (normal scale).
+     */
+    public void resetZoom() {
+        if (scale != 1.0) {
+            scale = 1.0;
+            updateCanvasTransform();
+        }
+    }
+
+    /**
+     * Get the current zoom level as a percentage.
+     */
+    public int getZoomPercentage() {
+        return (int) Math.round(scale * 100);
+    }
+
     public WorkflowDTO getWorkflow() {
         return workflow;
     }

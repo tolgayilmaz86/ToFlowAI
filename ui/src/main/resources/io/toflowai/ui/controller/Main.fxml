@@ -38,14 +38,14 @@
                     <MenuItem text="Select All" accelerator="Ctrl+A"/>
                 </Menu>
                 <Menu text="View">
-                    <MenuItem text="Zoom In" accelerator="Ctrl+Plus"/>
-                    <MenuItem text="Zoom Out" accelerator="Ctrl+Minus"/>
-                    <MenuItem text="Reset Zoom" accelerator="Ctrl+0"/>
+                    <MenuItem text="Zoom In" onAction="#onZoomIn" accelerator="Ctrl+Plus"/>
+                    <MenuItem text="Zoom Out" onAction="#onZoomOut" accelerator="Ctrl+Minus"/>
+                    <MenuItem text="Reset Zoom" onAction="#onResetZoom" accelerator="Ctrl+0"/>
                     <SeparatorMenuItem/>
                     <CheckMenuItem text="Show Grid" selected="true"/>
                     <CheckMenuItem text="Snap to Grid" selected="true"/>
                     <SeparatorMenuItem/>
-                    <MenuItem text="Fit to Window" accelerator="Ctrl+1"/>
+                    <MenuItem text="Fit to Window" onAction="#onFitToWindow" accelerator="Ctrl+1"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Execution Console" onAction="#onShowExecutionConsole" accelerator="Ctrl+`"/>
                 </Menu>
