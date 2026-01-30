@@ -24,4 +24,5 @@ jobs:
           distribution: 'graalvm'
 
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@v5
+        # Disabled: Repository doesn't have dependency graph enabled
+        # uses: gradle/actions/dependency-submission@v5
