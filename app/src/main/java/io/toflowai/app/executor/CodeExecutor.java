@@ -18,20 +18,24 @@ import io.toflowai.common.domain.Node;
 @Component
 public class CodeExecutor implements NodeExecutor {
 
+    private static final String LANGUAGE_JAVASCRIPT = "js";
+    private static final String LANGUAGE_PYTHON = "python";
+    private static final String DEFAULT_LANGUAGE = LANGUAGE_JAVASCRIPT;
+
     @Override
     public Map<String, Object> execute(Node node, Map<String, Object> input,
             ExecutionService.ExecutionContext context) {
         String code = (String) node.parameters().getOrDefault("code", "");
-        String language = (String) node.parameters().getOrDefault("language", "js");
+        String language = (String) node.parameters().getOrDefault("language", DEFAULT_LANGUAGE);
 
         if (code.isBlank()) {
             return input;
         }
 
         String graalLanguage = switch (language) {
-            case "js", "javascript" -> "js";
-            case "py", "python" -> "python";
-            default -> "js";
+            case "js", "javascript" -> LANGUAGE_JAVASCRIPT;
+            case "py", "python" -> LANGUAGE_PYTHON;
+            default -> LANGUAGE_JAVASCRIPT;
         };
 
         try (Context polyglotContext = Context.newBuilder(graalLanguage)
@@ -67,12 +71,12 @@ public class CodeExecutor implements NodeExecutor {
     private String wrapCode(String code, String language) {
         // Wrap code to return a value
         return switch (language) {
-            case "js" -> """
+            case LANGUAGE_JAVASCRIPT -> """
                     (function() {
                         %s
                     })()
                     """.formatted(code);
-            case "python" -> code;
+            case LANGUAGE_PYTHON -> code;
             default -> code;
         };
     }
