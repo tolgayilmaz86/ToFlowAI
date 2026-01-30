@@ -18,9 +18,7 @@
     <!-- Code Style - Only the most important style issues -->
     <rule ref="category/java/codestyle.xml">
         <!-- Exclude overly pedantic rules -->
-        <exclude name="AbstractNaming"/>
         <exclude name="AtLeastOneConstructor"/>
-        <exclude name="AvoidInlineConditionals"/>
         <exclude name="BooleanGetMethodName"/>
         <exclude name="CallSuperInConstructor"/>
         <exclude name="ClassNamingConventions"/>
@@ -29,7 +27,6 @@
         <exclude name="ControlStatementBraces"/>
         <exclude name="ExtendsObject"/>
         <exclude name="FieldNamingConventions"/>
-        <exclude name="FinalFieldCouldBeStatic"/>
         <exclude name="ForLoopShouldBeWhileLoop"/>
         <exclude name="FormalParameterNamingConventions"/>
         <exclude name="GenericsNaming"/>
@@ -63,6 +60,5 @@
         <exclude name="UseShortArrayInitializer"/>
         <exclude name="UseUnderscoresInNumericLiterals"/>
         <exclude name="UselessParentheses"/>
-        <exclude name="VariableNamingConventions"/>
     </rule>
 </ruleset>

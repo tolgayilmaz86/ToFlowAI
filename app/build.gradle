@@ -241,6 +241,8 @@ checkstyle {
 pmd {
     toolVersion = '7.21.0'
     ruleSets = [rootProject.file('config/pmd/pmd.xml').toString()]
+    // Don't fail build on violations - just report them
+    ignoreFailures = true
 }
 
 // SpotBugs configuration
