@@ -91,7 +91,10 @@ jpackage {
     // This ensures the application runs without requiring Java installation
     def runtimeImagePath = findProperty('jpackage.runtime')
     if (runtimeImagePath) {
-        runtimeImage = project.file(runtimeImagePath)
+        def runtimeImageFile = project.file(runtimeImagePath)
+        if (runtimeImageFile.exists()) {
+            runtimeImage = runtimeImageFile
+        }
     }
     
     // JVM options for the bundled runtime
