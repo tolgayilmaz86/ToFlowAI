@@ -35,6 +35,7 @@ public class VariableService implements VariableServiceInterface {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Pattern VARIABLE_NAME_PATTERN = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
     private static final Pattern VARIABLE_REFERENCE_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
 
@@ -251,7 +252,7 @@ public class VariableService implements VariableServiceInterface {
     private String encrypt(String plaintext) {
         try {
             byte[] iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
@@ -292,7 +293,7 @@ public class VariableService implements VariableServiceInterface {
 
     private SecretKey generateKey() {
         byte[] keyBytes = new byte[32]; // 256-bit key
-        new SecureRandom().nextBytes(keyBytes);
+        SECURE_RANDOM.nextBytes(keyBytes);
         return new SecretKeySpec(keyBytes, "AES");
     }
 }

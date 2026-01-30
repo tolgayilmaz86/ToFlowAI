@@ -30,6 +30,7 @@ public class CredentialService implements CredentialServiceInterface {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final CredentialRepository credentialRepository;
     private final SecretKey encryptionKey;
@@ -134,7 +135,7 @@ public class CredentialService implements CredentialServiceInterface {
     private String encrypt(String plaintext) {
         try {
             byte[] iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
@@ -178,7 +179,7 @@ public class CredentialService implements CredentialServiceInterface {
     private SecretKey generateKey() {
         // In production, load from secure configuration or key vault
         byte[] keyBytes = new byte[32]; // 256-bit key
-        new SecureRandom().nextBytes(keyBytes);
+        SECURE_RANDOM.nextBytes(keyBytes);
         return new SecretKeySpec(keyBytes, "AES");
     }
 }
