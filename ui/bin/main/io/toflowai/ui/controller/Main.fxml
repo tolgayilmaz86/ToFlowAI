@@ -42,8 +42,8 @@
                     <MenuItem text="Zoom Out" onAction="#onZoomOut" accelerator="Ctrl+Minus"/>
                     <MenuItem text="Reset Zoom" onAction="#onResetZoom" accelerator="Ctrl+0"/>
                     <SeparatorMenuItem/>
-                    <CheckMenuItem text="Show Grid" selected="true"/>
-                    <CheckMenuItem text="Snap to Grid" selected="true"/>
+                    <CheckMenuItem fx:id="menuShowGrid" text="Show Grid" onAction="#onToggleShowGrid" selected="true"/>
+                    <CheckMenuItem fx:id="menuSnapToGrid" text="Snap to Grid" onAction="#onToggleSnapToGrid" selected="true"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Fit to Window" onAction="#onFitToWindow" accelerator="Ctrl+1"/>
                     <SeparatorMenuItem/>

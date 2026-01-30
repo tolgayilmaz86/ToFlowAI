@@ -33,6 +33,7 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableCell;
@@ -84,6 +85,12 @@ public class MainController implements Initializable {
     @FXML
     private Button btnSettings;
 
+    @FXML
+    private CheckMenuItem menuShowGrid;
+
+    @FXML
+    private CheckMenuItem menuSnapToGrid;
+
     private WorkflowCanvas workflowCanvas;
 
     public MainController(WorkflowServiceInterface workflowService,
@@ -126,6 +133,9 @@ public class MainController implements Initializable {
         // Create workflow editor view with injected services
         workflowCanvas = new WorkflowCanvas(workflowService, executionService);
         contentArea.getChildren().setAll(workflowCanvas);
+
+        // Sync menu states with canvas settings
+        syncGridMenuStates();
 
         updateStatus("Workflows");
     }
@@ -506,6 +516,17 @@ public class MainController implements Initializable {
         btnSettings.getStyleClass().remove("active");
     }
 
+    private void syncGridMenuStates() {
+        if (workflowCanvas != null) {
+            if (menuShowGrid != null) {
+                menuShowGrid.setSelected(workflowCanvas.isShowGrid());
+            }
+            if (menuSnapToGrid != null) {
+                menuSnapToGrid.setSelected(workflowCanvas.isSnapToGrid());
+            }
+        }
+    }
+
     private void updateStatus(String message) {
         if (statusLabel != null) {
             statusLabel.setText(message);
@@ -592,6 +613,22 @@ public class MainController implements Initializable {
         if (workflowCanvas != null) {
             workflowCanvas.fitToView();
             updateStatus("Zoom: " + workflowCanvas.getZoomPercentage() + "%");
+        }
+    }
+
+    @FXML
+    private void onToggleShowGrid() {
+        if (workflowCanvas != null && menuShowGrid != null) {
+            workflowCanvas.setShowGrid(menuShowGrid.isSelected());
+            updateStatus("Grid: " + (menuShowGrid.isSelected() ? "Shown" : "Hidden"));
+        }
+    }
+
+    @FXML
+    private void onToggleSnapToGrid() {
+        if (workflowCanvas != null && menuSnapToGrid != null) {
+            workflowCanvas.setSnapToGrid(menuSnapToGrid.isSelected());
+            updateStatus("Snap to Grid: " + (menuSnapToGrid.isSelected() ? "Enabled" : "Disabled"));
         }
     }
 

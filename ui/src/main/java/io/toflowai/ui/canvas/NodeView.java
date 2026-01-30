@@ -357,6 +357,12 @@ public class NodeView extends StackPane {
                 double newX = e.getSceneX() - dragOffsetX;
                 double newY = e.getSceneY() - dragOffsetY;
 
+                // Apply snap-to-grid if enabled
+                if (canvas.isSnapToGrid()) {
+                    newX = canvas.snapPositionToGrid(newX);
+                    newY = canvas.snapPositionToGrid(newY);
+                }
+
                 setLayoutX(newX);
                 setLayoutY(newY);
 

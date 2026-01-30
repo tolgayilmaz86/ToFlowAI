@@ -97,6 +97,10 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     private double dragStartX, dragStartY;
     private boolean isPanning = false;
 
+    // Grid settings
+    private boolean showGrid = true;
+    private boolean snapToGrid = true;
+
     // Connection dragging state
     private boolean isConnectionDragging = false;
     private NodeView connectionSource = null;
@@ -577,6 +581,10 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     private void drawGrid() {
         gridLayer.getChildren().clear();
 
+        if (!showGrid) {
+            return;
+        }
+
         double width = 2000;
         double height = 2000;
 
@@ -879,6 +887,9 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     }
 
     private double snapToGrid(double value) {
+        if (!snapToGrid) {
+            return value;
+        }
         return Math.round(value / GRID_SIZE) * GRID_SIZE;
     }
 
@@ -1742,9 +1753,11 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
             for (Node node : nodesInColumn) {
                 NodeView view = nodeViews.get(node.id());
                 if (view != null) {
-                    view.setLayoutX(columnX);
-                    view.setLayoutY(columnY);
-                    updateNodePosition(node.id(), columnX, columnY);
+                    double snappedX = snapToGrid(columnX);
+                    double snappedY = snapToGrid(columnY);
+                    view.setLayoutX(snappedX);
+                    view.setLayoutY(snappedY);
+                    updateNodePosition(node.id(), snappedX, snappedY);
                     columnY += ySpacing;
                 }
             }
@@ -1825,6 +1838,42 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
      */
     public int getZoomPercentage() {
         return (int) Math.round(scale * 100);
+    }
+
+    /**
+     * Set whether the grid should be shown.
+     */
+    public void setShowGrid(boolean showGrid) {
+        this.showGrid = showGrid;
+        drawGrid();
+    }
+
+    /**
+     * Get whether the grid is currently shown.
+     */
+    public boolean isShowGrid() {
+        return showGrid;
+    }
+
+    /**
+     * Set whether nodes should snap to grid.
+     */
+    public void setSnapToGrid(boolean snapToGrid) {
+        this.snapToGrid = snapToGrid;
+    }
+
+    /**
+     * Get whether nodes currently snap to grid.
+     */
+    public boolean isSnapToGrid() {
+        return snapToGrid;
+    }
+
+    /**
+     * Snap a position to grid if snap-to-grid is enabled.
+     */
+    public double snapPositionToGrid(double value) {
+        return snapToGrid(value);
     }
 
     public WorkflowDTO getWorkflow() {
@@ -2081,9 +2130,11 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     public void setNodePosition(String nodeId, double x, double y) {
         NodeView nodeView = nodeViews.get(nodeId);
         if (nodeView != null) {
-            nodeView.setLayoutX(x);
-            nodeView.setLayoutY(y);
-            updateNodePosition(nodeId, x, y);
+            double snappedX = snapToGrid(x);
+            double snappedY = snapToGrid(y);
+            nodeView.setLayoutX(snappedX);
+            nodeView.setLayoutY(snappedY);
+            updateNodePosition(nodeId, snappedX, snappedY);
         }
     }
 
