@@ -23,6 +23,8 @@ jobs:
           java-version: 25.0.1
           distribution: 'graalvm'
 
-      - name: Generate and submit dependency graph
-        # Disabled: Repository doesn't have dependency graph enabled
-        # uses: gradle/actions/dependency-submission@v5
+      # Dependency graph submission disabled - repository doesn't have dependency graph enabled
+      # Uncomment the following step if you enable dependency graph in repository settings:
+      #
+      # - name: Generate and submit dependency graph
+      #   uses: gradle/actions/dependency-submission@v5
