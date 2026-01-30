@@ -89,7 +89,10 @@ jpackage {
     // Embedded GraalVM runtime configuration
     // Downloads and bundles a complete JRE with the installer
     // This ensures the application runs without requiring Java installation
-    runtimeImage = findProperty('jpackage.runtime') ?: null
+    def runtimeImagePath = findProperty('jpackage.runtime')
+    if (runtimeImagePath) {
+        runtimeImage = project.file(runtimeImagePath)
+    }
     
     // JVM options for the bundled runtime
     javaOptions = [
