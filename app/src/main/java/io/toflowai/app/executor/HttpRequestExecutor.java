@@ -87,14 +87,8 @@ public class HttpRequestExecutor implements NodeExecutor {
             output.put("headers", response.headers().map());
             output.put("success", response.statusCode() >= 200 && response.statusCode() < 300);
 
-            // Try to parse JSON response
-            if (response.body() != null && response.body().startsWith("{")) {
-                try {
-                    // Simple JSON detection - in production use Jackson
-                    output.put("json", response.body());
-                } catch (Exception ignored) {
-                }
-            }
+            // Add JSON response if detected
+            addJsonResponseIfValid(output, response.body());
 
             return output;
 
@@ -117,6 +111,21 @@ public class HttpRequestExecutor implements NodeExecutor {
             result = result.replace(placeholder, value);
         }
         return result;
+    }
+
+    /**
+     * Adds JSON response to output if the response body appears to be valid JSON.
+     * Simple detection - in production, use proper JSON parsing library.
+     */
+    private void addJsonResponseIfValid(Map<String, Object> output, String responseBody) {
+        if (responseBody != null && !responseBody.trim().isEmpty()) {
+            String trimmed = responseBody.trim();
+            // Basic JSON detection: starts with { or [ and ends with } or ]
+            if ((trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+                    (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+                output.put("json", responseBody);
+            }
+        }
     }
 
     @Override
