@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="#features">Features</a> •
+  <a href="#todos--known-limitations">TODOs & Limitations</a> •
   <a href="#screenshots">Screenshots</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#documentation">Documentation</a> •
@@ -18,7 +19,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-25-orange?style=flat-square&logo=openjdk" alt="Java 25" />
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.5.0-brightgreen?style=flat-square&logo=spring" alt="Spring Boot 3.5.0" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-4.0.1-brightgreen?style=flat-square&logo=spring" alt="Spring Boot 4.0.1" />
   <img src="https://img.shields.io/badge/JavaFX-21-blue?style=flat-square" alt="JavaFX 21" />
   <img src="https://img.shields.io/badge/Gradle-9.2.0-02303A?style=flat-square&logo=gradle" alt="Gradle 9.2.0" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License MIT" />
@@ -31,9 +32,52 @@
 
 ToFlowAI is a **visual workflow automation application** similar to [n8n](https://n8n.io), [Zapier](https://zapier.com), or [Make.com](https://make.com). It's also inspired by [Sim.ai](https://sim.ai) but designed as a **simpler, local-first alternative** that runs entirely on your machine—no cloud deployment, no infrastructure hassles. Just **install and use**.
 
+### 🤖 Understanding Workflows & Agentic AI
+
+**What are Workflows?**
+Workflows are automated sequences of tasks that transform data and perform actions. Instead of manually executing repetitive processes, you create a visual "flow" where each step (called a "node") handles a specific function. Data flows from one node to the next, creating powerful automation chains.
+
+**Why Visual Workflow Automation?**
+- **No-Code/Low-Code**: Build complex automations without programming skills
+- **Visual Debugging**: See exactly how data flows through your processes
+- **Modular Design**: Reuse and combine building blocks for different scenarios
+- **Real-time Feedback**: Watch your workflows execute step-by-step
+
+**Agentic AI Connection:**
+ToFlowAI helps you understand and build **agentic AI systems** - AI that can autonomously plan, execute, and adapt. By creating workflows, you learn:
+- How AI agents break down complex tasks into steps
+- How different tools/APIs can be orchestrated together
+- How decision-making and conditional logic work in automation
+- How to design systems that can handle errors and adapt
+
+### 🆚 How ToFlowAI Compares
+
+| Feature | ToFlowAI | n8n | Zapier | Sim.ai |
+|---------|----------|-----|--------|--------|
+| **Deployment** | Local Desktop | Cloud/Self-hosted | Cloud | Cloud |
+| **Cost** | Free (MIT) | Free tier + Paid | Freemium | Paid |
+| **Privacy** | 100% Local | Variable | Cloud-stored | Cloud-stored |
+| **Customization** | Full source access | Limited | Limited | Limited |
+| **Learning Tool** | Excellent for AI education | Production focus | Business focus | AI focus |
+| **Setup Complexity** | Download & run | Account setup | Account setup | Account setup |
+
+**ToFlowAI's Unique Value:**
+- **Educational Focus**: Perfect for learning agentic AI concepts
+- **Local-First**: Your data never leaves your machine
+- **Open Source**: Study, modify, and contribute to the codebase
+- **Java-Based**: Learn enterprise-grade development practices
+- **Spring Boot Integration**: Understand full-stack application architecture
+
+### 🎯 Perfect For:
+- **AI Enthusiasts** learning about agentic systems
+- **Developers** studying workflow automation patterns
+- **Privacy-Conscious Users** who want local control
+- **Educators** teaching automation and AI concepts
+- **Experimenters** building custom automation solutions
+
 Create automated workflows by connecting "nodes" (building blocks) together visually, with your data staying completely local.
 
-Built with **Java 25**, **Spring Boot 3.5**, and **JavaFX 21**, ToFlowAI runs as a native desktop application with a modern dark theme powered by [AtlantaFX](https://github.com/mkpaz/atlantafx).
+Built with **Java 25**, **Spring Boot 4.0.1**, and **JavaFX 21**, ToFlowAI runs as a native desktop application with a modern dark theme powered by [AtlantaFX](https://github.com/mkpaz/atlantafx).
 
 ---
 
@@ -73,25 +117,95 @@ Built with **Java 25**, **Spring Boot 3.5**, and **JavaFX 21**, ToFlowAI runs as
 
 ---
 
+## 🚧 TODOs & Known Limitations
+
+### ⚠️ Current Limitations
+These features are **not yet implemented** and should not be expected:
+
+- **Cloud Deployment**: No web-based version or cloud hosting
+- **Multi-User Collaboration**: No shared workspaces or team features
+- **Advanced Scheduling**: Limited cron-like scheduling (basic only)
+- **Plugin System**: No third-party plugin support yet
+- **Real-time Collaboration**: No live editing with others
+- **Version Control**: No built-in workflow versioning system
+- **API Endpoints**: No REST API for external integrations
+- **Mobile Apps**: No iOS/Android companion apps
+
+### 🔄 Planned Improvements
+
+#### **Short Term**
+- [ ] Enhanced error handling and recovery
+- [ ] Workflow execution statistics and analytics
+- [ ] Improved node property validation
+- [ ] Better drag-and-drop UX refinements
+- [ ] Keyboard shortcuts and accessibility improvements
+- [ ] Dark/light theme toggle
+- [ ] Workflow templates library
+
+#### **Medium Term**
+- [ ] Advanced workflow scheduling (cron expressions)
+- [ ] Node execution timeout controls
+- [ ] Workflow dependency management
+- [ ] Bulk operations on multiple workflows
+- [ ] Enhanced logging and debugging tools
+- [ ] Performance optimizations for large workflows
+
+#### **Long Term**
+- [ ] Plugin architecture for custom nodes
+- [ ] Cloud sync and backup (optional)
+- [ ] Team collaboration features
+- [ ] Advanced workflow branching and conditions
+- [ ] Integration with external services (webhooks, APIs)
+- [ ] Mobile companion app
+- [ ] Workflow marketplace/community sharing
+
+### 🛠️ Development Priorities
+- **Stability First**: Bug fixes and performance improvements
+- **User Experience**: Polish the core workflow creation experience
+- **Extensibility**: Design plugin system for community contributions
+- **Documentation**: Comprehensive user and developer guides
+
+### 🤝 Contributing
+Want to help with any of these? Check our [Contributing Guide](CONTRIBUTING.md) and join the development!
+
+---
+
 ## 📸 Screenshots
 
+### Main Application Window
 <p align="center">
-  <em>Screenshots coming soon...</em>
+  <img src="docs/screenshots/mainwindow.png" alt="ToFlowAI Main Window" width="800" />
+  <br />
+  <em>Main application interface with workflow canvas and node palette</em>
 </p>
 
-<!-- 
+### Visual Node Editing
 <p align="center">
-  <img src="docs/assets/screenshot-canvas.png" alt="Workflow Canvas" width="800" />
+  <img src="docs/screenshots/node_editing.png" alt="Node Editing Interface" width="800" />
   <br />
-  <em>Visual Workflow Canvas</em>
+  <em>Drag-and-drop node editing with property panels</em>
 </p>
 
+### Real-time Execution
 <p align="center">
-  <img src="docs/assets/screenshot-execution.png" alt="Execution View" width="800" />
+  <img src="docs/screenshots/execution_window.png" alt="Execution Console" width="800" />
   <br />
-  <em>Real-time Execution</em>
+  <em>Live execution monitoring with step-by-step progress</em>
 </p>
--->
+
+### AI Settings Configuration
+<p align="center">
+  <img src="docs/screenshots/settings_menu_ai.png" alt="AI Settings" width="600" />
+  <br />
+  <em>Configure AI providers and API keys securely</em>
+</p>
+
+### Workflow Import
+<p align="center">
+  <img src="docs/screenshots/workflow_import.png" alt="Workflow Import" width="600" />
+  <br />
+  <em>Import workflows from JSON files</em>
+</p>
 
 ---
 
@@ -110,7 +224,7 @@ Built with **Java 25**, **Spring Boot 3.5**, and **JavaFX 21**, ToFlowAI runs as
 
 #### Option 1: Download Pre-built Installer (Recommended)
 
-1. **Download the MSI installer** from [Releases](https://github.com/yourusername/ToFlowAI/releases)
+1. **Download the MSI installer** from [Releases](https://github.com/tolgayilmaz86/ToFlowAI/releases)
 2. **Run the installer** - it includes everything needed
 3. **Launch ToFlowAI** from Start Menu or desktop shortcut
 
@@ -118,7 +232,7 @@ Built with **Java 25**, **Spring Boot 3.5**, and **JavaFX 21**, ToFlowAI runs as
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ToFlowAI.git
+   git clone https://github.com/tolgayilmaz86/ToFlowAI.git
    cd ToFlowAI
    ```
 
@@ -391,5 +505,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  Made with ❤️ by the ToFlowAI Team
+  Made with ❤️ by the Tolga Yilmaz
 </p>

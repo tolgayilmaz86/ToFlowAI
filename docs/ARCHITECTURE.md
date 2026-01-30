@@ -1,6 +1,6 @@
 # ToFlowAI Architecture Guide
 
-> **A Comprehensive Guide for Junior Developers**  
+> **A Comprehensive Guide for Development**  
 > **Version:** 1.4  
 > **Last Updated:** January 29, 2026
 
@@ -10,6 +10,7 @@
 
 1. [Introduction](#1-introduction)
 2. [For .NET Developers](#2-for-net-developers)
+   2.1. [Key Concepts](#21-key-concepts)
 3. [What is Workflow Automation?](#3-what-is-workflow-automation)
 4. [Project Overview](#4-project-overview)
 5. [Technology Stack](#5-technology-stack)
@@ -115,6 +116,442 @@ public class WorkflowService implements WorkflowServiceInterface {
 | **Async** | `async/await` everywhere | Virtual threads (Java 21+) - blocking is OK! |
 | **Properties** | `get; set;` | Explicit getters/setters or `record` |
 | **Naming** | PascalCase methods | camelCase methods |
+
+---
+
+## 2.1 Key Concepts
+
+If you're new to Java/Spring development, here are the essential concepts you'll encounter in ToFlowAI, explained with simple examples.
+
+### 2.1.1 DTO (Data Transfer Object)
+
+**What it is:** A simple container that carries data between different parts of your application.
+
+**Why we use it:** Keeps your database entities separate from what you send to the UI or API.
+
+**Example:**
+```java
+// ❌ BAD: Sending database entity directly to UI
+@Entity
+public class WorkflowEntity {
+    private Long id;
+    private String name;
+    private Instant createdAt;
+    // Database-specific fields that UI doesn't need
+    private String internalNotes;
+    private byte[] binaryData;
+}
+
+// ✅ GOOD: Using a DTO for UI/API
+public record WorkflowDTO(
+    Long id,
+    String name,
+    Instant createdAt
+) {
+    // Only the fields the UI needs
+}
+```
+
+**Real ToFlowAI Example:**
+```java
+// In common/dto/WorkflowDTO.java
+public record WorkflowDTO(
+    Long id,
+    String name,
+    String description,
+    Instant createdAt,
+    Instant updatedAt
+) {
+    // Helper method
+    public static WorkflowDTO create(String name) {
+        return new WorkflowDTO(null, name, "", Instant.now(), Instant.now());
+    }
+}
+```
+
+### 2.1.2 Service
+
+**What it is:** A class that contains business logic - the "brains" of your application.
+
+**Why we use it:** Keeps business rules separate from data access and UI code.
+
+**Example:**
+```java
+// Service handles the business logic
+@Service
+public class WorkflowService {
+    
+    private final WorkflowRepository repository;
+    
+    public WorkflowDTO createWorkflow(String name) {
+        // Business rule: Name cannot be empty
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Workflow name cannot be empty");
+        }
+        
+        // Business rule: Name must be unique
+        if (repository.existsByName(name)) {
+            throw new IllegalArgumentException("Workflow name already exists");
+        }
+        
+        // Create and save
+        var entity = new WorkflowEntity();
+        entity.setName(name);
+        entity = repository.save(entity);
+        
+        return toDTO(entity);
+    }
+}
+```
+
+**Real ToFlowAI Example:**
+```java
+@Service
+public class ExecutionService implements ExecutionServiceInterface {
+    
+    public ExecutionResult executeWorkflow(WorkflowDTO workflow) {
+        // Complex business logic for running workflows
+        // Handles node execution order, error handling, etc.
+    }
+}
+```
+
+### 2.1.3 Entity
+
+**What it is:** A class that represents a database table.
+
+**Why we use it:** Maps database rows to Java objects automatically.
+
+**Example:**
+```java
+@Entity  // This tells JPA this class maps to a database table
+@Table(name = "workflows")  // Table name in database
+public class WorkflowEntity {
+    
+    @Id  // Primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)  // Database column
+    private String name;
+    
+    @Column(name = "created_at")  // Different column name
+    private Instant createdAt;
+    
+    // Getters and setters (or use @Data from Lombok)
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    // ... more getters/setters
+}
+```
+
+### 2.1.4 Repository
+
+**What it is:** An interface that handles database operations.
+
+**Why we use it:** Provides a clean API for data access without writing SQL.
+
+**Example:**
+```java
+@Repository
+public interface WorkflowRepository extends JpaRepository<WorkflowEntity, Long> {
+    
+    // Spring generates the implementation automatically!
+    
+    // Find by name
+    Optional<WorkflowEntity> findByName(String name);
+    
+    // Check if exists
+    boolean existsByName(String name);
+    
+    // Custom query
+    @Query("SELECT w FROM WorkflowEntity w WHERE w.createdAt > :date")
+    List<WorkflowEntity> findCreatedAfter(@Param("date") Instant date);
+}
+```
+
+### 2.1.5 Controller
+
+**What it is:** A class that handles HTTP requests and responses.
+
+**Why we use it:** Defines your API endpoints.
+
+**Example:**
+```java
+@RestController
+@RequestMapping("/api/workflows")
+public class WorkflowController {
+    
+    private final WorkflowService service;
+    
+    @GetMapping  // GET /api/workflows
+    public List<WorkflowDTO> getAllWorkflows() {
+        return service.findAll();
+    }
+    
+    @PostMapping  // POST /api/workflows
+    public WorkflowDTO createWorkflow(@RequestBody CreateWorkflowRequest request) {
+        return service.createWorkflow(request.name());
+    }
+    
+    @GetMapping("/{id}")  // GET /api/workflows/123
+    public WorkflowDTO getWorkflow(@PathVariable Long id) {
+        return service.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
+    }
+}
+```
+
+### 2.1.6 Bean
+
+**What it is:** Any object managed by the Spring container.
+
+**Why we use it:** Spring handles creating and wiring these objects automatically.
+
+**Example:**
+```java
+// All of these are Spring beans:
+@Service
+public class WorkflowService { ... }
+
+@Repository  
+public class WorkflowRepository { ... }
+
+@Configuration
+public class AppConfig {
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
+}
+```
+
+### 2.1.7 Dependency Injection (DI)
+
+**What it is:** Spring automatically provides objects with the other objects they need.
+
+**Why we use it:** Makes code testable and loosely coupled.
+
+**Example:**
+```java
+// ❌ BAD: Manual dependency management
+public class ExecutionService {
+    private WorkflowService workflowService = new WorkflowService(); // Tight coupling!
+}
+
+// ✅ GOOD: Dependency injection
+@Service
+public class ExecutionService {
+    private final WorkflowService workflowService;
+    
+    // Spring injects this automatically
+    public ExecutionService(WorkflowService workflowService) {
+        this.workflowService = workflowService;
+    }
+}
+```
+
+### 2.1.8 Interface vs Implementation
+
+**What it is:** Interfaces define contracts, implementations provide the actual code.
+
+**Why we use it:** Allows swapping implementations and makes testing easier.
+
+**Example:**
+```java
+// Interface (contract)
+public interface WorkflowServiceInterface {
+    List<WorkflowDTO> findAll();
+    WorkflowDTO save(WorkflowDTO workflow);
+}
+
+// Implementation (actual code)
+@Service
+public class WorkflowService implements WorkflowServiceInterface {
+    // Must implement all methods from the interface
+    @Override
+    public List<WorkflowDTO> findAll() {
+        // Actual implementation here
+    }
+}
+```
+
+### 2.1.9 Record
+
+**What it is:** A special kind of class for immutable data (Java 16+ feature).
+
+**Why we use it:** Less boilerplate code for simple data classes.
+
+**Example:**
+```java
+// Traditional class (lots of code!)
+public class Position {
+    private final double x;
+    private final double y;
+    
+    public Position(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+    
+    public double x() { return x; }
+    public double y() { return y; }
+    
+    @Override
+    public boolean equals(Object o) { /* ... */ }
+    @Override
+    public int hashCode() { /* ... */ }
+    @Override
+    public String toString() { /* ... */ }
+}
+
+// Record version (much simpler!)
+public record Position(double x, double y) {
+    // All methods generated automatically!
+}
+```
+
+### 2.1.10 Annotation
+
+**What it is:** Special markers that tell Spring how to handle classes/methods.
+
+**Why we use it:** Configuration through code instead of XML.
+
+**Common Annotations:**
+```java
+@Service           // This is a business service
+@Repository        // This handles data access
+@RestController    // This handles HTTP requests
+@RequestMapping    // Maps URL to method
+@GetMapping        // HTTP GET endpoint
+@PostMapping       // HTTP POST endpoint
+@Transactional     // Wraps method in database transaction
+@Component         // Generic Spring bean
+@Configuration     // Configuration class
+@Bean              // Method that creates a bean
+```
+
+### 2.1.11 Transaction
+
+**What it is:** A database operation that either succeeds completely or fails completely.
+
+**Why we use it:** Ensures data consistency.
+
+**Example:**
+```java
+@Service
+public class WorkflowService {
+    
+    @Transactional  // Everything in this method succeeds or fails together
+    public void updateWorkflowWithNodes(Long workflowId, List<Node> nodes) {
+        // Update workflow
+        workflowRepository.save(workflow);
+        
+        // Delete old nodes
+        nodeRepository.deleteByWorkflowId(workflowId);
+        
+        // Save new nodes
+        for (Node node : nodes) {
+            nodeRepository.save(node);
+        }
+        
+        // If anything fails, everything rolls back
+    }
+}
+```
+
+### 2.1.12 Migration
+
+**What it is:** A script that changes your database schema over time.
+
+**Why we use it:** Keeps database schema in sync with code changes.
+
+**Example Flyway Migration:**
+```sql
+-- V001__Initial_Schema.sql
+CREATE TABLE workflows (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+-- V002__Add_Status_Column.sql  
+ALTER TABLE workflows ADD COLUMN status VARCHAR(50) DEFAULT 'ACTIVE';
+```
+
+### 2.1.13 Putting It All Together
+
+Here's how all these concepts work together in ToFlowAI:
+
+```java
+// 1. DTO - Data sent to/from UI
+public record WorkflowDTO(Long id, String name, Instant createdAt) {}
+
+// 2. Entity - Database representation
+@Entity
+public class WorkflowEntity {
+    @Id private Long id;
+    private String name;
+    private Instant createdAt;
+}
+
+// 3. Repository - Data access
+@Repository
+public interface WorkflowRepository extends JpaRepository<WorkflowEntity, Long> {
+    Optional<WorkflowEntity> findByName(String name);
+}
+
+// 4. Service - Business logic
+@Service
+@Transactional
+public class WorkflowService implements WorkflowServiceInterface {
+    
+    private final WorkflowRepository repository;
+    
+    // Constructor injection
+    public WorkflowService(WorkflowRepository repository) {
+        this.repository = repository;
+    }
+    
+    @Override
+    public WorkflowDTO createWorkflow(String name) {
+        // Business logic here
+        if (repository.findByName(name).isPresent()) {
+            throw new IllegalArgumentException("Name already exists");
+        }
+        
+        var entity = new WorkflowEntity();
+        entity.setName(name);
+        entity.setCreatedAt(Instant.now());
+        
+        entity = repository.save(entity);
+        return toDTO(entity);
+    }
+    
+    private WorkflowDTO toDTO(WorkflowEntity entity) {
+        return new WorkflowDTO(entity.getId(), entity.getName(), entity.getCreatedAt());
+    }
+}
+
+// 5. Controller - HTTP API
+@RestController
+@RequestMapping("/api/workflows")
+public class WorkflowController {
+    
+    private final WorkflowServiceInterface service;
+    
+    public WorkflowController(WorkflowServiceInterface service) {
+        this.service = service;
+    }
+    
+    @PostMapping
+    public WorkflowDTO createWorkflow(@RequestBody Map<String, String> request) {
+        return service.createWorkflow(request.get("name"));
+    }
+}
+```
 
 ---
 
@@ -1001,7 +1438,97 @@ sequenceDiagram
     Note over ES: Pass output to next node
 ```
 
-### 8.6 Use Case Diagram
+### 8.6 Use Case Diagrams
+
+#### 8.6.1 Workflow Management Use Cases
+
+```mermaid
+graph TB
+    subgraph Users
+        USER((User))
+    end
+
+    subgraph "Workflow Management"
+        UC1[Create New Workflow]
+        UC2[Open Existing Workflow]
+        UC3[Save Workflow]
+        UC4[Delete Workflow]
+        UC5[Import/Export Workflow]
+    end
+
+    USER --> UC1
+    USER --> UC2
+    USER --> UC3
+    USER --> UC4
+    USER --> UC5
+```
+
+#### 8.6.2 Workflow Editing Use Cases
+
+```mermaid
+graph TB
+    subgraph Users
+        USER((User))
+    end
+
+    subgraph "Workflow Editing"
+        UC6[Add Node to Canvas]
+        UC7[Remove Node]
+        UC8[Connect Nodes]
+        UC9[Configure Node Properties]
+        UC10[Pan/Zoom Canvas]
+    end
+
+    USER --> UC6
+    USER --> UC7
+    USER --> UC8
+    USER --> UC9
+    USER --> UC10
+```
+
+#### 8.6.3 Workflow Execution Use Cases
+
+```mermaid
+graph TB
+    subgraph Users
+        USER((User))
+    end
+
+    subgraph "Workflow Execution"
+        UC11[Run Workflow Manually]
+        UC12[Stop Running Workflow]
+        UC13[View Execution Console]
+        UC14[View Execution History]
+    end
+
+    USER --> UC11
+    USER --> UC12
+    USER --> UC13
+    USER --> UC14
+```
+
+#### 8.6.4 Settings & Credentials Use Cases
+
+```mermaid
+graph TB
+    subgraph Users
+        USER((User))
+    end
+
+    subgraph "Settings & Credentials"
+        UC15[Manage API Credentials]
+        UC16[Configure App Settings]
+        UC17[Configure AI Providers]
+        UC18[Import/Export Settings]
+    end
+
+    USER --> UC15
+    USER --> UC16
+    USER --> UC17
+    USER --> UC18
+```
+
+#### 8.6.5 Automated Triggers Use Cases
 
 ```mermaid
 graph TB
@@ -1010,50 +1537,13 @@ graph TB
         SCHED((Scheduler))
         EXT((External Service))
     end
-    
-    subgraph "ToFlowAI System"
-        subgraph "Workflow Management"
-            UC1[Create New Workflow]
-            UC2[Open Existing Workflow]
-            UC3[Save Workflow]
-            UC4[Delete Workflow]
-            UC5[Import/Export Workflow]
-        end
-        
-        subgraph "Workflow Editing"
-            UC6[Add Node to Canvas]
-            UC7[Remove Node]
-            UC8[Connect Nodes]
-            UC9[Configure Node Properties]
-            UC10[Pan/Zoom Canvas]
-        end
-        
-        subgraph "Workflow Execution"
-            UC11[Run Workflow Manually]
-            UC12[Stop Running Workflow]
-            UC13[View Execution Console]
-            UC14[View Execution History]
-        end
-        
-        subgraph "Settings & Credentials"
-            UC15[Manage API Credentials]
-            UC16[Configure App Settings]
-            UC17[Configure AI Providers]
-            UC18[Import/Export Settings]
-        end
-        
-        subgraph "Automated Triggers"
-            UC19[Execute on Schedule]
-            UC20[Receive Webhook]
-        end
+
+    subgraph "Automated Triggers"
+        UC19[Execute on Schedule]
+        UC20[Receive Webhook]
     end
-    
-    USER --> UC1
-    USER --> UC2
-    USER --> UC6
-    USER --> UC11
-    USER --> UC15
-    USER --> UC18
+
+    USER --> UC19
     SCHED --> UC19
     EXT --> UC20
 ```
