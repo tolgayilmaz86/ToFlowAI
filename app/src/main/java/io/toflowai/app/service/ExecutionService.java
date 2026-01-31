@@ -285,8 +285,9 @@ public class ExecutionService implements ExecutionServiceInterface {
         Instant startTime = Instant.now();
         Map<String, Object> output;
 
-        // Log node start
+        // Log node start with input tracing
         executionLogger.nodeStart(executionIdStr, node.id(), node.type(), node.name());
+        executionLogger.nodeInput(executionIdStr, node.id(), node.name(), input);
 
         try {
             // Get executor for node type
@@ -296,6 +297,9 @@ public class ExecutionService implements ExecutionServiceInterface {
             output = executor.execute(node, input, context);
 
             long durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis();
+
+            // Log node output for traceability
+            executionLogger.nodeOutput(executionIdStr, node.id(), node.name(), output);
 
             // Record successful execution
             context.recordNodeExecution(node.id(), ExecutionStatus.SUCCESS, startTime, output, null);
@@ -309,9 +313,9 @@ public class ExecutionService implements ExecutionServiceInterface {
             // Record failed execution
             context.recordNodeExecution(node.id(), ExecutionStatus.FAILED, startTime, null, e.getMessage());
 
-            // Log node failure
+            // Log node failure with enhanced context (includes input at time of error)
             executionLogger.nodeEnd(executionIdStr, node.id(), node.type(), durationMs, false);
-            executionLogger.error(executionIdStr, node.id(), e);
+            executionLogger.errorWithContext(executionIdStr, node.id(), node.name(), input, e);
 
             throw new RuntimeException("Node execution failed: " + node.name(), e);
         }

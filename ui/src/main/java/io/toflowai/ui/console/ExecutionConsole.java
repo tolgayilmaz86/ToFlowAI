@@ -1,5 +1,9 @@
 package io.toflowai.ui.console;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -10,12 +14,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignA;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignE;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignN;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignS;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
 
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -25,10 +34,16 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
@@ -36,6 +51,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -44,76 +60,125 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 /**
  * Execution Console - A sophisticated logging window for workflow execution.
- * Shows hierarchical logs with indentation, colors, and real-time updates.
+ * Features: Summary dashboard, hierarchical logs, real-time updates, filtering.
  */
 public class ExecutionConsole extends Stage {
 
     private final VBox logContainer;
-    private final ScrollPane scrollPane;
+    private final ScrollPane logsScrollPane;
+    private final VBox summaryContainer;
     private final Map<String, ExecutionSession> sessions = new ConcurrentHashMap<>();
     private final List<ConsoleLogListener> listeners = new CopyOnWriteArrayList<>();
     private final Label filterStatusLabel = new Label("");
     private final Label sessionCountLabel = new Label("Sessions: 0");
+    private final ComboBox<String> sessionSelector = new ComboBox<>();
+    private final TabPane mainTabPane;
+
+    // Summary UI components
+    private Label summaryWorkflowLabel;
+    private Label summaryStatusLabel;
+    private Label summaryDurationLabel;
+    private Label summaryStartTimeLabel;
+    private Label summaryNodesCountLabel;
+    private Label summaryErrorCountLabel;
+    private VBox summaryNodesList;
+    private ProgressBar summaryProgressBar;
+    private Label summaryProgressLabel;
 
     private boolean autoScroll = true;
+    private boolean pendingAutoScroll = false; // Flag to indicate new entry was added
     private boolean showTimestamps = true;
     private boolean showDebug = false;
     private boolean showTrace = false;
     private String filterText = "";
+    private String selectedSessionId = null;
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    // Colors for different log levels and categories
-    private static final String COLOR_INFO = "#88c0d0"; // Nord blue
-    private static final String COLOR_DEBUG = "#a3be8c"; // Nord green
-    private static final String COLOR_WARN = "#ebcb8b"; // Nord yellow
-    private static final String COLOR_ERROR = "#bf616a"; // Nord red
-    private static final String COLOR_TRACE = "#b48ead"; // Nord purple
-    private static final String COLOR_TIMESTAMP = "#616e88"; // Nord muted
-    private static final String COLOR_NODE = "#81a1c1"; // Nord lighter blue
-    private static final String COLOR_SUCCESS = "#a3be8c"; // Nord green
-    private static final String COLOR_EXECUTION = "#d8dee9"; // Nord white
+    // Nord color palette
+    private static final String COLOR_INFO = "#88c0d0";
+    private static final String COLOR_DEBUG = "#a3be8c";
+    private static final String COLOR_WARN = "#ebcb8b";
+    private static final String COLOR_ERROR = "#bf616a";
+    private static final String COLOR_TRACE = "#b48ead";
+    private static final String COLOR_TIMESTAMP = "#616e88";
+    private static final String COLOR_NODE = "#81a1c1";
+    private static final String COLOR_SUCCESS = "#a3be8c";
+    private static final String COLOR_EXECUTION = "#d8dee9";
+    private static final String BG_DARK = "#2e3440";
+    private static final String BG_MEDIUM = "#3b4252";
+    private static final String BG_LIGHT = "#434c5e";
 
     public ExecutionConsole() {
         initStyle(StageStyle.DECORATED);
         setTitle("Execution Console");
-        setMinWidth(600);
-        setMinHeight(400);
-        setWidth(900);
-        setHeight(600);
+        setMinWidth(700);
+        setMinHeight(500);
+        setWidth(1000);
+        setHeight(700);
 
-        // Main layout
         BorderPane root = new BorderPane();
         root.getStyleClass().add("execution-console");
-        root.setStyle("-fx-background-color: #2e3440;"); // Nord dark background
+        root.setStyle("-fx-background-color: " + BG_DARK + ";");
 
         // Toolbar
         ToolBar toolbar = createToolbar();
         root.setTop(toolbar);
 
-        // Log container with scroll
-        logContainer = new VBox(2);
-        logContainer.setPadding(new Insets(10));
-        logContainer.setStyle("-fx-background-color: #2e3440;");
+        // Main tab pane with Summary and Logs tabs
+        mainTabPane = new TabPane();
+        mainTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        mainTabPane.setStyle("-fx-background-color: " + BG_DARK + ";");
 
-        scrollPane = new ScrollPane(logContainer);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background: #2e3440; -fx-background-color: #2e3440;");
-        scrollPane.getStyleClass().add("console-scroll");
+        // Summary Tab
+        summaryContainer = new VBox(15);
+        summaryContainer.setPadding(new Insets(20));
+        summaryContainer.setStyle("-fx-background-color: " + BG_DARK + ";");
+        ScrollPane summaryScroll = new ScrollPane(summaryContainer);
+        summaryScroll.setFitToWidth(true);
+        summaryScroll.setStyle("-fx-background: " + BG_DARK + "; -fx-background-color: " + BG_DARK + ";");
 
-        // Auto-scroll behavior
+        Tab summaryTab = new Tab("Summary", summaryScroll);
+        summaryTab.setGraphic(FontIcon.of(MaterialDesignC.CHART_BOX_OUTLINE, 14, Color.web(COLOR_INFO)));
+        buildSummaryView();
+
+        // Logs Tab with enhanced features
+        BorderPane logsPane = new BorderPane();
+        logsPane.setStyle("-fx-background-color: " + BG_DARK + ";");
+
+        // Logs toolbar
+        HBox logsToolbar = createLogsToolbar();
+        logsPane.setTop(logsToolbar);
+
+        logContainer = new VBox(1);
+        logContainer.setPadding(new Insets(5, 10, 10, 10));
+        logContainer.setStyle("-fx-background-color: " + BG_DARK + ";");
+        logsScrollPane = new ScrollPane(logContainer);
+        logsScrollPane.setFitToWidth(true);
+        logsScrollPane.setStyle("-fx-background: " + BG_DARK + "; -fx-background-color: " + BG_DARK + ";");
+        logsScrollPane.getStyleClass().add("console-scroll");
+
         logContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
-            if (autoScroll) {
-                scrollPane.setVvalue(1.0);
+            if (autoScroll && pendingAutoScroll) {
+                logsScrollPane.setVvalue(1.0);
+                pendingAutoScroll = false;
             }
         });
 
-        root.setCenter(scrollPane);
+        logsPane.setCenter(logsScrollPane);
+
+        Tab logsTab = new Tab("Logs", logsPane);
+        logsTab.setGraphic(FontIcon.of(MaterialDesignT.TEXT_BOX_OUTLINE, 14, Color.web(COLOR_DEBUG)));
+
+        mainTabPane.getTabs().addAll(summaryTab, logsTab);
+        root.setCenter(mainTabPane);
 
         // Status bar
         HBox statusBar = createStatusBar();
@@ -123,54 +188,284 @@ public class ExecutionConsole extends Stage {
         scene.getStylesheets().add(getClass().getResource("/io/toflowai/ui/styles/console.css").toExternalForm());
         setScene(scene);
 
-        // Handle window close by hiding instead of closing to preserve logs
         setOnCloseRequest(event -> {
-            event.consume(); // Prevent default close behavior
-            hide(); // Hide the window instead
+            event.consume();
+            hide();
         });
+    }
+
+    private void buildSummaryView() {
+        // Empty state message
+        Label emptyLabel = new Label("No execution selected. Run a workflow to see details.");
+        emptyLabel.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-font-size: 14px;");
+        emptyLabel.setWrapText(true);
+        summaryContainer.getChildren().add(emptyLabel);
+    }
+
+    private void updateSummaryView() {
+        Platform.runLater(() -> {
+            summaryContainer.getChildren().clear();
+
+            if (selectedSessionId == null || !sessions.containsKey(selectedSessionId)) {
+                Label emptyLabel = new Label("No execution selected. Run a workflow to see details.");
+                emptyLabel.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-font-size: 14px;");
+                summaryContainer.getChildren().add(emptyLabel);
+                return;
+            }
+
+            ExecutionSession session = sessions.get(selectedSessionId);
+
+            // Header with workflow name
+            HBox header = new HBox(10);
+            header.setAlignment(Pos.CENTER_LEFT);
+            FontIcon icon = FontIcon.of(MaterialDesignP.PLAY_CIRCLE_OUTLINE, 24, Color.web(COLOR_SUCCESS));
+            Label titleLabel = new Label(session.getWorkflowName());
+            titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + COLOR_EXECUTION + ";");
+            header.getChildren().addAll(icon, titleLabel);
+
+            // Status card
+            VBox statusCard = createCard("Execution Status", createStatusContent(session));
+
+            // Progress card (if running)
+            VBox progressCard = null;
+            if (!session.isComplete()) {
+                progressCard = createCard("Progress", createProgressContent(session));
+            }
+
+            // Metrics card
+            VBox metricsCard = createCard("Metrics", createMetricsContent(session));
+
+            // Nodes card
+            VBox nodesCard = createCard("Node Execution", createNodesContent(session));
+
+            // Add all cards
+            summaryContainer.getChildren().add(header);
+            summaryContainer.getChildren().add(statusCard);
+            if (progressCard != null)
+                summaryContainer.getChildren().add(progressCard);
+            summaryContainer.getChildren().add(metricsCard);
+            summaryContainer.getChildren().add(nodesCard);
+        });
+    }
+
+    private VBox createCard(String title, Region content) {
+        VBox card = new VBox(10);
+        card.setPadding(new Insets(15));
+        card.setStyle("-fx-background-color: " + BG_MEDIUM + "; -fx-background-radius: 8;");
+
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + COLOR_INFO + ";");
+
+        Separator sep = new Separator();
+        sep.setStyle("-fx-background-color: " + BG_LIGHT + ";");
+
+        card.getChildren().addAll(titleLabel, sep, content);
+        return card;
+    }
+
+    private GridPane createStatusContent(ExecutionSession session) {
+        GridPane grid = new GridPane();
+        grid.setHgap(20);
+        grid.setVgap(8);
+
+        // Status
+        addGridRow(grid, 0, "Status:", createStatusBadge(session));
+
+        // Execution ID
+        Label idLabel = new Label(session.getExecutionId());
+        idLabel.setStyle("-fx-text-fill: " + COLOR_TRACE + "; -fx-font-family: monospace;");
+        addGridRow(grid, 1, "Execution ID:", idLabel);
+
+        // Start Time
+        String startTime = DATE_TIME_FORMAT
+                .format(LocalDateTime.ofInstant(session.getStartTime(), ZoneId.systemDefault()));
+        addGridRow(grid, 2, "Started:", new Label(startTime) {
+            {
+                setStyle("-fx-text-fill: " + COLOR_EXECUTION + ";");
+            }
+        });
+
+        // Duration
+        String duration = session.isComplete()
+                ? formatDuration(session.getDurationMs())
+                : formatDuration(Duration.between(session.getStartTime(), Instant.now()).toMillis()) + " (running)";
+        addGridRow(grid, 3, "Duration:", new Label(duration) {
+            {
+                setStyle("-fx-text-fill: " + COLOR_SUCCESS + ";");
+            }
+        });
+
+        return grid;
+    }
+
+    private HBox createStatusBadge(ExecutionSession session) {
+        HBox badge = new HBox(5);
+        badge.setAlignment(Pos.CENTER_LEFT);
+        badge.setPadding(new Insets(4, 10, 4, 10));
+
+        String status, color, iconCode;
+        if (!session.isComplete()) {
+            status = "RUNNING";
+            color = COLOR_INFO;
+            iconCode = "sync";
+        } else if (session.isSuccess()) {
+            status = "COMPLETED";
+            color = COLOR_SUCCESS;
+            iconCode = "check";
+        } else {
+            status = "FAILED";
+            color = COLOR_ERROR;
+            iconCode = "close";
+        }
+
+        badge.setStyle("-fx-background-color: " + color + "22; -fx-background-radius: 12;");
+        FontIcon statusIcon = FontIcon.of(
+                session.isComplete()
+                        ? (session.isSuccess() ? MaterialDesignC.CHECK_CIRCLE : MaterialDesignC.CLOSE_CIRCLE)
+                        : MaterialDesignS.SYNC,
+                14, Color.web(color));
+        Label statusLabel = new Label(status);
+        statusLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold; -fx-font-size: 11px;");
+        badge.getChildren().addAll(statusIcon, statusLabel);
+        return badge;
+    }
+
+    private VBox createProgressContent(ExecutionSession session) {
+        VBox content = new VBox(8);
+
+        int totalNodes = session.getTotalNodes();
+        int completedNodes = session.getCompletedNodes();
+        double progress = totalNodes > 0 ? (double) completedNodes / totalNodes : 0;
+
+        ProgressBar progressBar = new ProgressBar(progress);
+        progressBar.setPrefWidth(Double.MAX_VALUE);
+        progressBar.setStyle("-fx-accent: " + COLOR_INFO + ";");
+
+        Label progressLabel = new Label(
+                String.format("%d / %d nodes completed (%.0f%%)", completedNodes, totalNodes, progress * 100));
+        progressLabel.setStyle("-fx-text-fill: " + COLOR_EXECUTION + ";");
+
+        content.getChildren().addAll(progressBar, progressLabel);
+        return content;
+    }
+
+    private GridPane createMetricsContent(ExecutionSession session) {
+        GridPane grid = new GridPane();
+        grid.setHgap(40);
+        grid.setVgap(8);
+
+        int errorCount = (int) session.getEntries().stream().filter(e -> e.type == LogEntryType.ERROR).count();
+        int warnCount = (int) session.getEntries().stream().filter(e -> e.type == LogEntryType.WARN).count();
+        int nodeCount = session.getTotalNodes();
+
+        addMetricBox(grid, 0, "Total Nodes", String.valueOf(nodeCount), COLOR_NODE, MaterialDesignN.NODEJS);
+        addMetricBox(grid, 1, "Completed", String.valueOf(session.getCompletedNodes()), COLOR_SUCCESS,
+                MaterialDesignC.CHECK);
+        addMetricBox(grid, 2, "Warnings", String.valueOf(warnCount), COLOR_WARN, MaterialDesignA.ALERT);
+        addMetricBox(grid, 3, "Errors", String.valueOf(errorCount), COLOR_ERROR, MaterialDesignA.ALERT_CIRCLE);
+
+        return grid;
+    }
+
+    private void addMetricBox(GridPane grid, int col, String label, String value, String color,
+            org.kordamp.ikonli.Ikon icon) {
+        VBox box = new VBox(2);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(10, 20, 10, 20));
+        box.setStyle("-fx-background-color: " + BG_LIGHT + "; -fx-background-radius: 6;");
+
+        Label valueLabel = new Label(value);
+        valueLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
+        Label nameLabel = new Label(label);
+        nameLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: " + COLOR_TIMESTAMP + ";");
+
+        box.getChildren().addAll(valueLabel, nameLabel);
+        grid.add(box, col, 0);
+    }
+
+    private VBox createNodesContent(ExecutionSession session) {
+        VBox content = new VBox(5);
+
+        List<LogEntryData> nodeEntries = session.getEntries().stream()
+                .filter(e -> e.type == LogEntryType.NODE_START || e.type == LogEntryType.NODE_END
+                        || e.type == LogEntryType.ERROR)
+                .toList();
+
+        if (nodeEntries.isEmpty()) {
+            Label emptyLabel = new Label("No node executions yet...");
+            emptyLabel.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-font-style: italic;");
+            content.getChildren().add(emptyLabel);
+        } else {
+            for (LogEntryData entry : nodeEntries) {
+                HBox row = new HBox(10);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setPadding(new Insets(6, 10, 6, 10));
+                row.setStyle("-fx-background-color: " + BG_LIGHT + "; -fx-background-radius: 4;");
+
+                FontIcon icon = FontIcon.of(
+                        entry.type == LogEntryType.NODE_START ? MaterialDesignP.PLAY
+                                : entry.type == LogEntryType.ERROR ? MaterialDesignA.ALERT_CIRCLE
+                                        : MaterialDesignC.CHECK,
+                        12, Color.web(getColorForType(entry.type)));
+
+                Label timeLabel = new Label(formatTimestamp(entry.timestamp));
+                timeLabel.setStyle(
+                        "-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-font-size: 10px; -fx-font-family: monospace;");
+
+                Label msgLabel = new Label(entry.message);
+                msgLabel.setStyle("-fx-text-fill: " + COLOR_EXECUTION + ";");
+                HBox.setHgrow(msgLabel, Priority.ALWAYS);
+
+                row.getChildren().addAll(icon, timeLabel, msgLabel);
+                content.getChildren().add(row);
+            }
+        }
+        return content;
+    }
+
+    private void addGridRow(GridPane grid, int row, String label, Region value) {
+        Label labelNode = new Label(label);
+        labelNode.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-font-weight: bold;");
+        grid.add(labelNode, 0, row);
+        grid.add(value, 1, row);
+    }
+
+    private String formatDuration(long ms) {
+        if (ms < 1000)
+            return ms + "ms";
+        if (ms < 60000)
+            return String.format("%.2fs", ms / 1000.0);
+        long mins = ms / 60000;
+        long secs = (ms % 60000) / 1000;
+        return String.format("%dm %ds", mins, secs);
     }
 
     private ToolBar createToolbar() {
         ToolBar toolbar = new ToolBar();
-        toolbar.setStyle("-fx-background-color: #3b4252; -fx-padding: 5;");
+        toolbar.setStyle("-fx-background-color: " + BG_MEDIUM + "; -fx-padding: 5;");
 
-        // Clear button
         Button clearBtn = createToolButton("Clear", MaterialDesignD.DELETE_OUTLINE, () -> {
             if (!sessions.isEmpty()) {
-                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                confirm.setTitle("Clear Console");
-                confirm.setHeaderText("Clear all log entries?");
-                confirm.setContentText("This will permanently remove all execution logs and cannot be undone.");
-                confirm.showAndWait().ifPresent(response -> {
-                    if (response == ButtonType.OK) {
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Clear all execution logs?", ButtonType.OK,
+                        ButtonType.CANCEL);
+                confirm.showAndWait().ifPresent(r -> {
+                    if (r == ButtonType.OK)
                         clear();
-                    }
                 });
             }
         });
 
-        // Copy button
-        Button copyBtn = createToolButton("Copy All", MaterialDesignC.CONTENT_COPY, () -> {
-            copyToClipboard();
-            // Show feedback
-            Alert info = new Alert(Alert.AlertType.INFORMATION);
-            info.setTitle("Logs Copied");
-            info.setHeaderText(null);
-            info.setContentText("All execution logs have been copied to clipboard.");
-            info.showAndWait();
-        });
+        Button copyBtn = createToolButton("Copy All", MaterialDesignC.CONTENT_COPY, this::copyToClipboard);
 
-        // Auto-scroll toggle
         ToggleButton autoScrollBtn = new ToggleButton();
-        autoScrollBtn.setGraphic(FontIcon.of(MaterialDesignA.ARROW_DOWN_BOLD, 16, Color.web("#d8dee9")));
+        autoScrollBtn.setGraphic(FontIcon.of(MaterialDesignA.ARROW_DOWN_BOLD, 16, Color.web(COLOR_EXECUTION)));
         autoScrollBtn.setTooltip(new Tooltip("Auto-scroll"));
         autoScrollBtn.setSelected(autoScroll);
         autoScrollBtn.selectedProperty().addListener((obs, old, val) -> autoScroll = val);
         autoScrollBtn.setStyle("-fx-background-color: transparent;");
 
-        // Timestamps toggle
         ToggleButton timestampBtn = new ToggleButton();
-        timestampBtn.setGraphic(FontIcon.of(MaterialDesignC.CLOCK_OUTLINE, 16, Color.web("#d8dee9")));
+        timestampBtn.setGraphic(FontIcon.of(MaterialDesignC.CLOCK_OUTLINE, 16, Color.web(COLOR_EXECUTION)));
         timestampBtn.setTooltip(new Tooltip("Show timestamps"));
         timestampBtn.setSelected(showTimestamps);
         timestampBtn.selectedProperty().addListener((obs, old, val) -> {
@@ -179,103 +474,490 @@ public class ExecutionConsole extends Stage {
         });
         timestampBtn.setStyle("-fx-background-color: transparent;");
 
-        // Debug toggle
+        // DEBUG toggle with clear visual state
         ToggleButton debugBtn = new ToggleButton("DEBUG");
-        debugBtn.setTooltip(new Tooltip("Show only debug messages"));
+        debugBtn.setTooltip(new Tooltip("Filter to show only DEBUG level messages"));
         debugBtn.setSelected(showDebug);
+        styleToggleButton(debugBtn, COLOR_DEBUG, showDebug);
         debugBtn.selectedProperty().addListener((obs, old, val) -> {
             showDebug = val;
-            Platform.runLater(() -> refreshDisplay());
+            styleToggleButton(debugBtn, COLOR_DEBUG, val);
+            refreshDisplay();
         });
-        debugBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #a3be8c;");
 
-        // Trace toggle
+        // TRACE toggle with clear visual state
         ToggleButton traceBtn = new ToggleButton("TRACE");
-        traceBtn.setTooltip(new Tooltip("Show only trace messages"));
+        traceBtn.setTooltip(new Tooltip("Filter to show only TRACE level messages"));
         traceBtn.setSelected(showTrace);
+        styleToggleButton(traceBtn, COLOR_TRACE, showTrace);
         traceBtn.selectedProperty().addListener((obs, old, val) -> {
             showTrace = val;
-            Platform.runLater(() -> refreshDisplay());
+            styleToggleButton(traceBtn, COLOR_TRACE, val);
+            refreshDisplay();
         });
-        traceBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #b48ead;");
 
-        // Separator
-        Separator sep1 = new Separator();
-        sep1.setOrientation(Orientation.VERTICAL);
-
-        // Filter field
         TextField filterField = new TextField();
         filterField.setPromptText("Filter logs...");
-        filterField.setPrefWidth(200);
-        filterField.setStyle("-fx-background-color: #434c5e; -fx-text-fill: #d8dee9; -fx-prompt-text-fill: #616e88;");
+        filterField.setPrefWidth(180);
+        filterField.setStyle("-fx-background-color: " + BG_LIGHT + "; -fx-text-fill: " + COLOR_EXECUTION + ";");
         filterField.textProperty().addListener((obs, old, val) -> {
             filterText = val.toLowerCase();
-            Platform.runLater(() -> refreshDisplay());
+            refreshDisplay();
+        });
+
+        sessionSelector.setPromptText("Select session...");
+        sessionSelector.setPrefWidth(200);
+        sessionSelector.setStyle("-fx-background-color: " + BG_LIGHT + ";");
+        sessionSelector.valueProperty().addListener((obs, old, val) -> {
+            if (val != null) {
+                selectedSessionId = val;
+                updateSummaryView();
+                refreshDisplay();
+            }
         });
 
         toolbar.getItems().addAll(
-                clearBtn, copyBtn,
-                new Separator(),
-                autoScrollBtn, timestampBtn,
-                new Separator(),
-                debugBtn, traceBtn,
-                new Separator(),
-                filterField);
+                clearBtn, copyBtn, new Separator(Orientation.VERTICAL),
+                autoScrollBtn, timestampBtn, new Separator(Orientation.VERTICAL),
+                debugBtn, traceBtn, new Separator(Orientation.VERTICAL),
+                filterField, new Separator(Orientation.VERTICAL),
+                new Label("Session:"), sessionSelector);
 
         return toolbar;
     }
 
     private Button createToolButton(String tooltip, org.kordamp.ikonli.Ikon icon, Runnable action) {
         Button btn = new Button();
-        btn.setGraphic(FontIcon.of(icon, 16, Color.web("#d8dee9")));
+        btn.setGraphic(FontIcon.of(icon, 16, Color.web(COLOR_EXECUTION)));
         btn.setTooltip(new Tooltip(tooltip));
         btn.setOnAction(e -> action.run());
         btn.setStyle("-fx-background-color: transparent;");
         return btn;
     }
 
-    private HBox createStatusBar() {
-        HBox statusBar = new HBox(10);
-        statusBar.setPadding(new Insets(5, 10, 5, 10));
-        statusBar.setAlignment(Pos.CENTER_LEFT);
-        statusBar.setStyle("-fx-background-color: #3b4252;");
+    /**
+     * Style a toggle button with clear enabled/disabled visual states.
+     * When enabled: solid background with contrasting text, pill shape.
+     * When disabled: transparent background with muted text, pill shape border.
+     */
+    private void styleToggleButton(ToggleButton btn, String color, boolean selected) {
+        if (selected) {
+            // Enabled state: solid background pill with white text
+            btn.setStyle(String.format(
+                    "-fx-background-color: %s; " +
+                            "-fx-text-fill: %s; " +
+                            "-fx-background-radius: 12; " +
+                            "-fx-padding: 4 12 4 12; " +
+                            "-fx-font-weight: bold; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-cursor: hand;",
+                    color, BG_DARK));
+        } else {
+            // Disabled state: transparent with border, muted text
+            btn.setStyle(String.format(
+                    "-fx-background-color: transparent; " +
+                            "-fx-text-fill: %s; " +
+                            "-fx-border-color: %s; " +
+                            "-fx-border-width: 1; " +
+                            "-fx-border-radius: 12; " +
+                            "-fx-background-radius: 12; " +
+                            "-fx-padding: 3 11 3 11; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-opacity: 0.6; " +
+                            "-fx-cursor: hand;",
+                    color, color));
+        }
 
-        Label status = new Label("Ready");
-        status.setStyle("-fx-text-fill: #88c0d0;");
+        // Add hover effect
+        btn.setOnMouseEntered(e -> {
+            if (!btn.isSelected()) {
+                btn.setStyle(String.format(
+                        "-fx-background-color: %s22; " +
+                                "-fx-text-fill: %s; " +
+                                "-fx-border-color: %s; " +
+                                "-fx-border-width: 1; " +
+                                "-fx-border-radius: 12; " +
+                                "-fx-background-radius: 12; " +
+                                "-fx-padding: 3 11 3 11; " +
+                                "-fx-font-size: 11px; " +
+                                "-fx-opacity: 1.0; " +
+                                "-fx-cursor: hand;",
+                        color, color, color));
+            }
+        });
+        btn.setOnMouseExited(e -> styleToggleButton(btn, color, btn.isSelected()));
+    }
+
+    // Labels for log statistics (updated dynamically)
+    private final Label infoCountLabel = new Label("0");
+    private final Label warnCountLabel = new Label("0");
+    private final Label errorCountLabel = new Label("0");
+    private boolean showLineNumbers = false;
+    private final AtomicInteger logLineNumber = new AtomicInteger(0);
+
+    /**
+     * Create the logs tab toolbar with statistics and controls.
+     */
+    private HBox createLogsToolbar() {
+        HBox toolbar = new HBox(8);
+        toolbar.setPadding(new Insets(8, 12, 8, 12));
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        toolbar.setStyle("-fx-background-color: " + BG_LIGHT + "; -fx-border-color: " + BG_MEDIUM
+                + "; -fx-border-width: 0 0 1 0;");
+
+        // Log level statistics
+        HBox statsBox = new HBox(12);
+        statsBox.setAlignment(Pos.CENTER_LEFT);
+
+        statsBox.getChildren().addAll(
+                createStatBadge("ℹ", infoCountLabel, COLOR_INFO),
+                createStatBadge("⚠", warnCountLabel, COLOR_WARN),
+                createStatBadge("❌", errorCountLabel, COLOR_ERROR));
+
+        // Separator
+        Separator sep1 = new Separator(Orientation.VERTICAL);
+        sep1.setPadding(new Insets(0, 5, 0, 5));
+
+        // Jump to error button
+        Button jumpErrorBtn = new Button("Jump to Error");
+        jumpErrorBtn.setGraphic(FontIcon.of(MaterialDesignA.ARROW_DOWN_CIRCLE, 14, Color.web(COLOR_ERROR)));
+        jumpErrorBtn
+                .setStyle("-fx-background-color: transparent; -fx-text-fill: " + COLOR_ERROR + "; -fx-cursor: hand;");
+        jumpErrorBtn.setTooltip(new Tooltip("Scroll to first error"));
+        jumpErrorBtn.setOnAction(e -> jumpToFirstError());
+
+        // Line numbers toggle
+        ToggleButton lineNumBtn = new ToggleButton("#");
+        lineNumBtn.setTooltip(new Tooltip("Show line numbers"));
+        lineNumBtn.setSelected(showLineNumbers);
+        styleToggleButton(lineNumBtn, COLOR_TIMESTAMP, showLineNumbers);
+        lineNumBtn.selectedProperty().addListener((obs, old, val) -> {
+            showLineNumbers = val;
+            styleToggleButton(lineNumBtn, COLOR_TIMESTAMP, val);
+            refreshDisplay();
+        });
+
+        // Export button
+        Button exportBtn = new Button("Export");
+        exportBtn.setGraphic(FontIcon.of(MaterialDesignE.EXPORT, 14, Color.web(COLOR_EXECUTION)));
+        exportBtn.setStyle(
+                "-fx-background-color: transparent; -fx-text-fill: " + COLOR_EXECUTION + "; -fx-cursor: hand;");
+        exportBtn.setTooltip(new Tooltip("Export logs to file"));
+        exportBtn.setOnAction(e -> exportLogs());
+
+        // Expand/Collapse all
+        Button expandAllBtn = new Button();
+        expandAllBtn.setGraphic(FontIcon.of(MaterialDesignC.CHEVRON_DOWN_BOX, 14, Color.web(COLOR_EXECUTION)));
+        expandAllBtn.setTooltip(new Tooltip("Expand all details"));
+        expandAllBtn.setStyle("-fx-background-color: transparent;");
+        expandAllBtn.setOnAction(e -> expandAllDetails(true));
+
+        Button collapseAllBtn = new Button();
+        collapseAllBtn.setGraphic(FontIcon.of(MaterialDesignC.CHEVRON_UP_BOX, 14, Color.web(COLOR_EXECUTION)));
+        collapseAllBtn.setTooltip(new Tooltip("Collapse all details"));
+        collapseAllBtn.setStyle("-fx-background-color: transparent;");
+        collapseAllBtn.setOnAction(e -> expandAllDetails(false));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        filterStatusLabel.setStyle("-fx-text-fill: #ebcb8b;");
+        // Total entries label
+        Label totalLabel = new Label("0 entries");
+        totalLabel.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-font-size: 11px;");
 
-        sessionCountLabel.setStyle("-fx-text-fill: #616e88;");
+        toolbar.getChildren().addAll(
+                new Label("Logs:") {
+                    {
+                        setStyle("-fx-text-fill: " + COLOR_EXECUTION + "; -fx-font-weight: bold;");
+                    }
+                },
+                statsBox,
+                sep1,
+                jumpErrorBtn,
+                lineNumBtn,
+                expandAllBtn,
+                collapseAllBtn,
+                spacer,
+                exportBtn,
+                totalLabel);
 
-        statusBar.getChildren().addAll(status, spacer, filterStatusLabel, sessionCountLabel);
-        return statusBar;
+        return toolbar;
+    }
+
+    private HBox createStatBadge(String icon, Label countLabel, String color) {
+        HBox badge = new HBox(4);
+        badge.setAlignment(Pos.CENTER);
+        badge.setPadding(new Insets(2, 6, 2, 6));
+        badge.setStyle("-fx-background-color: " + color + "22; -fx-background-radius: 10;");
+
+        Label iconLabel = new Label(icon);
+        iconLabel.setStyle("-fx-font-size: 10px;");
+
+        countLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold; -fx-font-size: 11px;");
+
+        badge.getChildren().addAll(iconLabel, countLabel);
+        return badge;
+    }
+
+    private void jumpToFirstError() {
+        Platform.runLater(() -> {
+            for (javafx.scene.Node node : logContainer.getChildren()) {
+                if (node instanceof VBox vbox && vbox.getStyle().contains("rgba(191, 97, 106")) {
+                    // Found an error entry
+                    logsScrollPane.setVvalue(vbox.getLayoutY() / logContainer.getHeight());
+                    vbox.setStyle(vbox.getStyle() + " -fx-border-color: " + COLOR_ERROR
+                            + "; -fx-border-width: 2; -fx-border-radius: 4;");
+                    // Flash effect
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(1500);
+                        } catch (InterruptedException ignored) {
+                        }
+                        Platform.runLater(() -> vbox.setStyle("-fx-background-color: rgba(191, 97, 106, 0.1);"));
+                    }).start();
+                    return;
+                }
+            }
+        });
+    }
+
+    private void expandAllDetails(boolean expand) {
+        Platform.runLater(() -> {
+            for (javafx.scene.Node node : logContainer.getChildren()) {
+                if (node instanceof VBox container) {
+                    // Each log entry that has details
+                    if (expand) {
+                        // Find entries with expandable content
+                        if (container.getChildren().size() == 1
+                                && container.getUserData() instanceof LogEntryData entry) {
+                            if (entry.details != null && !entry.details.isEmpty()) {
+                                toggleDetails(container, entry);
+                            }
+                        }
+                    } else {
+                        // Collapse - remove expanded details
+                        if (container.getChildren().size() > 1) {
+                            container.getChildren().remove(1, container.getChildren().size());
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private void exportLogs() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export Logs");
+        fileChooser.setInitialFileName("execution_logs.txt");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Text Files", "*.txt"),
+                new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+
+        File file = fileChooser.showSaveDialog(this);
+        if (file != null) {
+            try (FileWriter writer = new FileWriter(file)) {
+                if (file.getName().endsWith(".json")) {
+                    writer.write(exportAsJson());
+                } else {
+                    writer.write(exportAsText());
+                }
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "Logs exported successfully!", ButtonType.OK);
+                alert.showAndWait();
+            } catch (IOException e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to export logs: " + e.getMessage(),
+                        ButtonType.OK);
+                alert.showAndWait();
+            }
+        }
+    }
+
+    private String exportAsText() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== Execution Console Export ===\n");
+        sb.append("Exported at: ").append(LocalDateTime.now().format(DATE_TIME_FORMAT)).append("\n\n");
+
+        for (ExecutionSession session : sessions.values()) {
+            sb.append("─".repeat(60)).append("\n");
+            sb.append("Workflow: ").append(session.getWorkflowName()).append("\n");
+            sb.append("Execution ID: ").append(session.getExecutionId()).append("\n");
+            sb.append("Status: ")
+                    .append(session.isComplete() ? (session.isSuccess() ? "COMPLETED" : "FAILED") : "RUNNING")
+                    .append("\n");
+            sb.append("─".repeat(60)).append("\n\n");
+
+            int lineNum = 1;
+            for (LogEntryData entry : session.getEntries()) {
+                sb.append(String.format("%4d | ", lineNum++));
+                sb.append(formatTimestamp(entry.timestamp)).append(" ");
+                sb.append("  ".repeat(entry.depth));
+                sb.append("[").append(entry.type.name()).append("] ");
+                sb.append(entry.message);
+                if (entry.details != null && !entry.details.isEmpty()) {
+                    sb.append("\n      | ").append(entry.details.replace("\n", "\n      | "));
+                }
+                sb.append("\n");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private String exportAsJson() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\n  \"exportTime\": \"").append(LocalDateTime.now()).append("\",\n");
+        sb.append("  \"sessions\": [\n");
+
+        boolean firstSession = true;
+        for (ExecutionSession session : sessions.values()) {
+            if (!firstSession)
+                sb.append(",\n");
+            firstSession = false;
+
+            sb.append("    {\n");
+            sb.append("      \"workflowName\": \"").append(escapeJson(session.getWorkflowName())).append("\",\n");
+            sb.append("      \"executionId\": \"").append(session.getExecutionId()).append("\",\n");
+            sb.append("      \"status\": \"")
+                    .append(session.isComplete() ? (session.isSuccess() ? "completed" : "failed") : "running")
+                    .append("\",\n");
+            sb.append("      \"entries\": [\n");
+
+            boolean firstEntry = true;
+            for (LogEntryData entry : session.getEntries()) {
+                if (!firstEntry)
+                    sb.append(",\n");
+                firstEntry = false;
+
+                sb.append("        {");
+                sb.append("\"timestamp\": \"").append(entry.timestamp).append("\", ");
+                sb.append("\"level\": \"").append(entry.type.name()).append("\", ");
+                sb.append("\"message\": \"").append(escapeJson(entry.message)).append("\"");
+                if (entry.details != null) {
+                    sb.append(", \"details\": \"").append(escapeJson(entry.details)).append("\"");
+                }
+                sb.append("}");
+            }
+            sb.append("\n      ]\n    }");
+        }
+        sb.append("\n  ]\n}");
+        return sb.toString();
+    }
+
+    private String escapeJson(String s) {
+        if (s == null)
+            return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t",
+                "\\t");
+    }
+
+    private void updateLogStats() {
+        if (selectedSessionId == null)
+            return;
+        ExecutionSession session = sessions.get(selectedSessionId);
+        if (session == null)
+            return;
+
+        int infoCount = 0, warnCount = 0, errCount = 0;
+        for (LogEntryData entry : session.getEntries()) {
+            switch (entry.type) {
+                case INFO, NODE_START, NODE_END, SUCCESS -> infoCount++;
+                case WARN -> warnCount++;
+                case ERROR -> errCount++;
+                default -> {
+                }
+            }
+        }
+
+        final int finalInfo = infoCount, finalWarn = warnCount, finalErr = errCount;
+        Platform.runLater(() -> {
+            infoCountLabel.setText(String.valueOf(finalInfo));
+            warnCountLabel.setText(String.valueOf(finalWarn));
+            errorCountLabel.setText(String.valueOf(finalErr));
+        });
+    }
+
+    /**
+     * Refresh the logs display based on current filters and session selection.
+     */
+    private void refreshDisplay() {
+        Platform.runLater(() -> {
+            logContainer.getChildren().clear();
+            logLineNumber.set(0); // Reset line counter
+
+            if (selectedSessionId == null) {
+                // Show all sessions
+                for (ExecutionSession session : sessions.values()) {
+                    logContainer.getChildren().add(
+                            createExecutionHeader(session.getExecutionId(), session.getWorkflowName(),
+                                    session.getStartTime()));
+                    for (LogEntryData entry : session.getEntries()) {
+                        if (shouldShowEntry(entry)) {
+                            logContainer.getChildren().add(createLogEntryView(entry));
+                        }
+                    }
+                }
+            } else {
+                // Show specific session
+                ExecutionSession session = sessions.get(selectedSessionId);
+                if (session != null) {
+                    logContainer.getChildren().add(
+                            createExecutionHeader(session.getExecutionId(), session.getWorkflowName(),
+                                    session.getStartTime()));
+                    for (LogEntryData entry : session.getEntries()) {
+                        if (shouldShowEntry(entry)) {
+                            logContainer.getChildren().add(createLogEntryView(entry));
+                        }
+                    }
+                }
+            }
+
+            updateLogStats();
+
+            // Update filter status
+            int totalFiltered = 0;
+            for (javafx.scene.Node node : logContainer.getChildren()) {
+                if (node instanceof VBox)
+                    totalFiltered++;
+            }
+            filterStatusLabel.setText(filterText.isEmpty() ? "" : "Filtered: " + totalFiltered);
+        });
+    }
+
+    private HBox createStatusBar() {
+        HBox bar = new HBox(10);
+        bar.setPadding(new Insets(5, 10, 5, 10));
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setStyle("-fx-background-color: " + BG_MEDIUM + ";");
+
+        Label status = new Label("Ready");
+        status.setStyle("-fx-text-fill: " + COLOR_INFO + ";");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        filterStatusLabel.setStyle("-fx-text-fill: " + COLOR_WARN + ";");
+        sessionCountLabel.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + ";");
+
+        bar.getChildren().addAll(status, spacer, filterStatusLabel, sessionCountLabel);
+        return bar;
     }
 
     // ===== Public API =====
 
-    /**
-     * Start a new execution session.
-     */
     public void startExecution(String executionId, String workflowName) {
         Platform.runLater(() -> {
             ExecutionSession session = new ExecutionSession(executionId, workflowName);
             sessions.put(executionId, session);
+            sessionSelector.getItems().add(executionId);
+            sessionSelector.setValue(executionId);
+            selectedSessionId = executionId;
 
-            // Add execution header
             HBox header = createExecutionHeader(executionId, workflowName, Instant.now());
             logContainer.getChildren().add(header);
             session.setHeaderIndex(logContainer.getChildren().size() - 1);
 
             updateSessionCount();
+            updateSummaryView();
         });
     }
 
-    /**
-     * End an execution session.
-     */
     public void endExecution(String executionId, boolean success, long durationMs) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
@@ -283,198 +965,114 @@ public class ExecutionConsole extends Stage {
                 session.setComplete(true);
                 session.setSuccess(success);
                 session.setDurationMs(durationMs);
-
-                // Add completion entry
-                logEntry(executionId, 0,
-                        success ? LogEntryType.SUCCESS : LogEntryType.ERROR,
+                logEntry(executionId, 0, success ? LogEntryType.SUCCESS : LogEntryType.ERROR,
                         success ? "✓ Execution completed" : "✗ Execution failed",
-                        String.format("Duration: %dms", durationMs));
+                        String.format("Duration: %s", formatDuration(durationMs)));
+                updateSummaryView();
             }
         });
     }
 
-    /**
-     * Log a node starting execution.
-     */
     public void nodeStart(String executionId, String nodeId, String nodeName, String nodeType) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             if (session != null) {
                 int depth = session.pushNode(nodeId);
                 logEntry(executionId, depth, LogEntryType.NODE_START,
-                        "▶ " + nodeName + " (" + nodeType + ")",
-                        "Node ID: " + nodeId);
+                        "▶ " + nodeName + " (" + nodeType + ")", "Node ID: " + nodeId);
+                updateSummaryView();
             }
         });
     }
 
-    /**
-     * Log a node completing execution.
-     */
     public void nodeEnd(String executionId, String nodeId, String nodeName, boolean success, long durationMs) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             if (session != null) {
                 int depth = session.getNodeDepth(nodeId);
-                String status = success ? "✓" : "✗";
-                String details = String.format("Node ID: %s | Duration: %dms", nodeId, durationMs);
-                logEntry(executionId, depth,
-                        success ? LogEntryType.NODE_END : LogEntryType.ERROR,
-                        status + " " + nodeName,
-                        details);
+                logEntry(executionId, depth, success ? LogEntryType.NODE_END : LogEntryType.ERROR,
+                        (success ? "✓ " : "✗ ") + nodeName,
+                        String.format("Duration: %s", formatDuration(durationMs)));
                 session.popNode(nodeId);
+                updateSummaryView();
             }
         });
     }
 
-    /**
-     * Log node input data.
-     */
     public void nodeInput(String executionId, String nodeId, String nodeName, Object input) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             if (session != null) {
                 int depth = session.getNodeDepth(nodeId);
-                String inputStr = formatDataPreview(input);
-                logEntry(executionId, depth + 1, LogEntryType.TRACE,
-                        "📥 Input: " + nodeName,
-                        inputStr);
+                logEntry(executionId, depth + 1, LogEntryType.TRACE, "📥 Input: " + nodeName, formatDataPreview(input));
             }
         });
     }
 
-    /**
-     * Log node output data.
-     */
     public void nodeOutput(String executionId, String nodeId, String nodeName, Object output) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             if (session != null) {
                 int depth = session.getNodeDepth(nodeId);
-                String outputStr = formatDataPreview(output);
-                logEntry(executionId, depth + 1, LogEntryType.TRACE,
-                        "📤 Output: " + nodeName,
-                        outputStr);
+                logEntry(executionId, depth + 1, LogEntryType.TRACE, "📤 Output: " + nodeName,
+                        formatDataPreview(output));
             }
         });
     }
 
-    /**
-     * Format data for preview display.
-     */
-    private String formatDataPreview(Object data) {
-        if (data == null) {
-            return "null";
-        }
-
-        String str = data.toString();
-        if (str.length() > 200) {
-            return str.substring(0, 200) + "...";
-        }
-
-        // For collections/maps, show count
-        if (data instanceof Map) {
-            return String.format("Map with %d entries: %s", ((Map<?, ?>) data).size(), str);
-        }
-        if (data instanceof Iterable && !(data instanceof String)) {
-            int count = 0;
-            for (Object item : (Iterable<?>) data) {
-                count++;
-                if (count > 10)
-                    break; // Don't count too many
-            }
-            return String.format("Collection with %d items: %s", count, str);
-        }
-
-        return str;
-    }
-
-    /**
-     * Log a node being skipped.
-     */
     public void nodeSkip(String executionId, String nodeId, String nodeName, String reason) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             if (session != null) {
-                int depth = session.getCurrentDepth();
-                logEntry(executionId, depth, LogEntryType.DEBUG,
-                        "⏭ Skipped: " + nodeName,
-                        reason);
+                logEntry(executionId, session.getCurrentDepth(), LogEntryType.DEBUG, "⏭ Skipped: " + nodeName, reason);
             }
         });
     }
 
-    /**
-     * Log an error.
-     */
     public void error(String executionId, String source, String message, String stackTrace) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             int depth = session != null ? session.getCurrentDepth() : 0;
-
-            logEntry(executionId, depth, LogEntryType.ERROR,
-                    "❌ Error in " + source,
-                    message);
-
+            logEntry(executionId, depth, LogEntryType.ERROR, "❌ Error in " + source, message);
             if (stackTrace != null && !stackTrace.isEmpty()) {
-                logEntry(executionId, depth + 1, LogEntryType.TRACE,
-                        "Stack trace:",
-                        stackTrace);
+                logEntry(executionId, depth + 1, LogEntryType.TRACE, "Stack trace:", stackTrace);
             }
+            updateSummaryView();
         });
     }
 
-    /**
-     * Log a retry attempt.
-     */
     public void retry(String executionId, String nodeId, int attempt, int maxRetries, long delayMs) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             int depth = session != null ? session.getCurrentDepth() : 0;
-
             logEntry(executionId, depth, LogEntryType.WARN,
                     String.format("🔄 Retry %d/%d", attempt, maxRetries),
-                    String.format("Waiting %dms before next attempt", delayMs));
+                    String.format("Waiting %dms", delayMs));
         });
     }
 
-    /**
-     * Log rate limiting.
-     */
     public void rateLimit(String executionId, String bucketId, boolean throttled, long waitMs) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             int depth = session != null ? session.getCurrentDepth() : 0;
-
             if (throttled) {
-                logEntry(executionId, depth, LogEntryType.WARN,
-                        "⏱ Rate limited: " + bucketId,
-                        String.format("Waited %dms for tokens", waitMs));
+                logEntry(executionId, depth, LogEntryType.WARN, "⏱ Rate limited: " + bucketId,
+                        "Waited " + waitMs + "ms");
             } else {
-                logEntry(executionId, depth, LogEntryType.DEBUG,
-                        "⏱ Rate limit passed: " + bucketId,
-                        null);
+                logEntry(executionId, depth, LogEntryType.DEBUG, "⏱ Rate limit passed: " + bucketId, null);
             }
         });
     }
 
-    /**
-     * Log data flow between nodes.
-     */
     public void dataFlow(String executionId, String fromNode, String toNode, int dataSize) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
             int depth = session != null ? session.getCurrentDepth() : 0;
-
             logEntry(executionId, depth, LogEntryType.TRACE,
-                    String.format("📦 Data: %s → %s", fromNode, toNode),
-                    String.format("Size: %d bytes", dataSize));
+                    String.format("📦 Data: %s → %s", fromNode, toNode), dataSize + " bytes");
         });
     }
 
-    /**
-     * Log custom info message.
-     */
     public void info(String executionId, String message, String details) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
@@ -483,9 +1081,6 @@ public class ExecutionConsole extends Stage {
         });
     }
 
-    /**
-     * Log custom debug message.
-     */
     public void debug(String executionId, String message, String details) {
         Platform.runLater(() -> {
             ExecutionSession session = sessions.get(executionId);
@@ -494,20 +1089,17 @@ public class ExecutionConsole extends Stage {
         });
     }
 
-    /**
-     * Clear all log entries.
-     */
     public void clear() {
         Platform.runLater(() -> {
             logContainer.getChildren().clear();
             sessions.clear();
+            sessionSelector.getItems().clear();
+            selectedSessionId = null;
             updateSessionCount();
+            updateSummaryView();
         });
     }
 
-    /**
-     * Copy all logs to clipboard.
-     */
     public void copyToClipboard() {
         StringBuilder sb = new StringBuilder();
         for (ExecutionSession session : sessions.values()) {
@@ -517,10 +1109,17 @@ public class ExecutionConsole extends Stage {
             }
             sb.append("\n");
         }
-
         ClipboardContent content = new ClipboardContent();
         content.putString(sb.toString());
         Clipboard.getSystemClipboard().setContent(content);
+    }
+
+    public void addLogListener(ConsoleLogListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeLogListener(ConsoleLogListener listener) {
+        listeners.remove(listener);
     }
 
     // ===== Private Methods =====
@@ -528,66 +1127,51 @@ public class ExecutionConsole extends Stage {
     private void logEntry(String executionId, int depth, LogEntryType type, String message, String details) {
         ExecutionSession session = sessions.get(executionId);
         LogEntryData data = new LogEntryData(Instant.now(), depth, type, message, details);
-
-        if (session != null) {
+        if (session != null)
             session.addEntry(data);
-        }
-
-        // Check visibility based on filters
-        if (!shouldShowEntry(data)) {
+        if (!shouldShowEntry(data))
             return;
+        if (selectedSessionId == null || selectedSessionId.equals(executionId)) {
+            VBox entryBox = createLogEntryView(data);
+            logContainer.getChildren().add(entryBox);
+            pendingAutoScroll = true; // Mark that we added a new entry
         }
-
-        VBox entryBox = createLogEntryView(data);
-        logContainer.getChildren().add(entryBox);
-
-        // Notify listeners
         for (ConsoleLogListener listener : listeners) {
             listener.onLogEntry(executionId, type, message, details);
         }
     }
 
     private boolean shouldShowEntry(LogEntryData entry) {
-        // If any level filters are active, only show selected levels
         if (showDebug || showTrace) {
             if (entry.type == LogEntryType.DEBUG && !showDebug)
                 return false;
             if (entry.type == LogEntryType.TRACE && !showTrace)
                 return false;
-            // Hide other levels when filters are active
             if (entry.type != LogEntryType.DEBUG && entry.type != LogEntryType.TRACE)
                 return false;
         }
-
-        // Text filter
         if (!filterText.isEmpty()) {
             String searchable = (entry.message + " " + (entry.details != null ? entry.details : "")).toLowerCase();
             if (!searchable.contains(filterText))
                 return false;
         }
-
         return true;
     }
 
     private HBox createExecutionHeader(String executionId, String workflowName, Instant timestamp) {
         HBox header = new HBox(10);
-        header.setPadding(new Insets(8, 10, 8, 10));
+        header.setPadding(new Insets(10, 12, 10, 12));
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setStyle("-fx-background-color: #3b4252; -fx-background-radius: 5;");
+        header.setStyle("-fx-background-color: " + BG_MEDIUM + "; -fx-background-radius: 6;");
 
-        FontIcon icon = FontIcon.of(MaterialDesignP.PLAY_CIRCLE, 18, Color.web(COLOR_SUCCESS));
-
+        FontIcon icon = FontIcon.of(MaterialDesignP.PLAY_CIRCLE, 20, Color.web(COLOR_SUCCESS));
         Text title = new Text("Execution: " + workflowName);
-        title.setFont(Font.font("System", FontWeight.BOLD, 13));
+        title.setFont(Font.font("System", FontWeight.BOLD, 14));
         title.setFill(Color.web(COLOR_EXECUTION));
-
         Text time = new Text(formatTimestamp(timestamp));
         time.setFill(Color.web(COLOR_TIMESTAMP));
-        time.setFont(Font.font("System", 11));
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
         Text id = new Text("#" + executionId.substring(0, Math.min(8, executionId.length())));
         id.setFill(Color.web(COLOR_TIMESTAMP));
         id.setFont(Font.font("Monospace", 10));
@@ -597,18 +1181,30 @@ public class ExecutionConsole extends Stage {
     }
 
     private VBox createLogEntryView(LogEntryData entry) {
-        VBox entryContainer = new VBox(2);
-        entryContainer.setPadding(new Insets(2, 10, 2, 10));
+        VBox container = new VBox(2);
+        container.setPadding(new Insets(4, 10, 4, 10));
+        container.setUserData(entry); // Store entry for expand all functionality
 
-        // Main log line
-        HBox mainLine = new HBox(5);
-        mainLine.setAlignment(Pos.TOP_LEFT);
+        // Alternating row background
+        int lineNum = logLineNumber.incrementAndGet();
+        if (lineNum % 2 == 0) {
+            container.setStyle("-fx-background-color: " + BG_MEDIUM + "33;");
+        }
 
-        // Indentation
-        int indentPixels = entry.depth * 20;
-        Region indent = new Region();
-        indent.setMinWidth(indentPixels);
-        indent.setPrefWidth(indentPixels);
+        HBox mainLine = new HBox(6);
+        mainLine.setAlignment(Pos.CENTER_LEFT);
+
+        // Line number (if enabled)
+        if (showLineNumbers) {
+            Label numLabel = new Label(String.format("%4d", lineNum));
+            numLabel.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP
+                    + "; -fx-font-family: 'Monospace'; -fx-font-size: 10px; -fx-min-width: 35;");
+            mainLine.getChildren().add(numLabel);
+
+            Separator sep = new Separator(Orientation.VERTICAL);
+            sep.setStyle("-fx-background-color: " + BG_LIGHT + ";");
+            mainLine.getChildren().add(sep);
+        }
 
         // Timestamp
         if (showTimestamps) {
@@ -618,73 +1214,121 @@ public class ExecutionConsole extends Stage {
             mainLine.getChildren().add(timestamp);
         }
 
-        mainLine.getChildren().add(indent);
+        // Indentation for hierarchy
+        if (entry.depth > 0) {
+            Region indent = new Region();
+            indent.setMinWidth(entry.depth * 16);
+            mainLine.getChildren().add(indent);
+        }
 
-        // Type indicator with color
-        Text typeIndicator = new Text(getTypeIndicator(entry.type));
-        typeIndicator.setFill(Color.web(getColorForType(entry.type)));
-        typeIndicator.setFont(Font.font("System", FontWeight.BOLD, 12));
-        mainLine.getChildren().add(typeIndicator);
+        // Log level badge (colored pill)
+        Label levelBadge = new Label(getLevelBadgeText(entry.type));
+        levelBadge.setStyle(String.format(
+                "-fx-background-color: %s33; " +
+                        "-fx-text-fill: %s; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-padding: 1 6 1 6; " +
+                        "-fx-font-size: 10px; " +
+                        "-fx-font-weight: bold;",
+                getColorForType(entry.type), getColorForType(entry.type)));
+        mainLine.getChildren().add(levelBadge);
 
-        // Message
-        Text messageText = new Text(entry.message);
-        messageText.setFill(Color.web(getColorForType(entry.type)));
-        messageText.setFont(Font.font("System", 12));
-        mainLine.getChildren().add(messageText);
+        // Message text with potential highlighting
+        Text msgText = new Text(entry.message);
+        msgText.setFill(Color.web(getColorForType(entry.type)));
+        msgText.setFont(Font.font("System", 12));
+        mainLine.getChildren().add(msgText);
 
-        entryContainer.getChildren().add(mainLine);
-
-        // Details section (collapsible)
+        // Expandable details indicator
         if (entry.details != null && !entry.details.isEmpty()) {
-            // Create clickable details indicator
-            String indicator = getDetailsIndicator(entry);
-            Text detailsLink = new Text(" " + indicator);
-            detailsLink.setFill(Color.web(COLOR_TIMESTAMP));
-            detailsLink.setFont(Font.font("System", FontWeight.BOLD, 11));
-
-            // Make it clickable to expand
-            detailsLink.setOnMouseClicked(e -> toggleDetails(entryContainer, entry));
-            detailsLink.setOnMouseEntered(e -> {
-                detailsLink.setUnderline(true);
-                detailsLink.setFill(Color.web("#88c0d0")); // Nord blue on hover
-            });
-            detailsLink.setOnMouseExited(e -> {
-                detailsLink.setUnderline(false);
-                detailsLink.setFill(Color.web(COLOR_TIMESTAMP));
-            });
-            detailsLink.setStyle("-fx-cursor: hand;");
-
+            Label detailsLink = new Label(" ▶");
+            detailsLink.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-cursor: hand;");
+            detailsLink.setOnMouseClicked(e -> toggleDetails(container, entry));
+            detailsLink.setOnMouseEntered(
+                    e -> detailsLink.setStyle("-fx-text-fill: " + COLOR_INFO + "; -fx-cursor: hand;"));
+            detailsLink.setOnMouseExited(
+                    e -> detailsLink.setStyle("-fx-text-fill: " + COLOR_TIMESTAMP + "; -fx-cursor: hand;"));
             mainLine.getChildren().add(detailsLink);
         }
 
-        // Make error entries more visible
+        container.getChildren().add(mainLine);
+
+        // Error entries get special background
         if (entry.type == LogEntryType.ERROR) {
-            entryContainer.setStyle("-fx-background-color: rgba(191, 97, 106, 0.1);");
+            container.setStyle("-fx-background-color: rgba(191, 97, 106, 0.1); -fx-border-color: " + COLOR_ERROR
+                    + "44; -fx-border-width: 0 0 0 3;");
+        } else if (entry.type == LogEntryType.WARN) {
+            container.setStyle(
+                    container.getStyle() + " -fx-border-color: " + COLOR_WARN + "44; -fx-border-width: 0 0 0 2;");
         }
 
-        return entryContainer;
+        // Context menu for right-click
+        ContextMenu contextMenu = createLogEntryContextMenu(container, entry);
+        container.setOnContextMenuRequested(e -> contextMenu.show(container, e.getScreenX(), e.getScreenY()));
+
+        return container;
     }
 
-    private String getDetailsIndicator(LogEntryData entry) {
-        if (entry.details == null || entry.details.isEmpty()) {
-            return "";
+    private String getLevelBadgeText(LogEntryType type) {
+        return switch (type) {
+            case INFO -> "INFO";
+            case DEBUG -> "DEBUG";
+            case WARN -> "WARN";
+            case ERROR -> "ERROR";
+            case TRACE -> "TRACE";
+            case NODE_START -> "START";
+            case NODE_END -> "END";
+            case NODE_INPUT -> "INPUT";
+            case NODE_OUTPUT -> "OUTPUT";
+            case EXPRESSION -> "EXPR";
+            case SUCCESS -> "OK";
+        };
+    }
+
+    private ContextMenu createLogEntryContextMenu(VBox container, LogEntryData entry) {
+        ContextMenu menu = new ContextMenu();
+
+        MenuItem copyMsg = new MenuItem("Copy Message");
+        copyMsg.setOnAction(e -> {
+            ClipboardContent content = new ClipboardContent();
+            content.putString(entry.message);
+            Clipboard.getSystemClipboard().setContent(content);
+        });
+
+        MenuItem copyAll = new MenuItem("Copy with Details");
+        copyAll.setOnAction(e -> {
+            ClipboardContent content = new ClipboardContent();
+            String text = formatTimestamp(entry.timestamp) + " [" + entry.type + "] " + entry.message;
+            if (entry.details != null) {
+                text += "\n" + entry.details;
+            }
+            content.putString(text);
+            Clipboard.getSystemClipboard().setContent(content);
+        });
+
+        if (entry.details != null && !entry.details.isEmpty()) {
+            MenuItem toggleExpand = new MenuItem("Expand Details");
+            toggleExpand.setOnAction(e -> toggleDetails(container, entry));
+            menu.getItems().add(toggleExpand);
+            menu.getItems().add(new SeparatorMenuItem());
         }
 
-        // Check content type and return appropriate indicator
-        String details = entry.details.toLowerCase();
+        menu.getItems().addAll(copyMsg, copyAll);
+        return menu;
+    }
 
-        if (details.contains("duration")) {
-            return "⏱️"; // Clock emoji for duration
-        } else if (details.contains("error") || details.contains("exception") || details.contains("stack")) {
-            return "⚠️"; // Warning for errors
-        } else if (details.contains("node id") || details.contains("type:")) {
-            return "ℹ️"; // Info for node details
-        } else if (details.contains("input") || details.contains("output")) {
-            return "📄"; // Document for data
-        } else if (details.contains("size:") || details.contains("bytes")) {
-            return "📊"; // Chart for data size
+    private void toggleDetails(VBox container, LogEntryData entry) {
+        if (container.getChildren().size() > 1) {
+            container.getChildren().remove(1);
         } else {
-            return "▶"; // Default expand arrow
+            VBox details = new VBox(5);
+            details.setPadding(new Insets(8, 20, 8, 40));
+            details.setStyle("-fx-background-color: " + BG_LIGHT + "44; -fx-background-radius: 4;");
+            Text detailText = new Text(entry.details);
+            detailText.setFill(Color.web(COLOR_EXECUTION));
+            detailText.setFont(Font.font("Monospace", 11));
+            details.getChildren().add(detailText);
+            container.getChildren().add(details);
         }
     }
 
@@ -697,6 +1341,9 @@ public class ExecutionConsole extends Stage {
             case TRACE -> "📝 ";
             case NODE_START -> "▶ ";
             case NODE_END -> "■ ";
+            case NODE_INPUT -> "📥 ";
+            case NODE_OUTPUT -> "📤 ";
+            case EXPRESSION -> "𝑓 ";
             case SUCCESS -> "✓ ";
         };
     }
@@ -709,6 +1356,8 @@ public class ExecutionConsole extends Stage {
             case ERROR -> COLOR_ERROR;
             case TRACE -> COLOR_TRACE;
             case NODE_START, NODE_END -> COLOR_NODE;
+            case NODE_INPUT, NODE_OUTPUT -> COLOR_DEBUG;
+            case EXPRESSION -> COLOR_TRACE;
             case SUCCESS -> COLOR_SUCCESS;
         };
     }
@@ -717,189 +1366,47 @@ public class ExecutionConsole extends Stage {
         return LocalDateTime.ofInstant(timestamp, ZoneId.systemDefault()).format(TIME_FORMAT);
     }
 
-    private String truncate(String s, int maxLength) {
-        if (s == null)
-            return "";
-        if (s.length() <= maxLength)
-            return s;
-        return s.substring(0, maxLength) + "...";
-    }
-
-    /**
-     * Toggle the expanded details view for a log entry.
-     */
-    private void toggleDetails(VBox entryContainer, LogEntryData entry) {
-        // Check if details are already expanded
-        if (entryContainer.getChildren().size() > 1) {
-            // Remove the expanded details
-            entryContainer.getChildren().remove(1);
-            // Update the indicator back to collapsed state
-            updateDetailsIndicator(entryContainer, entry, false);
-        } else {
-            // Add expanded details
-            Region detailsContent = createDetailsContent(entry);
-            entryContainer.getChildren().add(detailsContent);
-
-            // Update the indicator to show expanded state
-            updateDetailsIndicator(entryContainer, entry, true);
-        }
-    }
-
-    private Region createDetailsContent(LogEntryData entry) {
-        // Create a styled container for details
-        VBox detailsBox = new VBox(5);
-        detailsBox.setPadding(new Insets(10, 20, 10, 40)); // Indent from main content
-        detailsBox.setStyle("-fx-background-color: rgba(46, 52, 64, 0.3); -fx-background-radius: 3;"); // Subtle
-                                                                                                       // background
-
-        // Parse and format details based on content type
-        if (entry.details.contains("• ")) {
-            // Structured details (from our new formatContextDetails)
-            String[] lines = entry.details.split("\n");
-            for (String line : lines) {
-                if (line.trim().isEmpty())
-                    continue;
-
-                Text detailLine = new Text(line);
-                detailLine.setFill(Color.web("#d8dee9")); // Nord light text
-                detailLine.setFont(Font.font("System", 11));
-                detailsBox.getChildren().add(detailLine);
-            }
-        } else if (entry.details.contains("Duration:")) {
-            // Special formatting for duration
-            Text durationText = new Text("⏱️ Execution Time: " + entry.details.replace("Duration:", "").trim());
-            durationText.setFill(Color.web("#88c0d0")); // Nord blue
-            durationText.setFont(Font.font("System", FontWeight.BOLD, 12));
-            detailsBox.getChildren().add(durationText);
-        } else if (entry.details.contains("Node ID:")) {
-            // Special formatting for node details
-            String[] parts = entry.details.split("\\|");
-            for (String part : parts) {
-                Text detailText = new Text("ℹ️ " + part.trim());
-                detailText.setFill(Color.web("#a3be8c")); // Nord green
-                detailText.setFont(Font.font("System", 11));
-                detailsBox.getChildren().add(detailText);
-            }
-        } else {
-            // Fallback to text area for other content
-            TextArea detailsArea = new TextArea(entry.details);
-            detailsArea.setEditable(false);
-            detailsArea.setWrapText(true);
-            detailsArea.setPrefRowCount(Math.min(10, (int) Math.ceil(entry.details.length() / 80.0)));
-            detailsArea.setMaxWidth(600);
-            detailsArea.getStyleClass().add("log-details-textarea");
-            detailsArea.setStyle("-fx-control-inner-background: rgba(46, 52, 64, 0.5); -fx-text-fill: #d8dee9;");
-            return detailsArea;
-        }
-
-        return detailsBox;
-    }
-
-    private void updateDetailsIndicator(VBox entryContainer, LogEntryData entry, boolean expanded) {
-        HBox mainLine = (HBox) entryContainer.getChildren().get(0);
-        if (mainLine.getChildren().size() > 3) {
-            Text indicator = (Text) mainLine.getChildren().get(3);
-            String baseIndicator = getDetailsIndicator(entry);
-            indicator.setText(expanded ? " ▼" : " " + baseIndicator);
-        }
+    private String formatDataPreview(Object data) {
+        if (data == null)
+            return "null";
+        String str = data.toString();
+        return str.length() > 200 ? str.substring(0, 200) + "..." : str;
     }
 
     private String formatEntryAsText(LogEntryData entry) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(formatTimestamp(entry.timestamp)).append(" ");
-        sb.append("  ".repeat(entry.depth));
-        sb.append("[").append(entry.type.name()).append("] ");
-        sb.append(entry.message);
-        if (entry.details != null) {
-            sb.append(" — ").append(entry.details);
-        }
-        return sb.toString();
-    }
-
-    private void refreshDisplay() {
-        updateFilterStatus();
-        logContainer.getChildren().clear();
-
-        // Rebuild the display from stored session data
-        for (ExecutionSession session : sessions.values()) {
-            // Add session header
-            HBox header = createExecutionHeader(session.getExecutionId(),
-                    session.getWorkflowName(), session.getStartTime());
-            logContainer.getChildren().add(header);
-
-            // Add all visible entries for this session
-            for (LogEntryData entry : session.getEntries()) {
-                if (shouldShowEntry(entry)) {
-                    VBox entryBox = createLogEntryView(entry);
-                    logContainer.getChildren().add(entryBox);
-                }
-            }
-        }
-
-        // Auto-scroll to bottom if enabled
-        if (autoScroll) {
-            Platform.runLater(() -> scrollPane.setVvalue(1.0));
-        }
+        return formatTimestamp(entry.timestamp) + " " + "  ".repeat(entry.depth) +
+                "[" + entry.type.name() + "] " + entry.message +
+                (entry.details != null ? " — " + entry.details : "");
     }
 
     private void updateFilterStatus() {
         StringBuilder status = new StringBuilder();
-        if (showDebug) {
+        if (showDebug)
             status.append("DEBUG ");
-        }
-        if (showTrace) {
+        if (showTrace)
             status.append("TRACE ");
-        }
-        if (!filterText.isEmpty()) {
-            status.append("FILTER: ").append(filterText).append(" ");
-        }
-
-        Platform.runLater(() -> {
-            filterStatusLabel.setText(status.toString().trim());
-        });
+        if (!filterText.isEmpty())
+            status.append("FILTER: ").append(filterText);
+        Platform.runLater(() -> filterStatusLabel.setText(status.toString().trim()));
     }
 
     private void updateSessionCount() {
-        Platform.runLater(() -> {
-            sessionCountLabel.setText("Sessions: " + sessions.size());
-        });
-    }
-
-    /**
-     * Add a listener for log events.
-     */
-    public void addLogListener(ConsoleLogListener listener) {
-        listeners.add(listener);
-    }
-
-    /**
-     * Remove a listener.
-     */
-    public void removeLogListener(ConsoleLogListener listener) {
-        listeners.remove(listener);
+        Platform.runLater(() -> sessionCountLabel.setText("Sessions: " + sessions.size()));
     }
 
     // ===== Inner Classes =====
 
     public enum LogEntryType {
-        INFO, DEBUG, WARN, ERROR, TRACE, NODE_START, NODE_END, SUCCESS
+        INFO, DEBUG, WARN, ERROR, TRACE, NODE_START, NODE_END, NODE_INPUT, NODE_OUTPUT, EXPRESSION, SUCCESS
     }
 
-    public record LogEntryData(
-            Instant timestamp,
-            int depth,
-            LogEntryType type,
-            String message,
-            String details) {
+    public record LogEntryData(Instant timestamp, int depth, LogEntryType type, String message, String details) {
     }
 
     public interface ConsoleLogListener {
         void onLogEntry(String executionId, LogEntryType type, String message, String details);
     }
 
-    /**
-     * Tracks an execution session with its call stack for indentation.
-     */
     private static class ExecutionSession {
         private final String executionId;
         private final String workflowName;
@@ -911,6 +1418,8 @@ public class ExecutionConsole extends Stage {
         private boolean complete;
         private boolean success;
         private long durationMs;
+        private int totalNodes = 0;
+        private int completedNodes = 0;
 
         ExecutionSession(String executionId, String workflowName) {
             this.executionId = executionId;
@@ -922,12 +1431,14 @@ public class ExecutionConsole extends Stage {
             int depth = nodeStack.size();
             nodeStack.add(nodeId);
             nodeDepths.put(nodeId, depth);
+            totalNodes++;
             return depth;
         }
 
         void popNode(String nodeId) {
             nodeStack.remove(nodeId);
             nodeDepths.remove(nodeId);
+            completedNodes++;
         }
 
         int getNodeDepth(String nodeId) {
@@ -988,6 +1499,14 @@ public class ExecutionConsole extends Stage {
 
         void setDurationMs(long durationMs) {
             this.durationMs = durationMs;
+        }
+
+        int getTotalNodes() {
+            return totalNodes;
+        }
+
+        int getCompletedNodes() {
+            return completedNodes;
         }
     }
 }

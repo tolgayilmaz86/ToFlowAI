@@ -1,12 +1,16 @@
 package io.toflowai.ui.canvas;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-
+import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.layout.Pane;
+import javafx.scene.shape.Rectangle;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignA;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
@@ -14,7 +18,13 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignH;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
-
+import org.kordamp.ikonli.materialdesign2.MaterialDesignM;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.layout.GridPane;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import io.toflowai.common.domain.Execution;
 import io.toflowai.common.domain.Execution.NodeExecution;
 import io.toflowai.common.enums.ExecutionStatus;
@@ -24,6 +34,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -47,20 +58,23 @@ public class ExecutionHistoryPanel extends VBox {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("MMM d, HH:mm:ss")
             .withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter DURATION_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     private final WorkflowCanvas canvas;
     private final TableView<Execution> executionTable;
     private final ObservableList<Execution> executions;
     private final VBox detailsPane;
+    private final ObjectMapper objectMapper;
 
     public ExecutionHistoryPanel(WorkflowCanvas canvas) {
         this.canvas = canvas;
         this.executions = FXCollections.observableArrayList();
+        this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
         setSpacing(0);
-        setPrefWidth(350);
-        setMinWidth(280);
-        setMaxWidth(500);
+        setPrefWidth(450);
+        setMinWidth(350);
+        setMaxWidth(600);
         getStyleClass().add("execution-history-panel");
         setVisible(false);
         setManaged(false);
@@ -88,18 +102,17 @@ public class ExecutionHistoryPanel extends VBox {
         header.getStyleClass().add("execution-history-header");
 
         FontIcon historyIcon = FontIcon.of(MaterialDesignH.HISTORY, 18);
-        historyIcon.setIconColor(Color.web("#4a9eff"));
+        historyIcon.setIconColor(Color.web("#88c0d0"));
 
         Label title = new Label("Execution History");
-        title.getStyleClass().add("execution-history-title");
-        title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #e5e5e5;");
+        title.getStyleClass().add("title-label");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button closeBtn = new Button();
         closeBtn.setGraphic(FontIcon.of(MaterialDesignC.CLOSE, 16));
-        closeBtn.getStyleClass().addAll("icon-button", "flat");
+        closeBtn.getStyleClass().addAll("flat-button");
         closeBtn.setTooltip(new Tooltip("Close"));
         closeBtn.setOnAction(e -> hide());
 
@@ -112,23 +125,22 @@ public class ExecutionHistoryPanel extends VBox {
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(8, 16, 8, 16));
         toolbar.getStyleClass().add("execution-history-toolbar");
-        toolbar.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;");
 
         Button refreshBtn = new Button("Refresh");
         refreshBtn.setGraphic(FontIcon.of(MaterialDesignR.REFRESH, 14));
-        refreshBtn.getStyleClass().add("flat");
+        refreshBtn.getStyleClass().add("flat-button");
         refreshBtn.setOnAction(e -> refreshExecutions());
 
         Button clearBtn = new Button("Clear All");
         clearBtn.setGraphic(FontIcon.of(MaterialDesignD.DELETE_OUTLINE, 14));
-        clearBtn.getStyleClass().add("flat");
+        clearBtn.getStyleClass().add("flat-button");
         clearBtn.setOnAction(e -> clearExecutions());
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label countLabel = new Label("0 executions");
-        countLabel.setStyle("-fx-text-fill: #737373; -fx-font-size: 11px;");
+        Label countLabel = new Label();
+        countLabel.getStyleClass().add("count-label");
         countLabel.textProperty().bind(
                 javafx.beans.binding.Bindings.size(executions).asString().concat(" executions"));
 
@@ -139,7 +151,7 @@ public class ExecutionHistoryPanel extends VBox {
     @SuppressWarnings("unchecked")
     private TableView<Execution> createExecutionTable() {
         TableView<Execution> table = new TableView<>(executions);
-        table.setPlaceholder(new Label("No executions yet"));
+        table.setPlaceholder(new Label("No executions yet. Run a workflow to see its history."));
         table.getStyleClass().add("execution-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
@@ -165,24 +177,19 @@ public class ExecutionHistoryPanel extends VBox {
         // Time column
         TableColumn<Execution, Instant> timeCol = new TableColumn<>("Time");
         timeCol.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().startedAt()));
-        timeCol.setPrefWidth(100);
+        timeCol.setPrefWidth(120);
         timeCol.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Instant time, boolean empty) {
                 super.updateItem(time, empty);
-                if (empty || time == null) {
-                    setText(null);
-                } else {
-                    setText(TIME_FORMATTER.format(time));
-                    setStyle("-fx-font-size: 11px;");
-                }
+                setText(empty || time == null ? null : TIME_FORMATTER.format(time));
             }
         });
 
         // Duration column
         TableColumn<Execution, Duration> durationCol = new TableColumn<>("Duration");
         durationCol.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().duration()));
-        durationCol.setPrefWidth(70);
+        durationCol.setPrefWidth(80);
         durationCol.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Duration duration, boolean empty) {
@@ -191,7 +198,7 @@ public class ExecutionHistoryPanel extends VBox {
                     setText(null);
                 } else {
                     setText(formatDuration(duration));
-                    setStyle("-fx-font-size: 11px; -fx-text-fill: #a3a3a3;");
+                    getStyleClass().add("duration-cell");
                 }
             }
         });
@@ -199,17 +206,12 @@ public class ExecutionHistoryPanel extends VBox {
         // Trigger column
         TableColumn<Execution, TriggerType> triggerCol = new TableColumn<>("Trigger");
         triggerCol.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().triggerType()));
-        triggerCol.setPrefWidth(80);
+        triggerCol.setPrefWidth(90);
         triggerCol.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(TriggerType trigger, boolean empty) {
                 super.updateItem(trigger, empty);
-                if (empty || trigger == null) {
-                    setText(null);
-                } else {
-                    setText(trigger.getDisplayName());
-                    setStyle("-fx-font-size: 11px;");
-                }
+                setText(empty || trigger == null ? null : trigger.getDisplayName());
             }
         });
 
@@ -219,6 +221,9 @@ public class ExecutionHistoryPanel extends VBox {
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 showExecutionDetails(newVal);
+            } else {
+                detailsPane.setVisible(false);
+                detailsPane.setManaged(false);
             }
         });
 
@@ -237,98 +242,337 @@ public class ExecutionHistoryPanel extends VBox {
     }
 
     private VBox createDetailsPane() {
-        VBox pane = new VBox(8);
-        pane.setPadding(new Insets(12, 16, 12, 16));
+        VBox pane = new VBox(0);
         pane.getStyleClass().add("execution-details-pane");
-        pane.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333333; -fx-border-width: 1 0 0 0;");
-        pane.setPrefHeight(200);
         pane.setVisible(false);
         pane.setManaged(false);
+        VBox.setVgrow(pane, Priority.ALWAYS);
         return pane;
     }
 
     private void showExecutionDetails(Execution execution) {
         detailsPane.getChildren().clear();
 
-        // Header
-        Label header = new Label("Execution Details");
-        header.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #e5e5e5;");
+        TabPane tabPane = new TabPane();
+        tabPane.getStyleClass().add("details-tab-pane");
 
-        // Node executions
-        if (execution.nodeExecutions() != null && !execution.nodeExecutions().isEmpty()) {
-            VBox nodesBox = new VBox(4);
-            Label nodesLabel = new Label("Node Executions:");
-            nodesLabel.setStyle("-fx-text-fill: #a3a3a3; -fx-font-size: 11px;");
-            nodesBox.getChildren().add(nodesLabel);
+        // Summary Tab
+        Tab summaryTab = new Tab("Summary");
+        summaryTab.setContent(createSummaryView(execution));
+        summaryTab.setClosable(false);
 
-            for (NodeExecution nodeExec : execution.nodeExecutions()) {
-                HBox nodeRow = createNodeExecutionRow(nodeExec);
-                nodesBox.getChildren().add(nodeRow);
-            }
-            detailsPane.getChildren().addAll(header, nodesBox);
+        // Nodes Tab
+        Tab nodesTab = new Tab("Nodes");
+        nodesTab.setContent(createNodesView(execution.nodeExecutions()));
+        nodesTab.setClosable(false);
+
+        tabPane.getTabs().addAll(summaryTab, nodesTab);
+
+        // Error Tab (conditional)
+        if (execution.status() == ExecutionStatus.FAILED && execution.errorMessage() != null) {
+            Tab errorTab = new Tab("Error");
+            errorTab.setContent(createErrorView(execution.errorMessage()));
+            errorTab.setClosable(false);
+            tabPane.getTabs().add(errorTab);
+            tabPane.getSelectionModel().select(errorTab);
         }
 
-        // Error message
-        if (execution.errorMessage() != null && !execution.errorMessage().isEmpty()) {
-            Label errorLabel = new Label("Error: " + execution.errorMessage());
-            errorLabel.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 11px;");
-            errorLabel.setWrapText(true);
-            detailsPane.getChildren().add(errorLabel);
-        }
+        // Timeline and Variables Tabs
+        Tab timelineTab = new Tab("Timeline");
+        timelineTab.setContent(createTimelineView(execution));
+        timelineTab.setClosable(false);
 
+        Tab variablesTab = new Tab("Variables");
+        variablesTab.setContent(createVariablesView(execution.outputData()));
+        variablesTab.setClosable(false);
+
+        tabPane.getTabs().addAll(timelineTab, variablesTab);
+
+        detailsPane.getChildren().add(tabPane);
         detailsPane.setVisible(true);
         detailsPane.setManaged(true);
     }
 
-    private HBox createNodeExecutionRow(NodeExecution nodeExec) {
-        HBox row = new HBox(8);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setPadding(new Insets(4, 8, 4, 8));
-        row.setStyle("-fx-background-color: #262626; -fx-background-radius: 4;");
+    private Node createVariablesView(Map<String, Object> outputData) {
+        TableView<Map.Entry<String, Object>> table = new TableView<>();
+        table.getStyleClass().add("variables-table");
+        
+        if (outputData == null || outputData.isEmpty()) {
+            table.setPlaceholder(new Label("No output variables."));
+            return table;
+        }
+
+        ObservableList<Map.Entry<String, Object>> items = FXCollections.observableArrayList(outputData.entrySet());
+        table.setItems(items);
+
+        TableColumn<Map.Entry<String, Object>, String> varCol = new TableColumn<>("Variable");
+        varCol.setCellValueFactory(p -> new SimpleStringProperty(p.getValue().getKey()));
+        varCol.setPrefWidth(120);
+
+        TableColumn<Map.Entry<String, Object>, String> valCol = new TableColumn<>("Value");
+        valCol.setCellValueFactory(p -> new SimpleStringProperty(formatData(p.getValue().getValue())));
+        valCol.setPrefWidth(280);
+
+        table.getColumns().addAll(varCol, valCol);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        return table;
+    }
+    
+    private Node createTimelineView(Execution execution) {
+        VBox timelineContainer = new VBox(10);
+        timelineContainer.setPadding(new Insets(10));
+        timelineContainer.getStyleClass().add("timeline-view");
+
+        List<NodeExecution> nodeExecutions = execution.nodeExecutions();
+        if (nodeExecutions == null || nodeExecutions.isEmpty()) {
+            timelineContainer.getChildren().add(new Label("No node executions to visualize."));
+            return timelineContainer;
+        }
+
+        long totalDuration = execution.duration().toMillis();
+        if (totalDuration == 0) {
+            timelineContainer.getChildren().add(new Label("Total execution time was zero."));
+            return timelineContainer;
+        }
+
+        final double timelineWidth = 350; // The width of the timeline area
+        final double rowHeight = 25;
+
+        for (NodeExecution nodeExec : nodeExecutions) {
+            HBox row = new HBox(10);
+            row.setAlignment(Pos.CENTER_LEFT);
+
+            Label nameLabel = new Label(nodeExec.nodeName());
+            nameLabel.setPrefWidth(100);
+            nameLabel.getStyleClass().add("timeline-node-label");
+
+            Pane timelinePane = new Pane();
+            timelinePane.setPrefHeight(rowHeight);
+            HBox.setHgrow(timelinePane, Priority.ALWAYS);
+
+            long nodeStartOffset = Duration.between(execution.startedAt(), nodeExec.startedAt()).toMillis();
+            long nodeDuration = nodeExec.duration().toMillis();
+
+            double barX = (double) nodeStartOffset / totalDuration * timelineWidth;
+            double barWidth = (double) nodeDuration / totalDuration * timelineWidth;
+
+            Rectangle bar = new Rectangle(barX, 0, Math.max(2, barWidth), rowHeight);
+            bar.getStyleClass().add("timeline-bar");
+            
+            // Set color based on status
+            String statusClass = "status-" + nodeExec.status().name().toLowerCase();
+            bar.getStyleClass().add(statusClass);
+
+
+            Tooltip tooltip = new Tooltip(String.format("%s\nStart: %dms\nDuration: %dms",
+                    nodeExec.nodeName(), nodeStartOffset, nodeDuration));
+            Tooltip.install(bar, tooltip);
+
+            timelinePane.getChildren().add(bar);
+            row.getChildren().addAll(nameLabel, timelinePane);
+            timelineContainer.getChildren().add(row);
+        }
+
+        return timelineContainer;
+    }
+    
+    private Node createSummaryView(Execution execution) {
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(8);
+        grid.setPadding(new Insets(16));
+        grid.getStyleClass().add("summary-grid");
+
+        // Rows
+        grid.add(createLabel("Status:"), 0, 0);
+        grid.add(createStatusBadge(execution.status()), 1, 0);
+
+        grid.add(createLabel("Workflow:"), 0, 1);
+        grid.add(new Label(execution.workflowName()), 1, 1);
+
+        grid.add(createLabel("Trigger:"), 0, 2);
+        grid.add(new Label(execution.triggerType().getDisplayName()), 1, 2);
+
+        grid.add(createLabel("Started:"), 0, 3);
+        grid.add(new Label(TIME_FORMATTER.format(execution.startedAt())), 1, 3);
+
+        grid.add(createLabel("Finished:"), 0, 4);
+        grid.add(new Label(execution.finishedAt() != null ? TIME_FORMATTER.format(execution.finishedAt()) : "-"), 1, 4);
+
+        grid.add(createLabel("Duration:"), 0, 5);
+        grid.add(new Label(formatDuration(execution.duration())), 1, 5);
+
+        grid.add(createLabel("Execution ID:"), 0, 6);
+        Label idLabel = new Label(execution.id().toString());
+        idLabel.getStyleClass().add("code");
+        grid.add(idLabel, 1, 6);
+
+
+        return grid;
+    }
+
+    private Node createNodesView(List<NodeExecution> nodeExecutions) {
+        VBox nodesBox = new VBox(5);
+        nodesBox.setPadding(new Insets(10));
+        nodesBox.getStyleClass().add("nodes-view");
+
+        if (nodeExecutions == null || nodeExecutions.isEmpty()) {
+            nodesBox.getChildren().add(new Label("No node executions recorded."));
+            return nodesBox;
+        }
+
+        for (NodeExecution nodeExec : nodeExecutions) {
+            nodesBox.getChildren().add(createNodeExecutionRow(nodeExec));
+        }
+
+        return nodesBox;
+    }
+
+    private Node createErrorView(String errorMessage) {
+        VBox errorBox = new VBox(5);
+        errorBox.setPadding(new Insets(10));
+        errorBox.getStyleClass().add("error-view");
+
+        Label title = new Label("Execution Failed");
+        title.getStyleClass().add("error-title");
+
+        TextArea errorText = new TextArea(errorMessage);
+        errorText.setWrapText(true);
+        errorText.setEditable(false);
+        errorText.getStyleClass().add("error-textarea");
+        VBox.setVgrow(errorText, Priority.ALWAYS);
+
+        errorBox.getChildren().addAll(title, errorText);
+        return errorBox;
+    }
+
+
+    private Label createLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("summary-label");
+        return label;
+    }
+
+    private HBox createStatusBadge(ExecutionStatus status) {
+        HBox badge = new HBox(5);
+        badge.setAlignment(Pos.CENTER_LEFT);
+        badge.getStyleClass().addAll("status-badge", "status-" + status.name().toLowerCase());
+
+        FontIcon icon = getStatusIcon(status);
+        Label label = new Label(status.name());
+
+        badge.getChildren().addAll(icon, label);
+        return badge;
+    }
+
+
+    private VBox createNodeExecutionRow(NodeExecution nodeExec) {
+        VBox container = new VBox();
+        HBox mainRow = new HBox(8);
+        mainRow.setAlignment(Pos.CENTER_LEFT);
+        mainRow.setPadding(new Insets(6, 10, 6, 10));
+        mainRow.getStyleClass().add("node-execution-row");
 
         FontIcon statusIcon = getStatusIcon(nodeExec.status());
 
         Label nameLabel = new Label(nodeExec.nodeName());
-        nameLabel.setStyle("-fx-text-fill: #e5e5e5; -fx-font-size: 11px;");
+        nameLabel.getStyleClass().add("node-name-label");
         HBox.setHgrow(nameLabel, Priority.ALWAYS);
 
         Label durationLabel = new Label(formatDuration(nodeExec.duration()));
-        durationLabel.setStyle("-fx-text-fill: #737373; -fx-font-size: 10px;");
+        durationLabel.getStyleClass().add("duration-label");
 
-        row.getChildren().addAll(statusIcon, nameLabel, durationLabel);
-        return row;
+        FontIcon expandIcon = FontIcon.of(MaterialDesignM.MENU_DOWN, 16);
+        expandIcon.getStyleClass().add("expand-icon");
+
+        mainRow.getChildren().addAll(statusIcon, nameLabel, durationLabel, expandIcon);
+        
+        VBox detailsView = createNodeDetailsView(nodeExec);
+        detailsView.setVisible(false);
+        detailsView.setManaged(false);
+
+        mainRow.setOnMouseClicked(e -> {
+            boolean isVisible = detailsView.isVisible();
+            detailsView.setVisible(!isVisible);
+            detailsView.setManaged(!isVisible);
+            expandIcon.setRotate(isVisible ? 0 : 180);
+        });
+        
+        container.getChildren().addAll(mainRow, detailsView);
+        return container;
+    }
+
+    private VBox createNodeDetailsView(NodeExecution nodeExec) {
+        VBox details = new VBox(10);
+        details.setPadding(new Insets(10, 10, 10, 30));
+        details.getStyleClass().add("node-details-view");
+
+        // Input Data
+        details.getChildren().add(createDataSection("Input", nodeExec.inputData()));
+
+        // Output Data
+        details.getChildren().add(createDataSection("Output", nodeExec.outputData()));
+
+        return details;
+    }
+
+    private VBox createDataSection(String title, Object data) {
+        VBox section = new VBox(5);
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("data-section-title");
+
+        TextArea dataArea = new TextArea(formatData(data));
+        dataArea.setEditable(false);
+        dataArea.setWrapText(true);
+        dataArea.getStyleClass().add("data-textarea");
+        dataArea.setPrefRowCount(5);
+
+        section.getChildren().addAll(titleLabel, dataArea);
+        return section;
+    }
+    
+    private String formatData(Object data) {
+        if (data == null) {
+            return "null";
+        }
+        try {
+            return objectMapper.writeValueAsString(data);
+        } catch (Exception e) {
+            return "Error formatting data: " + e.getMessage();
+        }
     }
 
     private FontIcon getStatusIcon(ExecutionStatus status) {
         return switch (status) {
             case SUCCESS -> {
-                FontIcon icon = FontIcon.of(MaterialDesignC.CHECK_CIRCLE, 14);
-                icon.setIconColor(Color.web("#10b981"));
+                FontIcon icon = FontIcon.of(MaterialDesignC.CHECK_CIRCLE_OUTLINE, 16);
+                icon.getStyleClass().add("status-icon-success");
                 yield icon;
             }
             case FAILED -> {
-                FontIcon icon = FontIcon.of(MaterialDesignA.ALERT_CIRCLE, 14);
-                icon.setIconColor(Color.web("#ef4444"));
+                FontIcon icon = FontIcon.of(MaterialDesignA.ALERT_CIRCLE_OUTLINE, 16);
+                icon.getStyleClass().add("status-icon-failed");
                 yield icon;
             }
             case RUNNING -> {
-                FontIcon icon = FontIcon.of(MaterialDesignP.PLAY_CIRCLE, 14);
-                icon.setIconColor(Color.web("#3b82f6"));
+                FontIcon icon = FontIcon.of(MaterialDesignP.PLAY_CIRCLE_OUTLINE, 16);
+                icon.getStyleClass().add("status-icon-running");
                 yield icon;
             }
             case PENDING -> {
-                FontIcon icon = FontIcon.of(MaterialDesignC.CLOCK_OUTLINE, 14);
-                icon.setIconColor(Color.web("#6b7280"));
+                FontIcon icon = FontIcon.of(MaterialDesignC.CLOCK_OUTLINE, 16);
+                icon.getStyleClass().add("status-icon-pending");
                 yield icon;
             }
             case CANCELLED -> {
-                FontIcon icon = FontIcon.of(MaterialDesignC.CANCEL, 14);
-                icon.setIconColor(Color.web("#f59e0b"));
+                FontIcon icon = FontIcon.of(MaterialDesignC.CANCEL, 16);
+                icon.getStyleClass().add("status-icon-cancelled");
                 yield icon;
             }
             case WAITING -> {
-                FontIcon icon = FontIcon.of(MaterialDesignP.PAUSE_CIRCLE, 14);
-                icon.setIconColor(Color.web("#8b5cf6"));
+                FontIcon icon = FontIcon.of(MaterialDesignP.PAUSE_CIRCLE_OUTLINE, 16);
+                icon.getStyleClass().add("status-icon-waiting");
                 yield icon;
             }
         };
@@ -342,7 +586,7 @@ public class ExecutionHistoryPanel extends VBox {
         if (millis < 1000) {
             return millis + "ms";
         } else if (millis < 60000) {
-            return String.format("%.1fs", millis / 1000.0);
+            return String.format("%.2fs", millis / 1000.0);
         } else {
             long mins = millis / 60000;
             long secs = (millis % 60000) / 1000;

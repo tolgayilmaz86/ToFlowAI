@@ -95,8 +95,11 @@ public class ConsoleLogHandler implements ExecutionLogHandler {
             case NODE_START -> "▶️";
             case NODE_END -> "✅";
             case NODE_SKIP -> "⏭️";
+            case NODE_INPUT -> "📥";
+            case NODE_OUTPUT -> "📤";
             case DATA_FLOW -> "📦";
             case VARIABLE -> "📝";
+            case EXPRESSION_EVAL -> "𝑓";
             case ERROR -> "❌";
             case RETRY -> "🔄";
             case RATE_LIMIT -> "⏱️";

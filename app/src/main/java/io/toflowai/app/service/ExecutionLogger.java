@@ -58,8 +58,11 @@ public class ExecutionLogger {
         NODE_START,
         NODE_END,
         NODE_SKIP,
+        NODE_INPUT, // New: logs node input data
+        NODE_OUTPUT, // New: logs node output data
         DATA_FLOW,
         VARIABLE,
+        EXPRESSION_EVAL, // New: logs expression evaluation
         ERROR,
         RETRY,
         RATE_LIMIT,
@@ -153,18 +156,176 @@ public class ExecutionLogger {
     }
 
     /**
-     * Log error with full details.
+     * Log node input data for traceability.
      */
-    public void error(String executionId, String nodeId, Exception e) {
+    public void nodeInput(String executionId, String nodeId, String nodeName, Map<String, Object> input) {
         Map<String, Object> context = new HashMap<>();
         context.put("nodeId", nodeId);
+        context.put("nodeName", nodeName);
+        context.put("inputKeys", input != null ? input.keySet() : List.of());
+        context.put("inputSize", input != null ? input.size() : 0);
+
+        // Add truncated preview of each input value
+        if (input != null) {
+            Map<String, String> inputPreview = new HashMap<>();
+            for (Map.Entry<String, Object> entry : input.entrySet()) {
+                inputPreview.put(entry.getKey(), formatValuePreview(entry.getValue()));
+            }
+            context.put("inputPreview", inputPreview);
+        }
+
+        logEntry(executionId, LogLevel.DEBUG, LogCategory.NODE_INPUT,
+                "Node '" + nodeName + "' input data",
+                context);
+    }
+
+    /**
+     * Log node output data for traceability.
+     */
+    public void nodeOutput(String executionId, String nodeId, String nodeName, Map<String, Object> output) {
+        Map<String, Object> context = new HashMap<>();
+        context.put("nodeId", nodeId);
+        context.put("nodeName", nodeName);
+        context.put("outputKeys", output != null ? output.keySet() : List.of());
+        context.put("outputSize", output != null ? output.size() : 0);
+
+        // Add truncated preview of each output value
+        if (output != null) {
+            Map<String, String> outputPreview = new HashMap<>();
+            for (Map.Entry<String, Object> entry : output.entrySet()) {
+                outputPreview.put(entry.getKey(), formatValuePreview(entry.getValue()));
+            }
+            context.put("outputPreview", outputPreview);
+        }
+
+        logEntry(executionId, LogLevel.DEBUG, LogCategory.NODE_OUTPUT,
+                "Node '" + nodeName + "' output data",
+                context);
+    }
+
+    /**
+     * Log expression evaluation for debugging templating and interpolation.
+     */
+    public void expressionEval(String executionId, String nodeId, String expression,
+            Object result, boolean success) {
+        Map<String, Object> context = new HashMap<>();
+        context.put("nodeId", nodeId);
+        context.put("expression", truncate(expression, 200));
+        context.put("resultPreview", formatValuePreview(result));
+        context.put("success", success);
+
+        logEntry(executionId, LogLevel.TRACE, LogCategory.EXPRESSION_EVAL,
+                success ? "Expression evaluated" : "Expression evaluation failed",
+                context);
+    }
+
+    /**
+     * Log error with full details including input context and source location.
+     */
+    public void error(String executionId, String nodeId, Exception e) {
+        errorWithContext(executionId, nodeId, null, null, e);
+    }
+
+    /**
+     * Log error with full details including input context and source location.
+     * Enhanced version that captures the input data at the time of error.
+     */
+    public void errorWithContext(String executionId, String nodeId, String nodeName,
+            Map<String, Object> inputAtError, Exception e) {
+        Map<String, Object> context = new HashMap<>();
+        context.put("nodeId", nodeId);
+        if (nodeName != null) {
+            context.put("nodeName", nodeName);
+        }
         context.put("errorType", e.getClass().getName());
         context.put("errorMessage", e.getMessage());
+
+        // Extract source location from stack trace
+        StackTraceElement[] stackTrace = e.getStackTrace();
+        if (stackTrace.length > 0) {
+            StackTraceElement source = findRelevantStackFrame(stackTrace);
+            context.put("sourceClass", source.getClassName());
+            context.put("sourceMethod", source.getMethodName());
+            context.put("sourceLine", source.getLineNumber());
+            context.put("sourceLocation", source.getClassName() + "." + source.getMethodName()
+                    + "(" + source.getFileName() + ":" + source.getLineNumber() + ")");
+        }
+
+        // Include input data preview if available
+        if (inputAtError != null && !inputAtError.isEmpty()) {
+            Map<String, String> inputPreview = new HashMap<>();
+            for (Map.Entry<String, Object> entry : inputAtError.entrySet()) {
+                inputPreview.put(entry.getKey(), formatValuePreview(entry.getValue()));
+            }
+            context.put("inputAtError", inputPreview);
+        }
+
+        // Get root cause if this is a wrapped exception
+        Throwable rootCause = getRootCause(e);
+        if (rootCause != e) {
+            context.put("rootCauseType", rootCause.getClass().getName());
+            context.put("rootCauseMessage", rootCause.getMessage());
+        }
+
         context.put("stackTrace", getStackTrace(e));
 
         logEntry(executionId, LogLevel.ERROR, LogCategory.ERROR,
-                "Error in node execution",
+                "Error in node '" + (nodeName != null ? nodeName : nodeId) + "': " + e.getMessage(),
                 context);
+    }
+
+    /**
+     * Find the most relevant stack frame (first one in user code, not framework).
+     */
+    private StackTraceElement findRelevantStackFrame(StackTraceElement[] stackTrace) {
+        for (StackTraceElement frame : stackTrace) {
+            String className = frame.getClassName();
+            // Look for frames in our codebase (io.toflowai)
+            if (className.startsWith("io.toflowai") &&
+                    !className.contains("$Proxy") &&
+                    !className.contains("$$")) {
+                return frame;
+            }
+        }
+        // Fall back to first frame if no user code found
+        return stackTrace[0];
+    }
+
+    /**
+     * Get the root cause of an exception chain.
+     */
+    private Throwable getRootCause(Throwable t) {
+        Throwable rootCause = t;
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+        return rootCause;
+    }
+
+    /**
+     * Format a value for preview in logs (truncated, with type info).
+     */
+    private String formatValuePreview(Object value) {
+        if (value == null) {
+            return "null";
+        }
+
+        String typeName = value.getClass().getSimpleName();
+        String preview;
+
+        if (value instanceof String s) {
+            preview = truncate(s, 100);
+        } else if (value instanceof Map<?, ?> map) {
+            preview = "Map(" + map.size() + " entries)";
+        } else if (value instanceof List<?> list) {
+            preview = "List(" + list.size() + " items)";
+        } else if (value instanceof Number || value instanceof Boolean) {
+            preview = value.toString();
+        } else {
+            preview = truncate(value.toString(), 100);
+        }
+
+        return "[" + typeName + "] " + preview;
     }
 
     /**

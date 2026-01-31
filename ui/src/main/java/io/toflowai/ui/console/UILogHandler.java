@@ -26,7 +26,10 @@ public class UILogHandler implements ExecutionLogHandler {
                 case NODE_START -> handleNodeStart(entry, consoleService);
                 case NODE_END -> handleNodeEnd(entry, consoleService);
                 case NODE_SKIP -> handleNodeSkip(entry, consoleService);
+                case NODE_INPUT -> handleNodeInput(entry, consoleService);
+                case NODE_OUTPUT -> handleNodeOutput(entry, consoleService);
                 case VARIABLE -> handleVariable(entry, consoleService);
+                case EXPRESSION_EVAL -> handleExpressionEval(entry, consoleService);
                 case ERROR -> handleError(entry, consoleService);
                 case RETRY -> handleRetry(entry, consoleService);
                 case RATE_LIMIT -> handleRateLimit(entry, consoleService);
@@ -129,6 +132,41 @@ public class UILogHandler implements ExecutionLogHandler {
         service.debug(entry.executionId(), message, details);
     }
 
+    private void handleNodeInput(LogEntry entry, ExecutionConsoleService service) {
+        Map<String, Object> context = entry.context();
+        String nodeId = getString(context, "nodeId", "unknown");
+        String nodeName = getString(context, "nodeName", "unknown");
+
+        // Build input preview from context
+        Object inputPreview = context.get("inputPreview");
+        service.nodeInput(entry.executionId(), nodeId, nodeName, inputPreview);
+    }
+
+    private void handleNodeOutput(LogEntry entry, ExecutionConsoleService service) {
+        Map<String, Object> context = entry.context();
+        String nodeId = getString(context, "nodeId", "unknown");
+        String nodeName = getString(context, "nodeName", "unknown");
+
+        // Build output preview from context
+        Object outputPreview = context.get("outputPreview");
+        service.nodeOutput(entry.executionId(), nodeId, nodeName, outputPreview);
+    }
+
+    private void handleExpressionEval(LogEntry entry, ExecutionConsoleService service) {
+        Map<String, Object> context = entry.context();
+        String expression = getString(context, "expression", "unknown");
+        String resultPreview = getString(context, "resultPreview", "");
+        boolean success = getBoolean(context, "success", true);
+
+        String message = success
+                ? "Expression: " + expression
+                : "Expression failed: " + expression;
+        String details = "Result: " + resultPreview;
+
+        // Use debug level for expression evaluations
+        service.debug(entry.executionId(), message, details);
+    }
+
     private void handleGeneric(LogEntry entry, ExecutionConsoleService service) {
         String details = formatContextDetails(entry.context());
 
@@ -176,7 +214,8 @@ public class UILogHandler implements ExecutionLogHandler {
                 sb.append("{");
                 boolean firstInner = true;
                 for (Map.Entry<String, Object> innerEntry : map.entrySet()) {
-                    if (!firstInner) sb.append(", ");
+                    if (!firstInner)
+                        sb.append(", ");
                     sb.append(innerEntry.getKey()).append(": ").append(innerEntry.getValue());
                     firstInner = false;
                 }
@@ -185,7 +224,8 @@ public class UILogHandler implements ExecutionLogHandler {
                 sb.append("[");
                 boolean firstInner = true;
                 for (Object item : (Iterable<?>) value) {
-                    if (!firstInner) sb.append(", ");
+                    if (!firstInner)
+                        sb.append(", ");
                     sb.append(item != null ? item.toString() : "null");
                     firstInner = false;
                 }

@@ -131,30 +131,6 @@
     -fx-background-color: #616e88;
 }
 
-/* Details text area in expanded view */
-.log-details-textarea {
-    -fx-background-color: #3b4252;
-    -fx-text-fill: #d8dee9;
-    -fx-font-family: 'Monospace';
-    -fx-font-size: 11px;
-    -fx-padding: 5;
-    -fx-border-color: #4c566a;
-    -fx-border-radius: 3px;
-    -fx-background-radius: 3px;
-}
-
-.log-details-textarea .content {
-    -fx-background-color: #3b4252;
-}
-
-.log-details-textarea .scroll-bar:vertical {
-    -fx-background-color: #4c566a;
-}
-
-.log-details-textarea .scroll-bar:vertical .thumb {
-    -fx-background-color: #616e88;
-}
-
 /* Execution header */
 .execution-header {
     -fx-background-color: #3b4252;
@@ -201,4 +177,261 @@
 
 .context-menu .menu-item .label {
     -fx-text-fill: #d8dee9;
+}
+
+
+/* === Execution History Panel Styles === */
+
+.execution-history-panel {
+    -fx-background-color: #2e3440; /* Nord dark background */
+    -fx-text-fill: #d8dee9; /* Nord light text */
+}
+
+.execution-history-header {
+    -fx-background-color: #3b4252;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 0 0 1 0;
+}
+
+.title-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #eceff4;
+}
+
+.execution-history-toolbar {
+    -fx-background-color: #3b4252;
+}
+
+.flat-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d8dee9;
+}
+.flat-button:hover {
+    -fx-background-color: #4c566a;
+}
+
+.count-label {
+    -fx-text-fill: #616e88;
+    -fx-font-size: 11px;
+}
+
+.execution-table {
+    -fx-background-color: #2e3440;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 1 0 0 0;
+}
+
+.execution-table .table-cell {
+    -fx-text-fill: #d8dee9;
+    -fx-font-size: 12px;
+    -fx-border-color: transparent;
+}
+
+.execution-table .column-header-background {
+    -fx-background-color: #3b4252;
+}
+
+.execution-table .column-header .label {
+    -fx-text-fill: #eceff4;
+    -fx-font-weight: bold;
+}
+
+.execution-table .table-row-cell {
+    -fx-background-color: #2e3440;
+}
+
+.execution-table .table-row-cell:odd {
+    -fx-background-color: #353c4a;
+}
+
+.execution-table .table-row-cell:selected {
+    -fx-background-color: #5e81ac;
+}
+
+.duration-cell {
+    -fx-text-fill: #a3be8c;
+}
+
+.execution-details-pane {
+    -fx-background-color: #353c4a;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 1 0 0 0;
+}
+
+/* Tab Pane */
+.details-tab-pane > .tab-header-area .tab-header-background {
+    -fx-background-color: #3b4252;
+}
+
+.details-tab-pane > .tab-header-area .tab {
+    -fx-background-color: #3b4252;
+    -fx-padding: 8 12 8 12;
+}
+
+.details-tab-pane > .tab-header-area .tab:selected {
+    -fx-background-color: #4c566a;
+}
+
+.details-tab-pane > .tab-header-area .tab .tab-label {
+    -fx-text-fill: #d8dee9;
+}
+
+.details-tab-pane > .tab-content-area {
+    -fx-background-color: #2e3440;
+    -fx-padding: 10;
+}
+
+
+/* Summary View */
+.summary-grid {
+    -fx-background-color: #353c4a;
+}
+
+.summary-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #88c0d0; /* Nord blue */
+}
+
+.code {
+    -fx-font-family: "Monospace";
+    -fx-text-fill: #b48ead; /* Nord purple */
+}
+
+/* Status Badge */
+.status-badge {
+    -fx-padding: 4 8 4 8;
+    -fx-background-radius: 12;
+}
+.status-badge .label {
+    -fx-text-fill: #2e3440;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+.status-badge.status-success { -fx-background-color: #a3be8c; }
+.status-badge.status-failed { -fx-background-color: #bf616a; }
+.status-badge.status-running { -fx-background-color: #5e81ac; }
+.status-badge.status-pending { -fx-background-color: #d08770; }
+.status-badge.status-cancelled { -fx-background-color: #ebcb8b; }
+.status-badge.status-waiting { -fx-background-color: #b48ead; }
+
+
+/* Nodes View */
+.nodes-view {
+    -fx-background-color: #2e3440;
+}
+
+.node-execution-row {
+    -fx-background-color: #3b4252;
+    -fx-background-radius: 4;
+    -fx-border-color: #4c566a;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+.node-execution-row:hover {
+    -fx-background-color: #434c5e;
+}
+
+.node-name-label {
+    -fx-text-fill: #eceff4;
+    -fx-font-weight: bold;
+}
+
+.duration-label {
+    -fx-font-family: "Monospace";
+    -fx-text-fill: #a3be8c;
+    -fx-font-size: 11px;
+}
+
+.expand-icon {
+    -fx-fill: #88c0d0;
+}
+
+
+/* Node Details View */
+.node-details-view {
+    -fx-background-color: #2e3440;
+    -fx-padding: 10 10 10 30;
+}
+
+.data-section-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #88c0d0;
+}
+
+.data-textarea {
+    -fx-font-family: "Monospace";
+    -fx-font-size: 11px;
+    -fx-background-color: #3b4252;
+    -fx-text-fill: #d8dee9;
+    -fx-border-color: #4c566a;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3;
+}
+.data-textarea .content {
+    -fx-background-color: #3b4252;
+}
+
+
+/* Error View */
+.error-view {
+    -fx-background-color: #2e3440;
+}
+.error-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #bf616a; /* Nord red */
+}
+.error-textarea {
+    -fx-font-family: "Monospace";
+    -fx-background-color: #3b4252;
+    -fx-text-fill: #d8dee9;
+}
+.error-textarea .content {
+    -fx-background-color: #3b4252;
+}
+
+
+/* Status Icons */
+.status-icon-success { -fx-fill: #a3be8c; }
+.status-icon-failed { -fx-fill: #bf616a; }
+.status-icon-running { -fx-fill: #5e81ac; }
+.status-icon-pending { -fx-fill: #d08770; }
+.status-icon-cancelled { -fx-fill: #ebcb8b; }
+.status-icon-waiting { -fx-fill: #b48ead; }
+
+/* Timeline View */
+.timeline-view {
+    -fx-background-color: #2e3440;
+}
+
+.timeline-node-label {
+    -fx-text-fill: #d8dee9;
+}
+
+.timeline-bar {
+    -fx-opacity: 0.8;
+}
+
+.timeline-bar:hover {
+    -fx-opacity: 1.0;
+}
+
+.timeline-bar.status-success { -fx-fill: #a3be8c; }
+.timeline-bar.status-failed { -fx-fill: #bf616a; }
+.timeline-bar.status-running { -fx-fill: #5e81ac; }
+.timeline-bar.status-pending { -fx-fill: #d08770; }
+.timeline-bar.status-cancelled { -fx-fill: #ebcb8b; }
+.timeline-bar.status-waiting { -fx-fill: #b48ead; }
+
+/* Variables Table */
+.variables-table {
+    -fx-background-color: #2e3440;
+}
+
+.variables-table .table-cell {
+    -fx-text-fill: #d8dee9;
+    -fx-font-family: "Monospace";
 }

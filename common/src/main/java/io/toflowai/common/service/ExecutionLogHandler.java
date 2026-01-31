@@ -25,8 +25,11 @@ public interface ExecutionLogHandler {
         NODE_START,
         NODE_END,
         NODE_SKIP,
+        NODE_INPUT, // Logs node input data
+        NODE_OUTPUT, // Logs node output data
         DATA_FLOW,
         VARIABLE,
+        EXPRESSION_EVAL, // Logs expression evaluation
         ERROR,
         RETRY,
         RATE_LIMIT,

@@ -1,5 +1,8 @@
 package io.toflowai.ui;
 
+import io.toflowai.ui.console.ExecutionConsoleAppender;
+import ch.qos.logback.classic.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 import org.springframework.context.ConfigurableApplicationContext;
@@ -63,6 +66,14 @@ public class ToFlowAIUI extends Application {
 
         // Load application CSS, without this left menu would look sparse
         scene.getStylesheets().add(getClass().getResource("/io/toflowai/ui/styles/main.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/io/toflowai/ui/styles/console.css").toExternalForm());
+
+        // Programmatically add the ExecutionConsoleAppender
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ExecutionConsoleAppender appender = new ExecutionConsoleAppender();
+        appender.setContext(root.getLoggerContext());
+        appender.start();
+        root.addAppender(appender);
 
         // Configure stage
         String appName = applicationClass != null ? applicationClass.getSimpleName().replace("Application", "")
@@ -84,6 +95,7 @@ public class ToFlowAIUI extends Application {
         primaryStage.setMaximized(true);
         primaryStage.show();
     }
+
 
     @Override
     public void stop() {
