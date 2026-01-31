@@ -23,23 +23,58 @@ This directory contains sample workflow JSON files that demonstrate various feat
 
 ### API Keys Required
 
-Configure these in **Settings** > **AI Providers** before running:
+You have **two secure options** for managing API keys. Choose the one that works best for your workflow sharing and security needs:
+
+#### Option 1: Global Settings (Easiest for Personal Use)
+Configure API keys in **Settings** > **AI Providers**:
 
 | Setting | Used By | Get Key From |
 |---------|---------|--------------|
 | `AI_OPENAI_API_KEY` | AI Content Generator, Multi-API Integration | [OpenAI Platform](https://platform.openai.com/api-keys) |
 | `AI_ANTHROPIC_API_KEY` | (Optional) Alternative AI provider | [Anthropic Console](https://console.anthropic.com/) |
 
-### External API Keys (in workflow settings)
+**Pros**: Quick setup, works immediately
+**Cons**: Keys stored globally, workflows not portable
 
-Some workflows use external APIs. You'll need to:
+#### Option 2: Credential Manager (Recommended for Sharing)
+Store API keys securely in the **Tools** > **Credential Manager**:
 
-1. Get an API key from the service
-2. Update the workflow settings or `Set` node with your key
+1. Open **Tools** > **Credential Manager**
+2. Click **Add Credential**
+3. Create credentials for each API:
+   - **Name**: `openai-api` (choose a memorable name)
+   - **Type**: `API_KEY`
+   - **Data**: Your actual API key
+4. In workflow nodes, select the credential from the dropdown
 
-| API | Workflows | Get Key From |
+| Credential Name | API Service | Get Key From |
+|----------------|-------------|--------------|
+| `openai-api` | OpenAI (GPT models) | [OpenAI Platform](https://platform.openai.com/api-keys) |
+| `anthropic-api` | Anthropic (Claude models) | [Anthropic Console](https://console.anthropic.com/) |
+| `weather-api` | OpenWeatherMap | [OpenWeatherMap](https://openweathermap.org/api) |
+
+**Pros**: Secure encryption, workflow portability, granular access control
+**Cons**: Extra setup step per workflow
+
+### External API Keys (Workflow-Specific)
+
+Some workflows require additional API keys that are configured within the workflow itself. These can be set up using either approach above:
+
+| API | Workflows | Setup Method |
 |-----|-----------|--------------|
-| OpenWeatherMap | Weather Alert, Multi-API Integration | [OpenWeatherMap](https://openweathermap.org/api) |
+| OpenWeatherMap | Weather Alert, Multi-API Integration | Use credential `weather-api` in HTTP Request node, or set in workflow input |
+
+**Note**: For maximum security and portability, use the Credential Manager option and reference credentials by name in your workflows.
+
+## How to Use Credentials in Workflows
+
+When using the Credential Manager option:
+
+1. **HTTP Request nodes**: Select your credential from the "Authentication" dropdown in node properties
+2. **LLM nodes**: Currently fall back to global settings (credential support coming soon)
+3. **Workflow sharing**: Credentials are referenced by ID, so workflows remain secure when shared
+
+**Example**: In an HTTP Request node, instead of putting your API key directly in the URL, select the appropriate credential from the dropdown. The system will automatically use the encrypted key during execution.
 
 ## Workflow Details
 
@@ -55,8 +90,12 @@ Manual Trigger → HTTP Request → Code (Parse) → IF (Temp > 25°C)
 ```
 
 **To Test:**
-1. Get a free API key from OpenWeatherMap
-2. Update the `apiKey` in the HTTP Request node URL
+1. **Using Credentials (Recommended)**:
+   - Create a credential named `weather-api` with your OpenWeatherMap API key
+   - In the HTTP Request node, select `weather-api` from the Authentication dropdown
+2. **Using Direct Key (Less Secure)**:
+   - Get a free API key from OpenWeatherMap
+   - Update the `apiKey` in the HTTP Request node URL or pass as workflow input
 3. Run the workflow
 4. Check console for weather alert or normal status
 
@@ -74,10 +113,11 @@ Manual Trigger → Set Topic → LLM (Outline) → LLM (Content) → Code (Forma
 ```
 
 **To Test:**
-1. Configure your OpenAI API key in Settings
-2. Modify the topic in the "Set Topic" node
-3. Run the workflow
-4. View generated content in console
+1. **Current Method**: Configure your OpenAI API key in **Settings** > **AI Providers**
+2. **Future Method**: Credential support for LLM nodes coming soon - you'll be able to select credentials directly in the node
+3. Modify the topic in the "Set Topic" node
+4. Run the workflow
+5. View generated content in console
 
 ---
 
@@ -153,10 +193,20 @@ After importing, you can:
 
 | Issue | Solution |
 |-------|----------|
-| "API key not found" | Configure keys in Settings > AI Providers |
+| "API key not found" | Configure keys in **Settings** > **AI Providers**, or create credentials in **Tools** > **Credential Manager** |
+| "Credential not found" | Ensure the credential exists and is selected in the node properties |
 | HTTP timeout | Increase timeout in node settings or HTTP settings |
 | "Node type not found" | Ensure you're using a compatible ToFlowAI version |
-| Empty LLM response | Check API key is valid and has credits |
+| Empty LLM response | Check API key is valid and has credits, or verify credential is properly configured |
+| "Authentication failed" | Verify credential data is correct and hasn't expired |
+
+## Security Best Practices
+
+- **Always use Credential Manager** for production workflows - it encrypts your API keys
+- **Never commit API keys** to version control or share workflows with embedded keys
+- **Use different credentials** for different environments (dev/staging/prod)
+- **Regularly rotate** API keys and update credentials in the manager
+- **Test credentials** after creation using the built-in test functionality
 
 ## Creating Your Own Workflows
 
