@@ -46,6 +46,8 @@ public class NodePropertiesPanel extends VBox {
     private final Label subtitleLabel;
     private final Button helpButton;
     private final Button closeButton;
+    private final Region nodeTypeAccent;
+    private FontIcon nodeTypeIcon;
 
     // Common fields
     private final TextField nameField;
@@ -65,7 +67,12 @@ public class NodePropertiesPanel extends VBox {
         this.canvas = canvas;
 
         getStyleClass().add("properties-panel");
-        setStyle("-fx-background-color: #2a2a2a; -fx-border-color: #4a4a4a; -fx-border-width: 0 0 0 1;");
+        // Note: styling is now primarily in CSS, removing inline style override
+
+        // Initialize accent bar
+        nodeTypeAccent = new Region();
+        nodeTypeAccent.getStyleClass().add("node-type-accent");
+        nodeTypeAccent.setStyle("-fx-background-color: #4a9eff;"); // default blue
         setPrefWidth(300);
         setMinWidth(280);
         setMaxWidth(350);
@@ -82,8 +89,14 @@ public class NodePropertiesPanel extends VBox {
         helpButton = createHelpButton();
         closeButton = createCloseButton();
 
-        // === Header ===
+        // Initialize node type icon
+        nodeTypeIcon = FontIcon.of(MaterialDesignC.COG, 20);
+        nodeTypeIcon.setIconColor(Color.web("#9ca3af"));
+
+        // === Header with accent bar ===
+        VBox headerContainer = new VBox(0);
         HBox header = createHeader();
+        headerContainer.getChildren().addAll(header, nodeTypeAccent);
 
         // === Common Properties Section ===
         VBox commonSection = new VBox(10);
@@ -141,7 +154,7 @@ public class NodePropertiesPanel extends VBox {
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
-        getChildren().addAll(header, scrollPane, actions);
+        getChildren().addAll(headerContainer, scrollPane, actions);
 
         // Initially hidden
         setVisible(false);
@@ -149,20 +162,26 @@ public class NodePropertiesPanel extends VBox {
     }
 
     private HBox createHeader() {
-        HBox header = new HBox(10);
+        HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(12, 15, 12, 15));
+        header.setPadding(new Insets(14, 16, 12, 16));
         header.getStyleClass().add("properties-header");
 
+        // Icon container with background
+        VBox iconContainer = new VBox();
+        iconContainer.setAlignment(Pos.CENTER);
+        iconContainer.setPadding(new Insets(8));
+        iconContainer.setStyle("-fx-background-color: rgba(74, 158, 255, 0.15); -fx-background-radius: 8;");
+        iconContainer.getChildren().add(nodeTypeIcon);
+
         VBox titleBox = new VBox(2);
-        // titleLabel and subtitleLabel are already initialized
         titleBox.getChildren().addAll(titleLabel, subtitleLabel);
+        HBox.setHgrow(titleBox, Priority.ALWAYS);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // helpButton and closeButton are already initialized
-        header.getChildren().addAll(titleBox, spacer, helpButton, closeButton);
+        header.getChildren().addAll(iconContainer, titleBox, spacer, helpButton, closeButton);
         return header;
     }
 
@@ -192,18 +211,34 @@ public class NodePropertiesPanel extends VBox {
 
     private HBox createActionButtons() {
         HBox actions = new HBox(10);
-        actions.setAlignment(Pos.CENTER_RIGHT);
-        actions.setPadding(new Insets(10, 15, 10, 15));
+        actions.setAlignment(Pos.CENTER_LEFT);
+        actions.setPadding(new Insets(12, 16, 12, 16));
         actions.getStyleClass().add("properties-actions");
+
+        // Advanced Editor button (left side) - outline style
+        Button advancedBtn = new Button("Advanced");
+        advancedBtn.getStyleClass().add("advanced-button");
+        Tooltip.install(advancedBtn, new Tooltip("Open raw JSON parameter editor"));
+        advancedBtn.setOnAction(e -> {
+            if (currentNodeView != null) {
+                canvas.showAdvancedEditor(currentNodeView);
+            }
+        });
+
+        // Spacer
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Reset and Apply buttons (right side)
+        Button resetBtn = new Button("Reset");
+        resetBtn.getStyleClass().add("secondary-button");
+        resetBtn.setOnAction(e -> loadNode(currentNodeView));
 
         Button applyBtn = new Button("Apply");
         applyBtn.getStyleClass().add("accent-button");
         applyBtn.setOnAction(e -> applyChanges());
 
-        Button resetBtn = new Button("Reset");
-        resetBtn.setOnAction(e -> loadNode(currentNodeView));
-
-        actions.getChildren().addAll(resetBtn, applyBtn);
+        actions.getChildren().addAll(advancedBtn, spacer, resetBtn, applyBtn);
         return actions;
     }
 
@@ -247,6 +282,9 @@ public class NodePropertiesPanel extends VBox {
         titleLabel.setText(currentNode.name());
         subtitleLabel.setText(getNodeTypeLabel(currentNode.type()));
 
+        // Update node type accent color and icon
+        updateNodeTypeVisuals(currentNode.type());
+
         // Update common fields
         nameField.setText(currentNode.name());
         disabledCheckbox.setSelected(currentNode.disabled());
@@ -254,6 +292,49 @@ public class NodePropertiesPanel extends VBox {
 
         // Build dynamic parameters
         buildParametersUI(currentNode.type(), currentNode.parameters());
+    }
+
+    /**
+     * Update the accent bar color and icon based on node type.
+     */
+    private void updateNodeTypeVisuals(String nodeType) {
+        String accentColor;
+        org.kordamp.ikonli.Ikon icon;
+
+        // Determine category and visuals based on node type
+        if (nodeType.endsWith("Trigger")) {
+            // Triggers - Orange/Yellow
+            accentColor = "linear-gradient(to right, #f59e0b 0%, #fbbf24 100%)";
+            icon = org.kordamp.ikonli.materialdesign2.MaterialDesignL.LIGHTNING_BOLT;
+        } else if (nodeType.startsWith("llm") || nodeType.equals("textClassifier") ||
+                nodeType.equals("embedding") || nodeType.equals("rag")) {
+            // AI nodes - Purple gradient
+            accentColor = "linear-gradient(to right, #8b5cf6 0%, #a78bfa 100%)";
+            icon = org.kordamp.ikonli.materialdesign2.MaterialDesignB.BRAIN;
+        } else if (nodeType.equals("if") || nodeType.equals("switch") || nodeType.equals("loop")) {
+            // Logic nodes - Purple
+            accentColor = "linear-gradient(to right, #7c3aed 0%, #a78bfa 100%)";
+            icon = org.kordamp.ikonli.materialdesign2.MaterialDesignS.SITEMAP;
+        } else if (nodeType.equals("set") || nodeType.equals("filter") || nodeType.equals("sort")) {
+            // Data nodes - Green
+            accentColor = "linear-gradient(to right, #10b981 0%, #34d399 100%)";
+            icon = org.kordamp.ikonli.materialdesign2.MaterialDesignD.DATABASE;
+        } else if (nodeType.equals("httpRequest")) {
+            // HTTP - Blue
+            accentColor = "linear-gradient(to right, #3b82f6 0%, #60a5fa 100%)";
+            icon = org.kordamp.ikonli.materialdesign2.MaterialDesignW.WEB;
+        } else if (nodeType.equals("code") || nodeType.equals("executeCommand")) {
+            // Code/Command - Cyan
+            accentColor = "linear-gradient(to right, #06b6d4 0%, #22d3ee 100%)";
+            icon = org.kordamp.ikonli.materialdesign2.MaterialDesignC.CODE_BRACES;
+        } else {
+            // Default - Blue
+            accentColor = "linear-gradient(to right, #4a9eff 0%, #6bb3ff 100%)";
+            icon = org.kordamp.ikonli.materialdesign2.MaterialDesignC.COG;
+        }
+
+        nodeTypeAccent.setStyle("-fx-background-color: " + accentColor + ";");
+        nodeTypeIcon.setIconCode(icon);
     }
 
     /**

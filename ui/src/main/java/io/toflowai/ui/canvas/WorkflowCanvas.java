@@ -260,6 +260,10 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         section.setExpanded(true);
         section.getStyleClass().add("palette-section");
 
+        // Add specific class based on title (e.g., "palette-section-triggers")
+        String specificClass = "palette-section-" + title.toLowerCase().replace(" ", "-");
+        section.getStyleClass().add(specificClass);
+
         return section;
     }
 
@@ -1252,21 +1256,31 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
     // ==================== Node Action Methods ====================
 
     /**
-     * Open the node editor panel/dialog.
+     * Open the node editor - shows the Properties Panel for consistent editing.
      */
     public void openNodeEditor(NodeView nodeView) {
+        // Simply show the properties panel for this node (consistent with single-click)
+        selectNode(nodeView, false);
+        propertiesPanel.show(nodeView);
+    }
+
+    /**
+     * Show the advanced JSON editor dialog for raw parameter editing.
+     * Accessible from the Properties Panel for power users.
+     */
+    public void showAdvancedEditor(NodeView nodeView) {
         Node node = nodeView.getNode();
-        System.out.println("Opening editor for: " + node.name() + " [" + node.type() + "]");
+        System.out.println("Opening advanced editor for: " + node.name() + " [" + node.type() + "]");
 
         // Create and show editor dialog
         Dialog<Map<String, Object>> dialog = new Dialog<>();
-        dialog.setTitle("Edit Node: " + node.name());
-        dialog.setHeaderText("Configure " + node.type());
+        dialog.setTitle("Advanced Editor: " + node.name());
+        dialog.setHeaderText("Raw JSON Parameters - " + node.type());
 
         // Create content
         VBox content = new VBox(10);
         content.setPadding(new Insets(20));
-        content.setPrefWidth(450);
+        content.setPrefWidth(500);
 
         // Header with name and help button
         HBox headerBox = new HBox(10);
@@ -1274,7 +1288,7 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
 
         Label nameLabel = new Label("Name:");
         TextField nameField = new TextField(node.name());
-        nameField.setPrefWidth(280);
+        nameField.setPrefWidth(320);
 
         // Help button
         Button helpButton = new Button();
@@ -1297,20 +1311,38 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
 
         headerBox.getChildren().addAll(nameLabel, nameField, spacer, helpButton);
 
-        // Node-specific parameters based on type
-        Label paramsLabel = new Label("Parameters:");
+        // Node-specific parameters as JSON
+        Label paramsLabel = new Label("Parameters (JSON format):");
         TextArea paramsArea = new TextArea();
-        paramsArea.setPromptText("JSON parameters for this node...");
-        paramsArea.setPrefRowCount(6);
+        paramsArea.setPromptText("{\n  \"key\": \"value\"\n}");
+        paramsArea.setPrefRowCount(10);
+        paramsArea.setStyle("-fx-font-family: 'Consolas', 'Monaco', monospace; -fx-font-size: 12px;");
 
         // Format existing parameters as JSON
         if (node.parameters() != null && !node.parameters().isEmpty()) {
             try {
-                StringBuilder sb = new StringBuilder();
-                node.parameters().forEach((k, v) -> sb.append(k).append(": ").append(v).append("\n"));
+                StringBuilder sb = new StringBuilder("{\n");
+                var entries = node.parameters().entrySet().iterator();
+                while (entries.hasNext()) {
+                    var entry = entries.next();
+                    sb.append("  \"").append(entry.getKey()).append("\": ");
+                    Object v = entry.getValue();
+                    if (v instanceof String) {
+                        sb.append("\"").append(v.toString().replace("\"", "\\\"")).append("\"");
+                    } else {
+                        sb.append(v);
+                    }
+                    if (entries.hasNext())
+                        sb.append(",");
+                    sb.append("\n");
+                }
+                sb.append("}");
                 paramsArea.setText(sb.toString());
             } catch (Exception ignored) {
+                paramsArea.setText("{}");
             }
+        } else {
+            paramsArea.setText("{}");
         }
 
         // Add node type specific help (short version)
@@ -1318,28 +1350,111 @@ public class WorkflowCanvas extends BorderPane implements NodeStateListener {
         helpLabel.setStyle("-fx-text-fill: #8b949e; -fx-font-size: 11;");
         helpLabel.setWrapText(true);
 
-        content.getChildren().addAll(headerBox, paramsLabel, paramsArea, helpLabel);
+        // Warning about raw editing
+        Label warningLabel = new Label("⚠️ Changes here will override values set in the Properties Panel.");
+        warningLabel.setStyle("-fx-text-fill: #f59e0b; -fx-font-size: 11;");
+
+        content.getChildren().addAll(headerBox, paramsLabel, paramsArea, helpLabel, warningLabel);
 
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
-                // Return the updated values
-                return Map.of("name", nameField.getText());
+                // Parse JSON parameters
+                Map<String, Object> params = parseJsonParameters(paramsArea.getText());
+                return Map.of("name", nameField.getText(), "parameters", params);
             }
             return null;
         });
 
         dialog.showAndWait().ifPresent(result -> {
             String newName = (String) result.get("name");
-            if (newName != null && !newName.equals(node.name())) {
-                // Update node name
-                updateNodeName(node.id(), newName);
-                // Refresh the view
-                nodeView.getNode(); // Need to rebuild the view
+            @SuppressWarnings("unchecked")
+            Map<String, Object> newParams = (Map<String, Object>) result.get("parameters");
+
+            // Create updated node with new values
+            Node updatedNode = new Node(
+                    node.id(),
+                    node.type(),
+                    newName != null ? newName : node.name(),
+                    node.position(),
+                    newParams != null ? newParams : node.parameters(),
+                    node.credentialId(),
+                    node.disabled(),
+                    node.notes());
+
+            updateNode(nodeView, updatedNode);
+
+            // Refresh properties panel if showing this node
+            if (propertiesPanel.isShowing()) {
+                propertiesPanel.show(nodeView);
             }
         });
+    }
+
+    /**
+     * Parse JSON-like parameters text into a Map.
+     */
+    private Map<String, Object> parseJsonParameters(String text) {
+        Map<String, Object> params = new HashMap<>();
+        if (text == null || text.isBlank()) {
+            return params;
+        }
+
+        // Simple JSON parsing (for basic key-value pairs)
+        try {
+            // Remove braces and split by lines
+            String content = text.trim();
+            if (content.startsWith("{"))
+                content = content.substring(1);
+            if (content.endsWith("}"))
+                content = content.substring(0, content.length() - 1);
+
+            for (String line : content.split("\n")) {
+                line = line.trim();
+                if (line.isEmpty() || line.equals(","))
+                    continue;
+                if (line.endsWith(","))
+                    line = line.substring(0, line.length() - 1);
+
+                int colonIdx = line.indexOf(':');
+                if (colonIdx > 0) {
+                    String key = line.substring(0, colonIdx).trim();
+                    String value = line.substring(colonIdx + 1).trim();
+
+                    // Remove quotes from key
+                    if (key.startsWith("\"") && key.endsWith("\"")) {
+                        key = key.substring(1, key.length() - 1);
+                    }
+
+                    // Parse value
+                    if (value.startsWith("\"") && value.endsWith("\"")) {
+                        params.put(key, value.substring(1, value.length() - 1).replace("\\\"", "\""));
+                    } else if (value.equals("true")) {
+                        params.put(key, true);
+                    } else if (value.equals("false")) {
+                        params.put(key, false);
+                    } else if (value.equals("null")) {
+                        params.put(key, null);
+                    } else {
+                        try {
+                            if (value.contains(".")) {
+                                params.put(key, Double.parseDouble(value));
+                            } else {
+                                params.put(key, Integer.parseInt(value));
+                            }
+                        } catch (NumberFormatException e) {
+                            params.put(key, value);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to parse JSON parameters: " + e.getMessage());
+        }
+
+        return params;
     }
 
     private String getNodeTypeHelp(String type) {

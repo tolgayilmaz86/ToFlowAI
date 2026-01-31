@@ -96,6 +96,15 @@ public class MainController implements Initializable {
     @FXML
     private CheckMenuItem menuSnapToGrid;
 
+    // Toolbar Buttons
+    @FXML
+    private Button btnNewWorkflow;
+    @FXML
+    private Button btnOpenWorkflow;
+    @FXML
+    private Button btnSaveWorkflow;
+    @FXML
+    private Button btnRunWorkflow;
     private WorkflowCanvas workflowCanvas;
 
     public MainController(WorkflowServiceInterface workflowService,
@@ -111,6 +120,7 @@ public class MainController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupSidebarIcons();
+        setupToolbarIcons();
         setupSidebarActions();
         showWorkflowsView();
         updateStatus("Ready");
@@ -122,6 +132,12 @@ public class MainController implements Initializable {
         btnExecutionConsole.setGraphic(new FontIcon(MaterialDesignC.CONSOLE));
         btnCredentials.setGraphic(new FontIcon(MaterialDesignC.CREDIT_CARD_OUTLINE));
         btnSettings.setGraphic(new FontIcon(MaterialDesignC.COG_OUTLINE));
+    }
+
+    private void setupToolbarIcons() {
+        btnNewWorkflow.setGraphic(new FontIcon(MaterialDesignP.PLUS));
+        btnOpenWorkflow.setGraphic(new FontIcon(MaterialDesignF.FOLDER_OPEN));
+        btnSaveWorkflow.setGraphic(new FontIcon(MaterialDesignC.CONTENT_SAVE));
     }
 
     private void setupSidebarActions() {
