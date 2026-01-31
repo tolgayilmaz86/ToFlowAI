@@ -27,14 +27,12 @@ public class WorkflowListDialog extends Dialog<WorkflowDTO> {
 
     private final ListView<WorkflowDTO> workflowList;
     private final Label detailsLabel;
-    private final Consumer<WorkflowDTO> onDelete;
 
     public WorkflowListDialog(List<WorkflowDTO> workflows) {
         this(workflows, null);
     }
 
     public WorkflowListDialog(List<WorkflowDTO> workflows, Consumer<WorkflowDTO> onDelete) {
-        this.onDelete = onDelete;
         setTitle("Open Workflow");
         setHeaderText("Select a workflow to open");
         initModality(Modality.APPLICATION_MODAL);

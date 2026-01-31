@@ -447,7 +447,7 @@ public class ExecutionLogger {
                 .count();
 
         return new ExecutionSummary(
-                executionId,
+                log.getExecutionId(),
                 log.getWorkflowId(),
                 log.getWorkflowName(),
                 log.getStartTime(),
@@ -580,6 +580,10 @@ public class ExecutionLogger {
 
         List<LogEntry> getEntries() {
             return new ArrayList<>(entries);
+        }
+
+        String getExecutionId() {
+            return executionId;
         }
 
         String getWorkflowId() {
