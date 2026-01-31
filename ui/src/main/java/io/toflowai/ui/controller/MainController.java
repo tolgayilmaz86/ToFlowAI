@@ -137,8 +137,10 @@ public class MainController implements Initializable {
         clearActiveButton();
         btnWorkflows.getStyleClass().add("active");
 
-        // Create workflow editor view with injected services
-        workflowCanvas = new WorkflowCanvas(workflowService, executionService);
+        // Reuse existing workflow canvas or create new one if it doesn't exist
+        if (workflowCanvas == null) {
+            workflowCanvas = new WorkflowCanvas(workflowService, executionService);
+        }
         contentArea.getChildren().setAll(workflowCanvas);
 
         // Sync menu states with canvas settings
