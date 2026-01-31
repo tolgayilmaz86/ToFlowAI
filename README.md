@@ -462,6 +462,49 @@ Import via: **File** → **Import Workflow** → Select from `samples/` director
 
 Settings are managed via the **Settings** dialog (`Ctrl+,`) and stored securely in the H2 database with AES-256 encryption for sensitive values.
 
+### 🔑 Credential Management
+
+ToFlowAI provides secure credential management for API keys and sensitive data:
+
+#### Automatic Loading
+- Place a `.env` file in the application root directory
+- Credentials are automatically loaded on startup
+- Existing credentials are skipped (no duplicates)
+
+#### Manual Import
+Import credentials via the REST API or UI:
+
+**Via REST API:**
+```bash
+# Import from .env content
+curl -X POST http://localhost:8080/api/credentials/import \
+  -F "content=API_KEY=your_key_here"
+
+# Import from .env file
+curl -X POST http://localhost:8080/api/credentials/import \
+  -F "file=@credentials.env"
+```
+
+**Response:**
+```json
+{
+  "total": 2,
+  "created": 1,
+  "skipped": 1,
+  "errors": 0,
+  "messages": [
+    "Created 'API_KEY'",
+    "Skipped 'EXISTING_KEY': already exists"
+  ]
+}
+```
+
+#### Using Credentials in Workflows
+Reference credentials in workflow nodes using `{{credential_name}}` syntax:
+- HTTP Request nodes: Select from Authentication dropdown
+- Code nodes: Access via `{{credential_name}}` in expressions
+- All credentials are encrypted and secure
+
 ---
 
 ## 🤝 Contributing

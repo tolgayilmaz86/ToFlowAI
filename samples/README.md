@@ -23,7 +23,7 @@ This directory contains sample workflow JSON files that demonstrate various feat
 
 ### API Keys Required
 
-You have **two secure options** for managing API keys. Choose the one that works best for your workflow sharing and security needs:
+You have **three secure options** for managing API keys. Choose the one that works best for your workflow sharing and security needs:
 
 #### Option 1: Global Settings (Easiest for Personal Use)
 Configure API keys in **Settings** > **AI Providers**:
@@ -56,6 +56,32 @@ Store API keys securely in the **Tools** > **Credential Manager**:
 **Pros**: Secure encryption, workflow portability, granular access control
 **Cons**: Extra setup step per workflow
 
+#### Option 3: Import from .env File (Best for Development Teams)
+For development teams or bulk credential management:
+
+1. **Create a `.env` file** in the ToFlowAI root directory:
+   ```env
+   OPENAI_API_KEY=sk-your-openai-key-here
+   WEATHER_API_KEY=your-weather-api-key
+   ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
+   ```
+
+2. **Automatic Loading**: Credentials are loaded automatically on application startup
+
+3. **Manual Import**: Use the REST API to import credentials on-demand:
+   ```bash
+   # Import from .env content
+   curl -X POST http://localhost:8080/api/credentials/import \
+     -F "content=OPENAI_API_KEY=sk-your-key"
+
+   # Import from .env file
+   curl -X POST http://localhost:8080/api/credentials/import \
+     -F "file=@credentials.env"
+   ```
+
+**Pros**: Easy bulk import, version control friendly, team sharing
+**Cons**: Requires API access or .env file management
+
 ### External API Keys (Workflow-Specific)
 
 Some workflows require additional API keys that are configured within the workflow itself. These can be set up using either approach above:
@@ -75,6 +101,26 @@ When using the Credential Manager option:
 3. **Workflow sharing**: Credentials are referenced by ID, so workflows remain secure when shared
 
 **Example**: In an HTTP Request node, instead of putting your API key directly in the URL, select the appropriate credential from the dropdown. The system will automatically use the encrypted key during execution.
+
+### Bulk Credential Management
+
+For teams or complex setups, you can import multiple credentials at once:
+
+#### Via .env File (Automatic)
+1. Create `.env` file in ToFlowAI root directory
+2. Credentials load automatically on startup
+3. Format: `KEY_NAME=value` (one per line)
+
+#### Via API (Manual)
+```bash
+# Import multiple credentials
+curl -X POST http://localhost:8080/api/credentials/import \
+  -F "content=API_KEY_1=secret1
+API_KEY_2=secret2
+THIRD_KEY=secret3"
+```
+
+The API returns detailed results showing which credentials were created, skipped, or had errors.
 
 ## Workflow Details
 
@@ -193,12 +239,14 @@ After importing, you can:
 
 | Issue | Solution |
 |-------|----------|
-| "API key not found" | Configure keys in **Settings** > **AI Providers**, or create credentials in **Tools** > **Credential Manager** |
+| "API key not found" | Configure keys in **Settings** > **AI Providers**, or create credentials in **Tools** > **Credential Manager**, or import via `.env` file |
 | "Credential not found" | Ensure the credential exists and is selected in the node properties |
 | HTTP timeout | Increase timeout in node settings or HTTP settings |
 | "Node type not found" | Ensure you're using a compatible ToFlowAI version |
 | Empty LLM response | Check API key is valid and has credits, or verify credential is properly configured |
 | "Authentication failed" | Verify credential data is correct and hasn't expired |
+| "Import failed" | Check `.env` file format (KEY=value), ensure API is running, verify file permissions |
+| "Duplicate credential" | Import skips existing credentials; delete old ones first if needed |
 
 ## Security Best Practices
 
@@ -207,6 +255,9 @@ After importing, you can:
 - **Use different credentials** for different environments (dev/staging/prod)
 - **Regularly rotate** API keys and update credentials in the manager
 - **Test credentials** after creation using the built-in test functionality
+- **Use .env files** for development teams - they can be gitignored and imported securely
+- **Import credentials** via API for automated deployment scenarios
+- **Monitor credential usage** through the manager's audit features
 
 ## Creating Your Own Workflows
 
