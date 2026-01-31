@@ -61,6 +61,9 @@ public class ToFlowAIUI extends Application {
                 fxWeaver.loadView(io.toflowai.ui.controller.MainController.class),
                 1400, 900);
 
+        // Load application CSS, without this left menu would look sparse
+        scene.getStylesheets().add(getClass().getResource("/io/toflowai/ui/styles/main.css").toExternalForm());
+
         // Configure stage
         String appName = applicationClass != null ? applicationClass.getSimpleName().replace("Application", "")
                 : "ToFlowAI";
