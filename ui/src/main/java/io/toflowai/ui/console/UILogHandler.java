@@ -26,6 +26,7 @@ public class UILogHandler implements ExecutionLogHandler {
                 case NODE_START -> handleNodeStart(entry, consoleService);
                 case NODE_END -> handleNodeEnd(entry, consoleService);
                 case NODE_SKIP -> handleNodeSkip(entry, consoleService);
+                case VARIABLE -> handleVariable(entry, consoleService);
                 case ERROR -> handleError(entry, consoleService);
                 case RETRY -> handleRetry(entry, consoleService);
                 case RATE_LIMIT -> handleRateLimit(entry, consoleService);
@@ -115,8 +116,21 @@ public class UILogHandler implements ExecutionLogHandler {
         service.dataFlow(entry.executionId(), fromNode, toNode, dataSize);
     }
 
+    private void handleVariable(LogEntry entry, ExecutionConsoleService service) {
+        Map<String, Object> context = entry.context();
+        String operation = getString(context, "operation", "unknown");
+        String variableName = getString(context, "variableName", "unknown");
+        String valuePreview = getString(context, "valuePreview", "");
+        String valueType = getString(context, "valueType", "unknown");
+
+        String message = operation + " variable: " + variableName;
+        String details = "Type: " + valueType + (valuePreview.isEmpty() ? "" : " | Value: " + valuePreview);
+
+        service.debug(entry.executionId(), message, details);
+    }
+
     private void handleGeneric(LogEntry entry, ExecutionConsoleService service) {
-        String details = entry.context() != null ? entry.context().toString() : null;
+        String details = formatContextDetails(entry.context());
 
         switch (entry.level()) {
             case ERROR, FATAL -> service.error(entry.executionId(), "system", entry.message(), details);
@@ -125,6 +139,65 @@ public class UILogHandler implements ExecutionLogHandler {
             case TRACE -> service.debug(entry.executionId(), entry.message(), details);
             default -> service.info(entry.executionId(), entry.message(), details);
         }
+    }
+
+    /**
+     * Format context map into readable details string.
+     */
+    private String formatContextDetails(Map<String, Object> context) {
+        if (context == null || context.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+
+        for (Map.Entry<String, Object> entry : context.entrySet()) {
+            if (!first) {
+                sb.append("\n");
+            }
+            sb.append("• ").append(entry.getKey()).append(": ");
+
+            Object value = entry.getValue();
+            if (value == null) {
+                sb.append("null");
+            } else if (value instanceof String str) {
+                // For strings, show quotes if they contain spaces or special chars
+                if (str.contains(" ") || str.contains("\n") || str.contains("\t")) {
+                    sb.append("'").append(str.replace("\n", "\\n").replace("\t", "\\t")).append("'");
+                } else {
+                    sb.append(str);
+                }
+            } else if (value instanceof Number || value instanceof Boolean) {
+                sb.append(value.toString());
+            } else if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) value;
+                sb.append("{");
+                boolean firstInner = true;
+                for (Map.Entry<String, Object> innerEntry : map.entrySet()) {
+                    if (!firstInner) sb.append(", ");
+                    sb.append(innerEntry.getKey()).append(": ").append(innerEntry.getValue());
+                    firstInner = false;
+                }
+                sb.append("}");
+            } else if (value instanceof Iterable) {
+                sb.append("[");
+                boolean firstInner = true;
+                for (Object item : (Iterable<?>) value) {
+                    if (!firstInner) sb.append(", ");
+                    sb.append(item != null ? item.toString() : "null");
+                    firstInner = false;
+                }
+                sb.append("]");
+            } else {
+                sb.append(value.toString());
+            }
+
+            first = false;
+        }
+
+        return sb.toString();
     }
 
     // Helper methods for extracting values from context map

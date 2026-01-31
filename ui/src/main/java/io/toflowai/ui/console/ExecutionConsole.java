@@ -185,7 +185,7 @@ public class ExecutionConsole extends Stage {
         debugBtn.setSelected(showDebug);
         debugBtn.selectedProperty().addListener((obs, old, val) -> {
             showDebug = val;
-            refreshDisplay();
+            Platform.runLater(() -> refreshDisplay());
         });
         debugBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #a3be8c;");
 
@@ -195,7 +195,7 @@ public class ExecutionConsole extends Stage {
         traceBtn.setSelected(showTrace);
         traceBtn.selectedProperty().addListener((obs, old, val) -> {
             showTrace = val;
-            refreshDisplay();
+            Platform.runLater(() -> refreshDisplay());
         });
         traceBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #b48ead;");
 
@@ -210,7 +210,7 @@ public class ExecutionConsole extends Stage {
         filterField.setStyle("-fx-background-color: #434c5e; -fx-text-fill: #d8dee9; -fx-prompt-text-fill: #616e88;");
         filterField.textProperty().addListener((obs, old, val) -> {
             filterText = val.toLowerCase();
-            refreshDisplay();
+            Platform.runLater(() -> refreshDisplay());
         });
 
         toolbar.getItems().addAll(
@@ -302,8 +302,8 @@ public class ExecutionConsole extends Stage {
             if (session != null) {
                 int depth = session.pushNode(nodeId);
                 logEntry(executionId, depth, LogEntryType.NODE_START,
-                        "▶ " + nodeName,
-                        "Type: " + nodeType);
+                        "▶ " + nodeName + " (" + nodeType + ")",
+                        "Node ID: " + nodeId);
             }
         });
     }
@@ -316,13 +316,77 @@ public class ExecutionConsole extends Stage {
             ExecutionSession session = sessions.get(executionId);
             if (session != null) {
                 int depth = session.getNodeDepth(nodeId);
+                String status = success ? "✓" : "✗";
+                String details = String.format("Node ID: %s | Duration: %dms", nodeId, durationMs);
                 logEntry(executionId, depth,
                         success ? LogEntryType.NODE_END : LogEntryType.ERROR,
-                        (success ? "✓ " : "✗ ") + nodeName,
-                        String.format("Duration: %dms", durationMs));
+                        status + " " + nodeName,
+                        details);
                 session.popNode(nodeId);
             }
         });
+    }
+
+    /**
+     * Log node input data.
+     */
+    public void nodeInput(String executionId, String nodeId, String nodeName, Object input) {
+        Platform.runLater(() -> {
+            ExecutionSession session = sessions.get(executionId);
+            if (session != null) {
+                int depth = session.getNodeDepth(nodeId);
+                String inputStr = formatDataPreview(input);
+                logEntry(executionId, depth + 1, LogEntryType.TRACE,
+                        "📥 Input: " + nodeName,
+                        inputStr);
+            }
+        });
+    }
+
+    /**
+     * Log node output data.
+     */
+    public void nodeOutput(String executionId, String nodeId, String nodeName, Object output) {
+        Platform.runLater(() -> {
+            ExecutionSession session = sessions.get(executionId);
+            if (session != null) {
+                int depth = session.getNodeDepth(nodeId);
+                String outputStr = formatDataPreview(output);
+                logEntry(executionId, depth + 1, LogEntryType.TRACE,
+                        "📤 Output: " + nodeName,
+                        outputStr);
+            }
+        });
+    }
+
+    /**
+     * Format data for preview display.
+     */
+    private String formatDataPreview(Object data) {
+        if (data == null) {
+            return "null";
+        }
+
+        String str = data.toString();
+        if (str.length() > 200) {
+            return str.substring(0, 200) + "...";
+        }
+
+        // For collections/maps, show count
+        if (data instanceof Map) {
+            return String.format("Map with %d entries: %s", ((Map<?, ?>) data).size(), str);
+        }
+        if (data instanceof Iterable && !(data instanceof String)) {
+            int count = 0;
+            for (Object item : (Iterable<?>) data) {
+                count++;
+                if (count > 10)
+                    break; // Don't count too many
+            }
+            return String.format("Collection with %d items: %s", count, str);
+        }
+
+        return str;
     }
 
     /**
@@ -524,7 +588,7 @@ public class ExecutionConsole extends Stage {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Text id = new Text("#" + executionId.substring(0, 8));
+        Text id = new Text("#" + executionId.substring(0, Math.min(8, executionId.length())));
         id.setFill(Color.web(COLOR_TIMESTAMP));
         id.setFont(Font.font("Monospace", 10));
 
@@ -572,19 +636,25 @@ public class ExecutionConsole extends Stage {
 
         // Details section (collapsible)
         if (entry.details != null && !entry.details.isEmpty()) {
-            // Create a compact details preview
-            String preview = entry.details.length() > 80 ? entry.details.substring(0, 80) + "..." : entry.details;
-            Text detailsPreview = new Text(" ▶ " + preview);
-            detailsPreview.setFill(Color.web(COLOR_TIMESTAMP));
-            detailsPreview.setFont(Font.font("System", 11));
+            // Create clickable details indicator
+            String indicator = getDetailsIndicator(entry);
+            Text detailsLink = new Text(" " + indicator);
+            detailsLink.setFill(Color.web(COLOR_TIMESTAMP));
+            detailsLink.setFont(Font.font("System", FontWeight.BOLD, 11));
 
             // Make it clickable to expand
-            detailsPreview.setOnMouseClicked(e -> toggleDetails(entryContainer, entry));
-            detailsPreview.setOnMouseEntered(e -> detailsPreview.setUnderline(true));
-            detailsPreview.setOnMouseExited(e -> detailsPreview.setUnderline(false));
-            detailsPreview.setStyle("-fx-cursor: hand;");
+            detailsLink.setOnMouseClicked(e -> toggleDetails(entryContainer, entry));
+            detailsLink.setOnMouseEntered(e -> {
+                detailsLink.setUnderline(true);
+                detailsLink.setFill(Color.web("#88c0d0")); // Nord blue on hover
+            });
+            detailsLink.setOnMouseExited(e -> {
+                detailsLink.setUnderline(false);
+                detailsLink.setFill(Color.web(COLOR_TIMESTAMP));
+            });
+            detailsLink.setStyle("-fx-cursor: hand;");
 
-            mainLine.getChildren().add(detailsPreview);
+            mainLine.getChildren().add(detailsLink);
         }
 
         // Make error entries more visible
@@ -593,6 +663,29 @@ public class ExecutionConsole extends Stage {
         }
 
         return entryContainer;
+    }
+
+    private String getDetailsIndicator(LogEntryData entry) {
+        if (entry.details == null || entry.details.isEmpty()) {
+            return "";
+        }
+
+        // Check content type and return appropriate indicator
+        String details = entry.details.toLowerCase();
+
+        if (details.contains("duration")) {
+            return "⏱️"; // Clock emoji for duration
+        } else if (details.contains("error") || details.contains("exception") || details.contains("stack")) {
+            return "⚠️"; // Warning for errors
+        } else if (details.contains("node id") || details.contains("type:")) {
+            return "ℹ️"; // Info for node details
+        } else if (details.contains("input") || details.contains("output")) {
+            return "📄"; // Document for data
+        } else if (details.contains("size:") || details.contains("bytes")) {
+            return "📊"; // Chart for data size
+        } else {
+            return "▶"; // Default expand arrow
+        }
     }
 
     private String getTypeIndicator(LogEntryType type) {
@@ -640,31 +733,74 @@ public class ExecutionConsole extends Stage {
         if (entryContainer.getChildren().size() > 1) {
             // Remove the expanded details
             entryContainer.getChildren().remove(1);
-            // Update the preview text back to collapsed state
-            HBox mainLine = (HBox) entryContainer.getChildren().get(0);
-            if (mainLine.getChildren().size() > 3) {
-                Text detailsPreview = (Text) mainLine.getChildren().get(3);
-                String preview = entry.details.length() > 80 ? entry.details.substring(0, 80) + "..." : entry.details;
-                detailsPreview.setText(" ▶ " + preview);
-            }
+            // Update the indicator back to collapsed state
+            updateDetailsIndicator(entryContainer, entry, false);
         } else {
             // Add expanded details
+            Region detailsContent = createDetailsContent(entry);
+            entryContainer.getChildren().add(detailsContent);
+
+            // Update the indicator to show expanded state
+            updateDetailsIndicator(entryContainer, entry, true);
+        }
+    }
+
+    private Region createDetailsContent(LogEntryData entry) {
+        // Create a styled container for details
+        VBox detailsBox = new VBox(5);
+        detailsBox.setPadding(new Insets(10, 20, 10, 40)); // Indent from main content
+        detailsBox.setStyle("-fx-background-color: rgba(46, 52, 64, 0.3); -fx-background-radius: 3;"); // Subtle
+                                                                                                       // background
+
+        // Parse and format details based on content type
+        if (entry.details.contains("• ")) {
+            // Structured details (from our new formatContextDetails)
+            String[] lines = entry.details.split("\n");
+            for (String line : lines) {
+                if (line.trim().isEmpty())
+                    continue;
+
+                Text detailLine = new Text(line);
+                detailLine.setFill(Color.web("#d8dee9")); // Nord light text
+                detailLine.setFont(Font.font("System", 11));
+                detailsBox.getChildren().add(detailLine);
+            }
+        } else if (entry.details.contains("Duration:")) {
+            // Special formatting for duration
+            Text durationText = new Text("⏱️ Execution Time: " + entry.details.replace("Duration:", "").trim());
+            durationText.setFill(Color.web("#88c0d0")); // Nord blue
+            durationText.setFont(Font.font("System", FontWeight.BOLD, 12));
+            detailsBox.getChildren().add(durationText);
+        } else if (entry.details.contains("Node ID:")) {
+            // Special formatting for node details
+            String[] parts = entry.details.split("\\|");
+            for (String part : parts) {
+                Text detailText = new Text("ℹ️ " + part.trim());
+                detailText.setFill(Color.web("#a3be8c")); // Nord green
+                detailText.setFont(Font.font("System", 11));
+                detailsBox.getChildren().add(detailText);
+            }
+        } else {
+            // Fallback to text area for other content
             TextArea detailsArea = new TextArea(entry.details);
             detailsArea.setEditable(false);
             detailsArea.setWrapText(true);
             detailsArea.setPrefRowCount(Math.min(10, (int) Math.ceil(entry.details.length() / 80.0)));
             detailsArea.setMaxWidth(600);
             detailsArea.getStyleClass().add("log-details-textarea");
+            detailsArea.setStyle("-fx-control-inner-background: rgba(46, 52, 64, 0.5); -fx-text-fill: #d8dee9;");
+            return detailsArea;
+        }
 
-            entryContainer.getChildren().add(detailsArea);
+        return detailsBox;
+    }
 
-            // Update the preview text to show expanded state
-            HBox mainLine = (HBox) entryContainer.getChildren().get(0);
-            if (mainLine.getChildren().size() > 3) {
-                Text detailsPreview = (Text) mainLine.getChildren().get(3);
-                detailsPreview.setText(
-                        " ▼ " + (entry.details.length() > 80 ? entry.details.substring(0, 80) + "..." : entry.details));
-            }
+    private void updateDetailsIndicator(VBox entryContainer, LogEntryData entry, boolean expanded) {
+        HBox mainLine = (HBox) entryContainer.getChildren().get(0);
+        if (mainLine.getChildren().size() > 3) {
+            Text indicator = (Text) mainLine.getChildren().get(3);
+            String baseIndicator = getDetailsIndicator(entry);
+            indicator.setText(expanded ? " ▼" : " " + baseIndicator);
         }
     }
 
@@ -683,17 +819,26 @@ public class ExecutionConsole extends Stage {
     private void refreshDisplay() {
         updateFilterStatus();
         logContainer.getChildren().clear();
+
+        // Rebuild the display from stored session data
         for (ExecutionSession session : sessions.values()) {
+            // Add session header
             HBox header = createExecutionHeader(session.getExecutionId(),
                     session.getWorkflowName(), session.getStartTime());
             logContainer.getChildren().add(header);
 
+            // Add all visible entries for this session
             for (LogEntryData entry : session.getEntries()) {
                 if (shouldShowEntry(entry)) {
                     VBox entryBox = createLogEntryView(entry);
                     logContainer.getChildren().add(entryBox);
                 }
             }
+        }
+
+        // Auto-scroll to bottom if enabled
+        if (autoScroll) {
+            Platform.runLater(() -> scrollPane.setVvalue(1.0));
         }
     }
 

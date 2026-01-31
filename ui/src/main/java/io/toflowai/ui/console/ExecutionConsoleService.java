@@ -207,6 +207,28 @@ public class ExecutionConsoleService {
     }
 
     /**
+     * Log node input data.
+     */
+    public void nodeInput(String executionId, String nodeId, String nodeName, Object input) {
+        if (console != null) {
+            console.nodeInput(executionId, nodeId, nodeName, input);
+        } else {
+            logBuffer.add(c -> c.nodeInput(executionId, nodeId, nodeName, input));
+        }
+    }
+
+    /**
+     * Log node output data.
+     */
+    public void nodeOutput(String executionId, String nodeId, String nodeName, Object output) {
+        if (console != null) {
+            console.nodeOutput(executionId, nodeId, nodeName, output);
+        } else {
+            logBuffer.add(c -> c.nodeOutput(executionId, nodeId, nodeName, output));
+        }
+    }
+
+    /**
      * Log an error.
      */
     public void error(String executionId, String nodeId, String nodeName, Exception e) {
