@@ -122,6 +122,12 @@ public class ExecutionConsole extends Stage {
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/io/toflowai/ui/styles/console.css").toExternalForm());
         setScene(scene);
+
+        // Handle window close by hiding instead of closing to preserve logs
+        setOnCloseRequest(event -> {
+            event.consume(); // Prevent default close behavior
+            hide(); // Hide the window instead
+        });
     }
 
     private ToolBar createToolbar() {

@@ -3,6 +3,8 @@ package io.toflowai.ui.console;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 import javafx.application.Platform;
 
@@ -15,6 +17,9 @@ public class ExecutionConsoleService {
     private static ExecutionConsoleService instance;
     private ExecutionConsole console;
     private final ConcurrentHashMap<String, NodeExecutionState> nodeStates = new ConcurrentHashMap<>();
+    
+    // Buffer for logs when console is not yet created
+    private final ConcurrentLinkedQueue<Consumer<ExecutionConsole>> logBuffer = new ConcurrentLinkedQueue<>();
 
     // Callback interfaces for node state changes
     public interface NodeStateListener {
@@ -80,6 +85,8 @@ public class ExecutionConsoleService {
     public ExecutionConsole getOrCreateConsole() {
         if (console == null) {
             console = new ExecutionConsole();
+            // Flush any buffered logs to the newly created console
+            flushLogBuffer();
         }
         return console;
     }
@@ -93,6 +100,16 @@ public class ExecutionConsoleService {
             c.show();
             c.toFront();
         });
+    }
+
+    /**
+     * Flush buffered logs to the console.
+     */
+    private void flushLogBuffer() {
+        Consumer<ExecutionConsole> logOperation;
+        while ((logOperation = logBuffer.poll()) != null) {
+            logOperation.accept(console);
+        }
     }
 
     /**
@@ -117,6 +134,8 @@ public class ExecutionConsoleService {
     public void executionStart(String executionId, String workflowId, String workflowName) {
         if (console != null) {
             console.startExecution(executionId, workflowName);
+        } else {
+            logBuffer.add(c -> c.startExecution(executionId, workflowName));
         }
         nodeStates.clear();
     }
@@ -127,6 +146,8 @@ public class ExecutionConsoleService {
     public void executionEnd(String executionId, boolean success, long durationMs) {
         if (console != null) {
             console.endExecution(executionId, success, durationMs);
+        } else {
+            logBuffer.add(c -> c.endExecution(executionId, success, durationMs));
         }
 
         // Reset all node states to idle after execution
@@ -147,6 +168,8 @@ public class ExecutionConsoleService {
 
         if (console != null) {
             console.nodeStart(executionId, nodeId, nodeName, nodeType);
+        } else {
+            logBuffer.add(c -> c.nodeStart(executionId, nodeId, nodeName, nodeType));
         }
     }
 
@@ -163,6 +186,8 @@ public class ExecutionConsoleService {
 
         if (console != null) {
             console.nodeEnd(executionId, nodeId, nodeName, success, durationMs);
+        } else {
+            logBuffer.add(c -> c.nodeEnd(executionId, nodeId, nodeName, success, durationMs));
         }
     }
 
@@ -176,6 +201,8 @@ public class ExecutionConsoleService {
 
         if (console != null) {
             console.nodeSkip(executionId, nodeId, nodeName, reason);
+        } else {
+            logBuffer.add(c -> c.nodeSkip(executionId, nodeId, nodeName, reason));
         }
     }
 
@@ -197,6 +224,8 @@ public class ExecutionConsoleService {
 
         if (console != null) {
             console.error(executionId, nodeName != null ? nodeName : nodeId, message, stackTrace);
+        } else {
+            logBuffer.add(c -> c.error(executionId, nodeName != null ? nodeName : nodeId, message, stackTrace));
         }
     }
 
@@ -206,6 +235,8 @@ public class ExecutionConsoleService {
     public void error(String executionId, String source, String message, String details) {
         if (console != null) {
             console.error(executionId, source, message, details);
+        } else {
+            logBuffer.add(c -> c.error(executionId, source, message, details));
         }
     }
 
@@ -215,6 +246,8 @@ public class ExecutionConsoleService {
     public void retry(String executionId, String nodeId, int attempt, int maxRetries, long delayMs) {
         if (console != null) {
             console.retry(executionId, nodeId, attempt, maxRetries, delayMs);
+        } else {
+            logBuffer.add(c -> c.retry(executionId, nodeId, attempt, maxRetries, delayMs));
         }
     }
 
@@ -224,6 +257,8 @@ public class ExecutionConsoleService {
     public void rateLimit(String executionId, String bucketId, boolean throttled, long waitMs) {
         if (console != null) {
             console.rateLimit(executionId, bucketId, throttled, waitMs);
+        } else {
+            logBuffer.add(c -> c.rateLimit(executionId, bucketId, throttled, waitMs));
         }
     }
 
@@ -233,6 +268,8 @@ public class ExecutionConsoleService {
     public void dataFlow(String executionId, String fromNode, String toNode, int dataSize) {
         if (console != null) {
             console.dataFlow(executionId, fromNode, toNode, dataSize);
+        } else {
+            logBuffer.add(c -> c.dataFlow(executionId, fromNode, toNode, dataSize));
         }
     }
 
@@ -242,6 +279,8 @@ public class ExecutionConsoleService {
     public void info(String executionId, String message, String details) {
         if (console != null) {
             console.info(executionId, message, details);
+        } else {
+            logBuffer.add(c -> c.info(executionId, message, details));
         }
     }
 
@@ -251,6 +290,8 @@ public class ExecutionConsoleService {
     public void debug(String executionId, String message, String details) {
         if (console != null) {
             console.debug(executionId, message, details);
+        } else {
+            logBuffer.add(c -> c.debug(executionId, message, details));
         }
     }
 
