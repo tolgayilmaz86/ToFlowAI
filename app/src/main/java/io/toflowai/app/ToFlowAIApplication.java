@@ -30,6 +30,18 @@ public class ToFlowAIApplication {
 
         log.info("✅ Spring Boot initialized successfully");
 
+        // Check if we should skip UI for testing
+        if (args.length > 0 && "--no-ui".equals(args[0])) {
+            log.info("🎯 Running in headless mode (no UI) for testing");
+            // Keep the application running
+            try {
+                Thread.currentThread().join();
+            } catch (InterruptedException e) {
+                log.info("Application interrupted, shutting down");
+            }
+            return;
+        }
+
         // Set the context on the UI module
         ToFlowAIUI.setSpringContext(context);
         ToFlowAIUI.setApplicationClass(ToFlowAIApplication.class);

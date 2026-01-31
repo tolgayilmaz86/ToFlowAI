@@ -23,7 +23,7 @@
                 "y": 200
             },
             "parameters": {
-                "url": "https://api.openweathermap.org/data/2.5/weather?q=London&appid={{apiKey}}&units=metric",
+                "url": "https://api.openweathermap.org/data/2.5/weather?q=London&appid={{OPEN_WEATHER_API_KEY}}&units=metric",
                 "method": "GET",
                 "headers": {
                     "Accept": "application/json"
