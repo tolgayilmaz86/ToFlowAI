@@ -126,15 +126,7 @@ public class HttpRequestExecutor implements NodeExecutor {
 
         String result = template;
 
-        // First pass: replace variables from data map (input + settings)
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            String placeholder = "{{" + entry.getKey() + "}}";
-            String value = entry.getValue() != null ? entry.getValue().toString() : "";
-            result = result.replace(placeholder, value);
-        }
-
-        // Second pass: replace credential references like {{credentialName}}
-        // Look for patterns like {{someName}} that weren't replaced in the first pass
+        // First pass: replace credential references like {{credentialName}}
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{\\{([^}]+)\\}\\}");
         java.util.regex.Matcher matcher = pattern.matcher(result);
         StringBuffer sb = new StringBuffer();
@@ -149,10 +141,23 @@ public class HttpRequestExecutor implements NodeExecutor {
                         "Found credential '" + varName + "', value length: " + credentialValue.length(), Map.of());
                 matcher.appendReplacement(sb, credentialValue);
             } else {
-                context.getExecutionLogger().custom(context.getExecutionId().toString(),
-                        ExecutionLogger.LogLevel.DEBUG, "Credential '" + varName + "' not found", Map.of());
-                // Leave as-is if not found
-                matcher.appendReplacement(sb, matcher.group(0));
+                // Check if this variable exists in the data map (input + settings)
+                Object dataValue = data.get(varName);
+                if (dataValue != null) {
+                    String value = dataValue.toString();
+                    context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                            ExecutionLogger.LogLevel.DEBUG,
+                            "Found variable '" + varName + "' in data map, value length: " + value.length(), Map.of());
+                    matcher.appendReplacement(sb, value);
+                } else {
+                    context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                            ExecutionLogger.LogLevel.DEBUG,
+                            "Variable '" + varName + "' not found in credentials or data map", Map.of());
+                    // Throw an error for missing required variables instead of leaving template
+                    // syntax
+                    throw new RuntimeException(
+                            "Variable '" + varName + "' not found. Create a credential with this name.");
+                }
             }
         }
         matcher.appendTail(sb);

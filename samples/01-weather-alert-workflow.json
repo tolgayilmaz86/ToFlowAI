@@ -162,9 +162,7 @@
             "targetInput": "main"
         }
     ],
-    "settings": {
-        "apiKey": "YOUR_OPENWEATHERMAP_API_KEY"
-    },
+    "settings": {},
     "isActive": true,
     "triggerType": "MANUAL",
     "version": 1
