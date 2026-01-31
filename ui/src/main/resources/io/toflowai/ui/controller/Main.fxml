@@ -60,7 +60,7 @@
                     <MenuItem text="Documentation"/>
                     <MenuItem text="Keyboard Shortcuts"/>
                     <SeparatorMenuItem/>
-                    <MenuItem text="About ToFlowAI"/>
+                    <MenuItem text="About ToFlowAI" onAction="#onShowAbout"/>
                 </Menu>
             </MenuBar>
 

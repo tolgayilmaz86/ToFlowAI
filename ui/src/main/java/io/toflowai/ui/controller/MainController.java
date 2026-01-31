@@ -24,6 +24,7 @@ import io.toflowai.common.service.SettingsServiceInterface;
 import io.toflowai.common.service.WorkflowServiceInterface;
 import io.toflowai.ui.canvas.WorkflowCanvas;
 import io.toflowai.ui.console.ExecutionConsoleService;
+import io.toflowai.ui.dialog.AboutDialog;
 import io.toflowai.ui.dialog.CredentialManagerDialog;
 import io.toflowai.ui.dialog.SettingsDialog;
 import io.toflowai.ui.dialog.WorkflowListDialog;
@@ -509,6 +510,13 @@ public class MainController implements Initializable {
 
         // Return to workflows view after closing dialog
         showWorkflowsView();
+    }
+
+    @FXML
+    private void onShowAbout() {
+        // Show about dialog
+        AboutDialog dialog = new AboutDialog();
+        dialog.showAndWait();
     }
 
     private void clearActiveButton() {
