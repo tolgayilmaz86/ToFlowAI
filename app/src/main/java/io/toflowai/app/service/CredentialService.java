@@ -1,6 +1,10 @@
 package io.toflowai.app.service;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
@@ -31,14 +35,14 @@ public class CredentialService implements CredentialServiceInterface {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Path KEY_FILE = Paths.get("./data/encryption.key");
 
     private final CredentialRepository credentialRepository;
     private final SecretKey encryptionKey;
 
     public CredentialService(CredentialRepository credentialRepository) {
         this.credentialRepository = credentialRepository;
-        // In production, this should be loaded from secure configuration
-        this.encryptionKey = generateKey();
+        this.encryptionKey = loadOrGenerateKey();
     }
 
     @Override
@@ -176,10 +180,26 @@ public class CredentialService implements CredentialServiceInterface {
         }
     }
 
-    private SecretKey generateKey() {
-        // In production, load from secure configuration or key vault
-        byte[] keyBytes = new byte[32]; // 256-bit key
-        SECURE_RANDOM.nextBytes(keyBytes);
-        return new SecretKeySpec(keyBytes, "AES");
+    private SecretKey loadOrGenerateKey() {
+        try {
+            // Try to load existing key
+            if (Files.exists(KEY_FILE)) {
+                byte[] keyBytes = Base64.getDecoder().decode(Files.readString(KEY_FILE).trim());
+                return new SecretKeySpec(keyBytes, "AES");
+            }
+
+            // Generate new key and save it
+            byte[] keyBytes = new byte[32]; // 256-bit key
+            SECURE_RANDOM.nextBytes(keyBytes);
+            SecretKey key = new SecretKeySpec(keyBytes, "AES");
+
+            // Save key to file
+            Files.createDirectories(KEY_FILE.getParent());
+            Files.writeString(KEY_FILE, Base64.getEncoder().encodeToString(keyBytes));
+
+            return key;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load or generate encryption key", e);
+        }
     }
 }

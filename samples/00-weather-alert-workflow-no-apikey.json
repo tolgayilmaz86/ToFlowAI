@@ -1,0 +1,171 @@
+{
+    "name": "Weather Alert Workflow No API Key",
+    "description": "Fetches weather data from Open-Meteo API (free, no API key required), checks if temperature exceeds threshold, and sends an alert. Demonstrates: HTTP Request, Code, IF conditional, and data flow.",
+    "nodes": [
+        {
+            "id": "trigger_1",
+            "type": "manualTrigger",
+            "name": "Manual Start",
+            "position": {
+                "x": 100,
+                "y": 200
+            },
+            "parameters": {},
+            "disabled": false,
+            "notes": "Click Run to start the workflow"
+        },
+        {
+            "id": "http_1",
+            "type": "httpRequest",
+            "name": "Get Weather Data",
+            "position": {
+                "x": 300,
+                "y": 200
+            },
+            "parameters": {
+                "url": "https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current_weather=true&temperature_unit=celsius",
+                "method": "GET",
+                "headers": {
+                    "Accept": "application/json"
+                },
+                "timeout": 30
+            },
+            "disabled": false,
+            "notes": "Fetches current weather for London from Open-Meteo (free API, no key required). Uses coordinates for London."
+        },
+        {
+            "id": "code_1",
+            "type": "code",
+            "name": "Extract Temperature",
+            "position": {
+                "x": 500,
+                "y": 200
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Extract temperature from Open-Meteo weather API response\n\n// Debug: log what we received\nconsole.log('Input keys:', Object.keys(input));\nconsole.log('Status code:', input.statusCode);\nconsole.log('Body type:', typeof input.body);\nconsole.log('Body length:', input.body ? input.body.length : 'N/A');\n\n// Check if we have a valid response\nif (!input.body || typeof input.body !== 'string') {\n  throw new Error('No response body received from weather API');\n}\n\nif (input.statusCode !== 200) {\n  throw new Error('Weather API returned status ' + input.statusCode + ': ' + input.body);\n}\n\nlet weatherData;\ntry {\n  weatherData = JSON.parse(input.body);\n} catch (e) {\n  throw new Error('Invalid JSON response from weather API: ' + e.message);\n}\n\n// Extract data from Open-Meteo format\nconst temperature = weatherData.current_weather.temperature;\nconst city = 'London';\nconst condition = getWeatherDescription(weatherData.current_weather.weathercode);\n\nconst windspeed = weatherData.current_weather.windspeed;\nconst winddirection = weatherData.current_weather.winddirection;\n\nreturn {\n  temperature: temperature,\n  city: city,\n  condition: condition,\n  windspeed: windspeed,\n  winddirection: winddirection,\n  timestamp: new Date().toISOString(),\n  threshold: 25\n};\n\n// Helper function to convert weather code to description\nfunction getWeatherDescription(code) {\n  const descriptions = {\n    0: 'Clear sky',\n    1: 'Mainly clear',\n    2: 'Partly cloudy',\n    3: 'Overcast',\n    45: 'Fog',\n    48: 'Depositing rime fog',\n    51: 'Light drizzle',\n    53: 'Moderate drizzle',\n    55: 'Dense drizzle',\n    56: 'Light freezing drizzle',\n    57: 'Dense freezing drizzle',\n    61: 'Slight rain',\n    63: 'Moderate rain',\n    65: 'Heavy rain',\n    66: 'Light freezing rain',\n    67: 'Heavy freezing rain',\n    71: 'Slight snow fall',\n    73: 'Moderate snow fall',\n    75: 'Heavy snow fall',\n    77: 'Snow grains',\n    80: 'Slight rain showers',\n    81: 'Moderate rain showers',\n    82: 'Violent rain showers',\n    85: 'Slight snow showers',\n    86: 'Heavy snow showers',\n    95: 'Thunderstorm',\n    96: 'Thunderstorm with slight hail',\n    99: 'Thunderstorm with heavy hail'\n  };\n  return descriptions[code] || 'Unknown';\n}"
+            },
+            "disabled": false,
+            "notes": "Parses the JSON response and extracts relevant fields"
+        },
+        {
+            "id": "if_1",
+            "type": "if",
+            "name": "Temperature > 25°C?",
+            "position": {
+                "x": 700,
+                "y": 200
+            },
+            "parameters": {
+                "condition": "{{ temperature }} > {{ threshold }}"
+            },
+            "disabled": false,
+            "notes": "Checks if temperature exceeds the threshold"
+        },
+        {
+            "id": "code_hot",
+            "type": "code",
+            "name": "Format Hot Alert",
+            "position": {
+                "x": 900,
+                "y": 100
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Format alert message for hot weather\nreturn {\n  alertType: 'HOT_WEATHER',\n  message: `🔥 Hot Weather Alert!\\n\\nCity: ${input.city}\\nTemperature: ${input.temperature}°C\\nCondition: ${input.condition}\\n\\nStay hydrated and avoid direct sunlight!`,\n  severity: 'warning',\n  timestamp: input.timestamp\n};"
+            },
+            "disabled": false,
+            "notes": "Creates alert message for hot weather"
+        },
+        {
+            "id": "code_normal",
+            "type": "code",
+            "name": "Format Normal Status",
+            "position": {
+                "x": 900,
+                "y": 300
+            },
+            "parameters": {
+                "language": "javascript",
+                "code": "// Format status message for normal weather\nreturn {\n  alertType: 'NORMAL',\n  message: `✅ Weather Status\\n\\nCity: ${input.city}\\nTemperature: ${input.temperature}°C\\nCondition: ${input.condition}\\n\\nWeather is within normal range.`,\n  severity: 'info',\n  timestamp: input.timestamp\n};"
+            },
+            "disabled": false,
+            "notes": "Creates status message for normal weather"
+        },
+        {
+            "id": "set_1",
+            "type": "set",
+            "name": "Final Output",
+            "position": {
+                "x": 1100,
+                "y": 200
+            },
+            "parameters": {
+                "values": {
+                    "result": "{{ message }}",
+                    "alertType": "{{ alertType }}",
+                    "processedAt": "{{ timestamp }}"
+                }
+            },
+            "disabled": false,
+            "notes": "Consolidates the final output"
+        }
+    ],
+    "connections": [
+        {
+            "id": "conn_1",
+            "sourceNodeId": "trigger_1",
+            "sourceOutput": "main",
+            "targetNodeId": "http_1",
+            "targetInput": "main"
+        },
+        {
+            "id": "conn_2",
+            "sourceNodeId": "http_1",
+            "sourceOutput": "main",
+            "targetNodeId": "code_1",
+            "targetInput": "main"
+        },
+        {
+            "id": "conn_3",
+            "sourceNodeId": "code_1",
+            "sourceOutput": "main",
+            "targetNodeId": "if_1",
+            "targetInput": "main"
+        },
+        {
+            "id": "conn_4",
+            "sourceNodeId": "if_1",
+            "sourceOutput": "true",
+            "targetNodeId": "code_hot",
+            "targetInput": "main"
+        },
+        {
+            "id": "conn_5",
+            "sourceNodeId": "if_1",
+            "sourceOutput": "false",
+            "targetNodeId": "code_normal",
+            "targetInput": "main"
+        },
+        {
+            "id": "conn_6",
+            "sourceNodeId": "code_hot",
+            "sourceOutput": "main",
+            "targetNodeId": "set_1",
+            "targetInput": "main"
+        },
+        {
+            "id": "conn_7",
+            "sourceNodeId": "code_normal",
+            "sourceOutput": "main",
+            "targetNodeId": "set_1",
+            "targetInput": "main"
+        }
+    ],
+    "settings": {
+        "apiKey": "Use credential named 'weather-api' instead"
+    },
+    "isActive": true,
+    "triggerType": "MANUAL",
+    "version": 1
+}

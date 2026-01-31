@@ -205,7 +205,8 @@ public class ExecutionService implements ExecutionServiceInterface {
                     execution.getId(),
                     workflow,
                     input,
-                    credentialService);
+                    credentialService,
+                    executionLogger);
 
             // Execute workflow
             Map<String, Object> output = executeWorkflow(workflow, context);
@@ -420,14 +421,16 @@ public class ExecutionService implements ExecutionServiceInterface {
         private final WorkflowDTO workflow;
         private final Map<String, Object> input;
         private final CredentialService credentialService;
+        private final ExecutionLogger executionLogger;
         private final List<Map<String, Object>> nodeExecutions = new ArrayList<>();
 
         public ExecutionContext(Long executionId, WorkflowDTO workflow,
-                Map<String, Object> input, CredentialService credentialService) {
+                Map<String, Object> input, CredentialService credentialService, ExecutionLogger executionLogger) {
             this.executionId = executionId;
             this.workflow = workflow;
             this.input = input;
             this.credentialService = credentialService;
+            this.executionLogger = executionLogger;
         }
 
         public Long getExecutionId() {
@@ -444,6 +447,18 @@ public class ExecutionService implements ExecutionServiceInterface {
 
         public String getDecryptedCredential(Long credentialId) {
             return credentialService.getDecryptedData(credentialId);
+        }
+
+        public String getDecryptedCredentialByName(String name) {
+            var credentialOpt = credentialService.findByName(name);
+            if (credentialOpt.isPresent()) {
+                return credentialService.getDecryptedData(credentialOpt.get().id());
+            }
+            return null;
+        }
+
+        public ExecutionLogger getExecutionLogger() {
+            return executionLogger;
         }
 
         public void recordNodeExecution(String nodeId, ExecutionStatus status,

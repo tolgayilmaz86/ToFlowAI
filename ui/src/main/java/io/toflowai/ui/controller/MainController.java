@@ -33,6 +33,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Label;
@@ -81,6 +82,9 @@ public class MainController implements Initializable {
     private Button btnExecutions;
 
     @FXML
+    private Button btnExecutionConsole;
+
+    @FXML
     private Button btnCredentials;
 
     @FXML
@@ -115,6 +119,7 @@ public class MainController implements Initializable {
     private void setupSidebarIcons() {
         btnWorkflows.setGraphic(new FontIcon(MaterialDesignF.FILE_TREE));
         btnExecutions.setGraphic(new FontIcon(MaterialDesignP.PLAY_CIRCLE_OUTLINE));
+        btnExecutionConsole.setGraphic(new FontIcon(MaterialDesignC.CONSOLE));
         btnCredentials.setGraphic(new FontIcon(MaterialDesignC.CREDIT_CARD_OUTLINE));
         btnSettings.setGraphic(new FontIcon(MaterialDesignC.COG_OUTLINE));
     }
@@ -122,6 +127,7 @@ public class MainController implements Initializable {
     private void setupSidebarActions() {
         btnWorkflows.setOnAction(e -> showWorkflowsView());
         btnExecutions.setOnAction(e -> showExecutionsView());
+        btnExecutionConsole.setOnAction(e -> onShowExecutionConsole());
         btnCredentials.setOnAction(e -> showCredentialsView());
         btnSettings.setOnAction(e -> showSettingsView());
     }
@@ -522,6 +528,7 @@ public class MainController implements Initializable {
     private void clearActiveButton() {
         btnWorkflows.getStyleClass().remove("active");
         btnExecutions.getStyleClass().remove("active");
+        btnExecutionConsole.getStyleClass().remove("active");
         btnCredentials.getStyleClass().remove("active");
         btnSettings.getStyleClass().remove("active");
     }
@@ -554,7 +561,18 @@ public class MainController implements Initializable {
     @FXML
     private void onOpenWorkflow() {
         List<WorkflowDTO> workflows = workflowService.findAll();
-        WorkflowListDialog dialog = new WorkflowListDialog(workflows);
+        WorkflowListDialog dialog = new WorkflowListDialog(workflows, workflow -> {
+            try {
+                workflowService.delete(workflow.id());
+                updateStatus("Deleted workflow: " + workflow.name());
+            } catch (Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Delete Failed");
+                alert.setHeaderText("Failed to delete workflow");
+                alert.setContentText("Error: " + e.getMessage());
+                alert.showAndWait();
+            }
+        });
         Optional<WorkflowDTO> selected = dialog.showAndWait();
 
         selected.ifPresent(workflow -> {
@@ -564,6 +582,37 @@ public class MainController implements Initializable {
                 updateStatus("Loaded: " + workflow.name());
             }
         });
+    }
+
+    @FXML
+    private void onDeleteWorkflow() {
+        List<WorkflowDTO> workflows = workflowService.findAll();
+        if (workflows.isEmpty()) {
+            // Show info dialog if no workflows exist
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("No Workflows");
+            alert.setHeaderText(null);
+            alert.setContentText("No workflows found to delete.");
+            alert.showAndWait();
+            return;
+        }
+
+        WorkflowListDialog dialog = new WorkflowListDialog(workflows, workflow -> {
+            try {
+                workflowService.delete(workflow.id());
+                updateStatus("Deleted workflow: " + workflow.name());
+            } catch (Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Delete Failed");
+                alert.setHeaderText("Failed to delete workflow");
+                alert.setContentText("Error: " + e.getMessage());
+                alert.showAndWait();
+            }
+        });
+
+        // Don't wait for result since we're not opening, just showing the dialog for
+        // deletion
+        dialog.show();
     }
 
     @FXML

@@ -7,6 +7,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.springframework.stereotype.Component;
 
+import io.toflowai.app.service.ExecutionLogger;
 import io.toflowai.app.service.ExecutionService;
 import io.toflowai.app.service.NodeExecutor;
 import io.toflowai.common.domain.Node;
@@ -25,6 +26,17 @@ public class CodeExecutor implements NodeExecutor {
     @Override
     public Map<String, Object> execute(Node node, Map<String, Object> input,
             ExecutionService.ExecutionContext context) {
+        // Debug: log input data
+        context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                ExecutionLogger.LogLevel.DEBUG, "CodeExecutor input keys: " + input.keySet(), Map.of());
+        for (Map.Entry<String, Object> entry : input.entrySet()) {
+            String valueStr = entry.getValue() != null
+                    ? entry.getValue().toString().substring(0, Math.min(100, entry.getValue().toString().length()))
+                    : "null";
+            context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                    ExecutionLogger.LogLevel.TRACE, "CodeExecutor input[" + entry.getKey() + "] = " + valueStr,
+                    Map.of());
+        }
         String code = (String) node.parameters().getOrDefault("code", "");
         String language = (String) node.parameters().getOrDefault("language", DEFAULT_LANGUAGE);
 
@@ -44,8 +56,15 @@ public class CodeExecutor implements NodeExecutor {
 
             // Bind input data
             Value bindings = polyglotContext.getBindings(graalLanguage);
-            bindings.putMember("$input", input);
-            bindings.putMember("input", input); // Also bind as 'input' for backward compatibility
+
+            // Convert Java Map to JavaScript object for better property access
+            Value jsInput = polyglotContext.eval(graalLanguage, "({})");
+            for (Map.Entry<String, Object> entry : input.entrySet()) {
+                jsInput.putMember(entry.getKey(), entry.getValue());
+            }
+            bindings.putMember("$input", jsInput);
+            bindings.putMember("input", jsInput); // Also bind as 'input' for backward compatibility
+
             bindings.putMember("$node", node.parameters());
             bindings.putMember("node", node.parameters()); // Also bind as 'node' for backward compatibility
 

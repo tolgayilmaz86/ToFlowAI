@@ -19,12 +19,16 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
@@ -53,6 +57,8 @@ public class ExecutionConsole extends Stage {
     private final ScrollPane scrollPane;
     private final Map<String, ExecutionSession> sessions = new ConcurrentHashMap<>();
     private final List<ConsoleLogListener> listeners = new CopyOnWriteArrayList<>();
+    private final Label filterStatusLabel = new Label("");
+    private final Label sessionCountLabel = new Label("Sessions: 0");
 
     private boolean autoScroll = true;
     private boolean showTimestamps = true;
@@ -123,10 +129,30 @@ public class ExecutionConsole extends Stage {
         toolbar.setStyle("-fx-background-color: #3b4252; -fx-padding: 5;");
 
         // Clear button
-        Button clearBtn = createToolButton("Clear", MaterialDesignD.DELETE_OUTLINE, () -> clear());
+        Button clearBtn = createToolButton("Clear", MaterialDesignD.DELETE_OUTLINE, () -> {
+            if (!sessions.isEmpty()) {
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.setTitle("Clear Console");
+                confirm.setHeaderText("Clear all log entries?");
+                confirm.setContentText("This will permanently remove all execution logs and cannot be undone.");
+                confirm.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.OK) {
+                        clear();
+                    }
+                });
+            }
+        });
 
         // Copy button
-        Button copyBtn = createToolButton("Copy All", MaterialDesignC.CONTENT_COPY, () -> copyToClipboard());
+        Button copyBtn = createToolButton("Copy All", MaterialDesignC.CONTENT_COPY, () -> {
+            copyToClipboard();
+            // Show feedback
+            Alert info = new Alert(Alert.AlertType.INFORMATION);
+            info.setTitle("Logs Copied");
+            info.setHeaderText(null);
+            info.setContentText("All execution logs have been copied to clipboard.");
+            info.showAndWait();
+        });
 
         // Auto-scroll toggle
         ToggleButton autoScrollBtn = new ToggleButton();
@@ -149,7 +175,7 @@ public class ExecutionConsole extends Stage {
 
         // Debug toggle
         ToggleButton debugBtn = new ToggleButton("DEBUG");
-        debugBtn.setTooltip(new Tooltip("Show debug messages"));
+        debugBtn.setTooltip(new Tooltip("Show only debug messages"));
         debugBtn.setSelected(showDebug);
         debugBtn.selectedProperty().addListener((obs, old, val) -> {
             showDebug = val;
@@ -159,7 +185,7 @@ public class ExecutionConsole extends Stage {
 
         // Trace toggle
         ToggleButton traceBtn = new ToggleButton("TRACE");
-        traceBtn.setTooltip(new Tooltip("Show trace messages"));
+        traceBtn.setTooltip(new Tooltip("Show only trace messages"));
         traceBtn.setSelected(showTrace);
         traceBtn.selectedProperty().addListener((obs, old, val) -> {
             showTrace = val;
@@ -169,7 +195,7 @@ public class ExecutionConsole extends Stage {
 
         // Separator
         Separator sep1 = new Separator();
-        sep1.setOrientation(javafx.geometry.Orientation.VERTICAL);
+        sep1.setOrientation(Orientation.VERTICAL);
 
         // Filter field
         TextField filterField = new TextField();
@@ -214,10 +240,11 @@ public class ExecutionConsole extends Stage {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label sessionCount = new Label("Sessions: 0");
-        sessionCount.setStyle("-fx-text-fill: #616e88;");
+        filterStatusLabel.setStyle("-fx-text-fill: #ebcb8b;");
 
-        statusBar.getChildren().addAll(status, spacer, sessionCount);
+        sessionCountLabel.setStyle("-fx-text-fill: #616e88;");
+
+        statusBar.getChildren().addAll(status, spacer, filterStatusLabel, sessionCountLabel);
         return statusBar;
     }
 
@@ -235,6 +262,8 @@ public class ExecutionConsole extends Stage {
             HBox header = createExecutionHeader(executionId, workflowName, Instant.now());
             logContainer.getChildren().add(header);
             session.setHeaderIndex(logContainer.getChildren().size() - 1);
+
+            updateSessionCount();
         });
     }
 
@@ -402,6 +431,7 @@ public class ExecutionConsole extends Stage {
         Platform.runLater(() -> {
             logContainer.getChildren().clear();
             sessions.clear();
+            updateSessionCount();
         });
     }
 
@@ -438,7 +468,7 @@ public class ExecutionConsole extends Stage {
             return;
         }
 
-        HBox entryBox = createLogEntryView(data);
+        VBox entryBox = createLogEntryView(data);
         logContainer.getChildren().add(entryBox);
 
         // Notify listeners
@@ -448,11 +478,16 @@ public class ExecutionConsole extends Stage {
     }
 
     private boolean shouldShowEntry(LogEntryData entry) {
-        // Level filter
-        if (entry.type == LogEntryType.DEBUG && !showDebug)
-            return false;
-        if (entry.type == LogEntryType.TRACE && !showTrace)
-            return false;
+        // If any level filters are active, only show selected levels
+        if (showDebug || showTrace) {
+            if (entry.type == LogEntryType.DEBUG && !showDebug)
+                return false;
+            if (entry.type == LogEntryType.TRACE && !showTrace)
+                return false;
+            // Hide other levels when filters are active
+            if (entry.type != LogEntryType.DEBUG && entry.type != LogEntryType.TRACE)
+                return false;
+        }
 
         // Text filter
         if (!filterText.isEmpty()) {
@@ -491,10 +526,13 @@ public class ExecutionConsole extends Stage {
         return header;
     }
 
-    private HBox createLogEntryView(LogEntryData entry) {
-        HBox entryBox = new HBox(5);
-        entryBox.setPadding(new Insets(2, 10, 2, 10));
-        entryBox.setAlignment(Pos.TOP_LEFT);
+    private VBox createLogEntryView(LogEntryData entry) {
+        VBox entryContainer = new VBox(2);
+        entryContainer.setPadding(new Insets(2, 10, 2, 10));
+
+        // Main log line
+        HBox mainLine = new HBox(5);
+        mainLine.setAlignment(Pos.TOP_LEFT);
 
         // Indentation
         int indentPixels = entry.depth * 20;
@@ -507,42 +545,48 @@ public class ExecutionConsole extends Stage {
             Text timestamp = new Text(formatTimestamp(entry.timestamp) + " ");
             timestamp.setFill(Color.web(COLOR_TIMESTAMP));
             timestamp.setFont(Font.font("Monospace", 10));
-            entryBox.getChildren().add(timestamp);
+            mainLine.getChildren().add(timestamp);
         }
 
-        entryBox.getChildren().add(indent);
+        mainLine.getChildren().add(indent);
 
         // Type indicator with color
         Text typeIndicator = new Text(getTypeIndicator(entry.type));
         typeIndicator.setFill(Color.web(getColorForType(entry.type)));
         typeIndicator.setFont(Font.font("System", FontWeight.BOLD, 12));
-        entryBox.getChildren().add(typeIndicator);
+        mainLine.getChildren().add(typeIndicator);
 
         // Message
         Text messageText = new Text(entry.message);
         messageText.setFill(Color.web(getColorForType(entry.type)));
         messageText.setFont(Font.font("System", 12));
-        entryBox.getChildren().add(messageText);
+        mainLine.getChildren().add(messageText);
 
-        // Details (if present)
+        entryContainer.getChildren().add(mainLine);
+
+        // Details section (collapsible)
         if (entry.details != null && !entry.details.isEmpty()) {
-            Text detailsText = new Text(" — " + truncate(entry.details, 100));
-            detailsText.setFill(Color.web(COLOR_TIMESTAMP));
-            detailsText.setFont(Font.font("System", 11));
-            entryBox.getChildren().add(detailsText);
+            // Create a compact details preview
+            String preview = entry.details.length() > 80 ? entry.details.substring(0, 80) + "..." : entry.details;
+            Text detailsPreview = new Text(" ▶ " + preview);
+            detailsPreview.setFill(Color.web(COLOR_TIMESTAMP));
+            detailsPreview.setFont(Font.font("System", 11));
 
-            // Add tooltip for full details if truncated
-            if (entry.details.length() > 100) {
-                Tooltip.install(entryBox, new Tooltip(entry.details));
-            }
+            // Make it clickable to expand
+            detailsPreview.setOnMouseClicked(e -> toggleDetails(entryContainer, entry));
+            detailsPreview.setOnMouseEntered(e -> detailsPreview.setUnderline(true));
+            detailsPreview.setOnMouseExited(e -> detailsPreview.setUnderline(false));
+            detailsPreview.setStyle("-fx-cursor: hand;");
+
+            mainLine.getChildren().add(detailsPreview);
         }
 
         // Make error entries more visible
         if (entry.type == LogEntryType.ERROR) {
-            entryBox.setStyle("-fx-background-color: rgba(191, 97, 106, 0.1);");
+            entryContainer.setStyle("-fx-background-color: rgba(191, 97, 106, 0.1);");
         }
 
-        return entryBox;
+        return entryContainer;
     }
 
     private String getTypeIndicator(LogEntryType type) {
@@ -582,6 +626,42 @@ public class ExecutionConsole extends Stage {
         return s.substring(0, maxLength) + "...";
     }
 
+    /**
+     * Toggle the expanded details view for a log entry.
+     */
+    private void toggleDetails(VBox entryContainer, LogEntryData entry) {
+        // Check if details are already expanded
+        if (entryContainer.getChildren().size() > 1) {
+            // Remove the expanded details
+            entryContainer.getChildren().remove(1);
+            // Update the preview text back to collapsed state
+            HBox mainLine = (HBox) entryContainer.getChildren().get(0);
+            if (mainLine.getChildren().size() > 3) {
+                Text detailsPreview = (Text) mainLine.getChildren().get(3);
+                String preview = entry.details.length() > 80 ? entry.details.substring(0, 80) + "..." : entry.details;
+                detailsPreview.setText(" ▶ " + preview);
+            }
+        } else {
+            // Add expanded details
+            TextArea detailsArea = new TextArea(entry.details);
+            detailsArea.setEditable(false);
+            detailsArea.setWrapText(true);
+            detailsArea.setPrefRowCount(Math.min(10, (int) Math.ceil(entry.details.length() / 80.0)));
+            detailsArea.setMaxWidth(600);
+            detailsArea.getStyleClass().add("log-details-textarea");
+
+            entryContainer.getChildren().add(detailsArea);
+
+            // Update the preview text to show expanded state
+            HBox mainLine = (HBox) entryContainer.getChildren().get(0);
+            if (mainLine.getChildren().size() > 3) {
+                Text detailsPreview = (Text) mainLine.getChildren().get(3);
+                detailsPreview.setText(
+                        " ▼ " + (entry.details.length() > 80 ? entry.details.substring(0, 80) + "..." : entry.details));
+            }
+        }
+    }
+
     private String formatEntryAsText(LogEntryData entry) {
         StringBuilder sb = new StringBuilder();
         sb.append(formatTimestamp(entry.timestamp)).append(" ");
@@ -595,6 +675,7 @@ public class ExecutionConsole extends Stage {
     }
 
     private void refreshDisplay() {
+        updateFilterStatus();
         logContainer.getChildren().clear();
         for (ExecutionSession session : sessions.values()) {
             HBox header = createExecutionHeader(session.getExecutionId(),
@@ -603,11 +684,34 @@ public class ExecutionConsole extends Stage {
 
             for (LogEntryData entry : session.getEntries()) {
                 if (shouldShowEntry(entry)) {
-                    HBox entryBox = createLogEntryView(entry);
+                    VBox entryBox = createLogEntryView(entry);
                     logContainer.getChildren().add(entryBox);
                 }
             }
         }
+    }
+
+    private void updateFilterStatus() {
+        StringBuilder status = new StringBuilder();
+        if (showDebug) {
+            status.append("DEBUG ");
+        }
+        if (showTrace) {
+            status.append("TRACE ");
+        }
+        if (!filterText.isEmpty()) {
+            status.append("FILTER: ").append(filterText).append(" ");
+        }
+
+        Platform.runLater(() -> {
+            filterStatusLabel.setText(status.toString().trim());
+        });
+    }
+
+    private void updateSessionCount() {
+        Platform.runLater(() -> {
+            sessionCountLabel.setText("Sessions: " + sessions.size());
+        });
     }
 
     /**

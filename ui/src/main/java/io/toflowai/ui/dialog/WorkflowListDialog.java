@@ -2,9 +2,12 @@ package io.toflowai.ui.dialog;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Consumer;
 
 import io.toflowai.common.dto.WorkflowDTO;
 import javafx.geometry.Insets;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -24,8 +27,14 @@ public class WorkflowListDialog extends Dialog<WorkflowDTO> {
 
     private final ListView<WorkflowDTO> workflowList;
     private final Label detailsLabel;
+    private final Consumer<WorkflowDTO> onDelete;
 
     public WorkflowListDialog(List<WorkflowDTO> workflows) {
+        this(workflows, null);
+    }
+
+    public WorkflowListDialog(List<WorkflowDTO> workflows, Consumer<WorkflowDTO> onDelete) {
+        this.onDelete = onDelete;
         setTitle("Open Workflow");
         setHeaderText("Select a workflow to open");
         initModality(Modality.APPLICATION_MODAL);
@@ -78,6 +87,35 @@ public class WorkflowListDialog extends Dialog<WorkflowDTO> {
 
         VBox leftPane = new VBox(5);
         leftPane.getChildren().addAll(new Label("Workflows:"), workflowList);
+
+        // Delete button (only if delete callback is provided)
+        if (onDelete != null) {
+            Button deleteButton = new Button("Delete Selected");
+            deleteButton.setStyle("-fx-base: #dc2626;");
+            deleteButton.setOnAction(e -> {
+                WorkflowDTO selected = workflowList.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirm.setTitle("Delete Workflow");
+                    confirm.setHeaderText("Delete workflow: " + selected.name() + "?");
+                    confirm.setContentText(
+                            "This action cannot be undone. All workflow data will be permanently deleted.");
+
+                    confirm.showAndWait().ifPresent(buttonType -> {
+                        if (buttonType == ButtonType.OK) {
+                            onDelete.accept(selected);
+                            workflowList.getItems().remove(selected);
+                            if (workflowList.getItems().isEmpty()) {
+                                workflowList.setPlaceholder(
+                                        new Label("No workflows found.\nCreate a new workflow to get started."));
+                            }
+                        }
+                    });
+                }
+            });
+            deleteButton.disableProperty().bind(workflowList.getSelectionModel().selectedItemProperty().isNull());
+            leftPane.getChildren().add(deleteButton);
+        }
 
         VBox rightPane = new VBox(5);
         rightPane.getChildren().addAll(new Label("Details:"), detailsLabel);

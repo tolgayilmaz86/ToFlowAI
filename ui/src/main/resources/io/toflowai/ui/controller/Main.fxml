@@ -17,6 +17,7 @@
                 <Menu text="File">
                     <MenuItem text="New Workflow" onAction="#onNewWorkflow" accelerator="Ctrl+N"/>
                     <MenuItem text="Open Workflow..." onAction="#onOpenWorkflow" accelerator="Ctrl+O"/>
+                    <MenuItem text="Delete Workflow..." onAction="#onDeleteWorkflow"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Save" onAction="#onSaveWorkflow" accelerator="Ctrl+S"/>
                     <MenuItem text="Save As..." accelerator="Ctrl+Shift+S"/>
@@ -89,6 +90,9 @@
             </Button>
             <Button fx:id="btnExecutions" styleClass="sidebar-button">
                 <tooltip><Tooltip text="Executions"/></tooltip>
+            </Button>
+            <Button fx:id="btnExecutionConsole" styleClass="sidebar-button">
+                <tooltip><Tooltip text="Execution Console"/></tooltip>
             </Button>
             <Button fx:id="btnCredentials" styleClass="sidebar-button">
                 <tooltip><Tooltip text="Credentials"/></tooltip>

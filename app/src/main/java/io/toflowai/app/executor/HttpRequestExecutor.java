@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import io.toflowai.app.service.ExecutionLogger;
 import io.toflowai.app.service.ExecutionService;
 import io.toflowai.app.service.NodeExecutor;
 import io.toflowai.app.service.SettingsDefaults;
@@ -44,10 +45,18 @@ public class HttpRequestExecutor implements NodeExecutor {
             ExecutionService.ExecutionContext context) {
         Map<String, Object> params = node.parameters();
 
-        String url = interpolate((String) params.getOrDefault("url", ""), input);
+        // Combine input data with workflow settings for template interpolation
+        Map<String, Object> templateData = new HashMap<>(input);
+        if (context.getWorkflow().settings() != null) {
+            templateData.putAll(context.getWorkflow().settings());
+        }
+
+        String url = interpolate((String) params.getOrDefault("url", ""), templateData, context);
+        context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                ExecutionLogger.LogLevel.DEBUG, "HTTP Request URL: " + url, Map.of());
         String method = (String) params.getOrDefault("method", "GET");
         Map<String, String> headers = (Map<String, String>) params.getOrDefault("headers", Map.of());
-        String body = interpolate((String) params.getOrDefault("body", ""), input);
+        String body = interpolate((String) params.getOrDefault("body", ""), templateData, context);
         int timeout = (int) params.getOrDefault("timeout", defaultTimeout);
 
         try {
@@ -58,7 +67,7 @@ public class HttpRequestExecutor implements NodeExecutor {
 
             // Add headers
             for (Map.Entry<String, String> header : headers.entrySet()) {
-                requestBuilder.header(header.getKey(), interpolate(header.getValue(), input));
+                requestBuilder.header(header.getKey(), interpolate(header.getValue(), templateData, context));
             }
 
             // Add authentication if credential is specified
@@ -77,6 +86,18 @@ public class HttpRequestExecutor implements NodeExecutor {
             // Execute request
             HttpRequest request = requestBuilder.build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                    ExecutionLogger.LogLevel.DEBUG, "HTTP Response: status=" + response.statusCode() +
+                            ", body_length=" + (response.body() != null ? response.body().length() : 0),
+                    Map.of());
+
+            if (response.body() != null && response.body().length() > 0) {
+                String preview = response.body().length() > 200 ? response.body().substring(0, 200) + "..."
+                        : response.body();
+                context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                        ExecutionLogger.LogLevel.TRACE, "HTTP Response Body: " + preview, Map.of());
+            }
 
             // Build output
             Map<String, Object> output = new HashMap<>();
@@ -97,18 +118,46 @@ public class HttpRequestExecutor implements NodeExecutor {
 
     /**
      * Simple template interpolation for {{ variable }} syntax.
+     * Supports workflow settings and credentials by name.
      */
-    private String interpolate(String template, Map<String, Object> data) {
+    private String interpolate(String template, Map<String, Object> data, ExecutionService.ExecutionContext context) {
         if (template == null)
             return "";
 
         String result = template;
+
+        // First pass: replace variables from data map (input + settings)
         for (Map.Entry<String, Object> entry : data.entrySet()) {
             String placeholder = "{{" + entry.getKey() + "}}";
             String value = entry.getValue() != null ? entry.getValue().toString() : "";
             result = result.replace(placeholder, value);
         }
-        return result;
+
+        // Second pass: replace credential references like {{credentialName}}
+        // Look for patterns like {{someName}} that weren't replaced in the first pass
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{\\{([^}]+)\\}\\}");
+        java.util.regex.Matcher matcher = pattern.matcher(result);
+        StringBuffer sb = new StringBuffer();
+
+        while (matcher.find()) {
+            String varName = matcher.group(1);
+            // Check if this is a credential name
+            String credentialValue = context.getDecryptedCredentialByName(varName);
+            if (credentialValue != null) {
+                context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                        ExecutionLogger.LogLevel.DEBUG,
+                        "Found credential '" + varName + "', value length: " + credentialValue.length(), Map.of());
+                matcher.appendReplacement(sb, credentialValue);
+            } else {
+                context.getExecutionLogger().custom(context.getExecutionId().toString(),
+                        ExecutionLogger.LogLevel.DEBUG, "Credential '" + varName + "' not found", Map.of());
+                // Leave as-is if not found
+                matcher.appendReplacement(sb, matcher.group(0));
+            }
+        }
+        matcher.appendTail(sb);
+
+        return sb.toString();
     }
 
     /**

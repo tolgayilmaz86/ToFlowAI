@@ -107,6 +107,54 @@
     -fx-background-color: rgba(235, 203, 139, 0.1);
 }
 
+/* Details text area in expanded view */
+.log-details-textarea {
+    -fx-background-color: #3b4252;
+    -fx-text-fill: #d8dee9;
+    -fx-font-family: 'Monospace';
+    -fx-font-size: 11px;
+    -fx-padding: 5;
+    -fx-border-color: #4c566a;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+.log-details-textarea .content {
+    -fx-background-color: #3b4252;
+}
+
+.log-details-textarea .scroll-bar:vertical {
+    -fx-background-color: #4c566a;
+}
+
+.log-details-textarea .scroll-bar:vertical .thumb {
+    -fx-background-color: #616e88;
+}
+
+/* Details text area in expanded view */
+.log-details-textarea {
+    -fx-background-color: #3b4252;
+    -fx-text-fill: #d8dee9;
+    -fx-font-family: 'Monospace';
+    -fx-font-size: 11px;
+    -fx-padding: 5;
+    -fx-border-color: #4c566a;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+.log-details-textarea .content {
+    -fx-background-color: #3b4252;
+}
+
+.log-details-textarea .scroll-bar:vertical {
+    -fx-background-color: #4c566a;
+}
+
+.log-details-textarea .scroll-bar:vertical .thumb {
+    -fx-background-color: #616e88;
+}
+
 /* Execution header */
 .execution-header {
     -fx-background-color: #3b4252;
